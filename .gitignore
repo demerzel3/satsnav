@@ -6,3 +6,4 @@ DerivedData/
 .swiftpm
 .netrc
 Sources/Addresses.swift
+*.csv
