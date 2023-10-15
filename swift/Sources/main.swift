@@ -2,7 +2,7 @@ import Foundation
 import KrakenAPI
 import SwiftCSV
 
-private let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: "/Users/gabriele/Projects/SatsNav/ledgers.csv"))
+private let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: "./ledgers.csv"))
 
 private enum AssetType {
     case fiat
