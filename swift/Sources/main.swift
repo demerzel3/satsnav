@@ -1,3 +1,4 @@
+import ElectrumKit
 import Foundation
 import KrakenAPI
 import SwiftCSV
@@ -119,3 +120,10 @@ for trade in ledgersGroupedByRefId {
 // if let firstTrade = ledgersGroupedByRefId.first {
 //
 // }
+
+private let electrum = Electrum(hostName: "bitcoin.lu.ke", port: 50001, using: .tcp, debug: true)
+private let transactions = try await electrum.addressTXS(address: knownAddresses[0])
+print(transactions)
+// go back one step
+private let oneStepBackTransaction = try await electrum.transaction(txid: transactions[0].vin[0].txid)
+print(oneStepBackTransaction)
