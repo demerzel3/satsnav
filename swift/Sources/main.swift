@@ -130,69 +130,20 @@ print(ledgersByRefId.count)
 // private let oneStepBackTransaction = try await electrum.transaction(txid: transactions[0].vin[0].txid)
 // print(oneStepBackTransaction)
 
-struct Message: Codable {
-    let id: Int32
-    let jsonrpc: String
-    let method: String
-    let params: [String]
-}
+private let connection = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
+connection.start()
 
-////////////////////////////////////
-//////////// Awesome TCP connection
-////////////////////////////////////
-
-// private let connection = EasyTCP(hostName: "electrum1.bluewallet.io", port: 50001, waitTime: 30)
-// connection.start()
-// private var msg = try JSONEncoder().encode(Message(
-//    id: 1, jsonrpc: "2.0", method: "blockchain.scripthash.get_history", params: ["ab779523f6d1e361de94c9f47ee19f72c4ec344d42758efd260f2e8a33edccd1"]))
-// msg.append("\r\n".data(using: .utf8)!)
-//
-// print("sending", String(data: msg, encoding: .utf8)!)
-//
-// await withCheckedContinuation { continuation in
-//    connection.send(data: msg) { data in
-//        print("continuation: \(data)")
-//        print("EasyTCP JSON Receive:")
-//        print(String(data: data, encoding: .utf8)!)
-//        // let a = try! JSONDecoder().decode(output, from: data)
-//        continuation.resume(returning: "")
-//    }
+// private struct JSONRPCRequest {
+//    let method: String
 // }
 
-////////////////////////////////////
-//////////// Magic JSON parser
-////////////////////////////////////
-private let input =
-    """
-    {"ciao": 1}{"ciao":2}    
-    [1, 2, 3, 4, null, "ciao", 5]
-    """
-private var inputData = input.data(using: .utf8)!
+private let request = JSON.array(JSON.Array(knownAddresses[0 ... 10].enumerated().map { index, address in
+    JSON.object([
+        "id": JSON.number(JSON.Number(index)),
+        "jsonrpc": JSON.string("2.0"),
+        "method": JSON.string("blockchain.scripthash.get_history"),
+        "params": JSON.object(["scripthash": JSON.string(address.scriptHash)])
+    ])
+}))
 
-struct Response: Codable {
-    let ciao: Int32
-}
-
-// let decoder = try JSON(parsing: input.utf8)
-// let response = try JSON.Object(from: decoder)
-
-// do {
-//    let response = try JSON.Rule<String.Index>.Root.parse(input.utf8, into: [JSON].self)
-//    // let response = try JSON.Rule<String.Index>.Value.parse(diagnosing: input.utf8)
-//    print(response)
-// } catch let error as ParsingError<String.Index> {
-//    let annotated: String = error.annotate(source: input,
-//                                           renderer: String.init(_:),
-//                                           newline: \.isNewline)
-//    print(annotated)
-// }
-
-print(input.bytes.count)
-
-var parsingInput: ParsingInput<NoDiagnostics<Data>> = .init(inputData)
-while let result: JSON = parsingInput.parse(as: JSON.Rule<Int>.Root?.self) {
-    print(result)
-}
-print("parsed up to @\(parsingInput.index)")
-inputData.removeFirst(parsingInput.index)
-print("size:", inputData.count, String(data: inputData, encoding: .utf8)!)
+try print(await connection.send(request: request))
