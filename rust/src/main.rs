@@ -26,14 +26,14 @@ fn main() {
         let rcv_desc = get_multisig_descriptor(i, &xpubs, &secp, false);
         let change_desc = get_multisig_descriptor(i, &xpubs, &secp, true);
 
-        println!("rcv address       {}", get_address(&rcv_desc).unwrap());
         println!(
-            "rcv scripthash    {}",
+            "Address(id: \"{}\", scriptHash: \"{}\"),",
+            get_address(&rcv_desc).unwrap(),
             get_script_hash_for_electrum(&rcv_desc)
         );
-        println!("change address    {}", get_address(&change_desc).unwrap());
         println!(
-            "change scripthash {}",
+            "Address(id: \"{}\", scriptHash: \"{}\"),",
+            get_address(&change_desc).unwrap(),
             get_script_hash_for_electrum(&change_desc)
         );
     });
