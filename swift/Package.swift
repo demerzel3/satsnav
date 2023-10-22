@@ -20,7 +20,13 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .executableTarget(
             name: "SatsNav",
-            dependencies: ["KrakenAPI", "SwiftCSV", "ElectrumKit", .product(name: "JSON", package: "swift-json")]
+            dependencies: [
+                "KrakenAPI",
+                "SwiftCSV",
+                "ElectrumKit",
+                .product(name: "JSON", package: "swift-json"),
+                .product(name: "JSONDecoding", package: "swift-json"),
+            ]
         ),
     ]
 )

@@ -2,6 +2,7 @@ import ElectrumKit
 import Foundation
 import Grammar
 import JSON
+import JSONDecoding
 import KrakenAPI
 import SwiftCSV
 
@@ -130,20 +131,36 @@ print(ledgersByRefId.count)
 // private let oneStepBackTransaction = try await electrum.transaction(txid: transactions[0].vin[0].txid)
 // print(oneStepBackTransaction)
 
-private let connection = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
-connection.start()
+private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
+client.start()
 
-// private struct JSONRPCRequest {
-//    let method: String
-// }
+extension JSONRPCRequest {
+    static func getScripthashHistory(scriptHash: String) -> JSONRPCRequest {
+        return self.init(
+            method: "blockchain.scripthash.get_history",
+            params: ["scripthash": .string(scriptHash)]
+        )
+    }
 
-private let request = JSON.array(JSON.Array(knownAddresses[0 ... 10].enumerated().map { index, address in
-    JSON.object([
-        "id": JSON.number(JSON.Number(index)),
-        "jsonrpc": JSON.string("2.0"),
-        "method": JSON.string("blockchain.scripthash.get_history"),
-        "params": JSON.object(["scripthash": JSON.string(address.scriptHash)])
-    ])
-}))
+    static func getTransaction(txid: String, verbose: Bool) -> JSONRPCRequest {
+        return self.init(
+            method: "blockchain.transaction.get",
+            params: ["txid": .string(txid), "verbose": .bool(verbose)]
+        )
+    }
+}
 
-try print(await connection.send(request: request))
+struct GetScriptHashHistoryResultItem: Decodable {
+    let tx_hash: String
+    let height: Int
+}
+
+typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
+
+private let requests = knownAddresses[0 ..< 10].map { address in
+    JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
+}
+
+if let results = await client.send<GetScriptHashHistoryResult>(requests: requests) {
+    print(results)
+}
