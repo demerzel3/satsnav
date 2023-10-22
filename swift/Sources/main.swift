@@ -161,6 +161,6 @@ private let requests = knownAddresses[0 ..< 10].map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
-if let results = await client.send<GetScriptHashHistoryResult>(requests: requests) {
+if let results: [GetScriptHashHistoryResult] = await client.send(requests: requests) {
     print(results)
 }
