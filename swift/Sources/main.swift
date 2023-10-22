@@ -142,10 +142,10 @@ extension JSONRPCRequest {
         )
     }
 
-    static func getTransaction(txid: String, verbose: Bool) -> JSONRPCRequest {
+    static func getTransaction(txHash: String, verbose: Bool) -> JSONRPCRequest {
         return self.init(
             method: "blockchain.transaction.get",
-            params: ["txid": .string(txid), "verbose": .bool(verbose)]
+            params: ["tx_hash": .string(txHash), "verbose": .bool(verbose)]
         )
     }
 }
@@ -157,10 +157,22 @@ struct GetScriptHashHistoryResultItem: Decodable {
 
 typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
 
-private let requests = knownAddresses[0 ..< 10].map { address in
+private let historyRequests = knownAddresses[0 ... 10].map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
-if let results: [GetScriptHashHistoryResult] = await client.send(requests: requests) {
-    print(results)
+guard let history: [GetScriptHashHistoryResult] = await client.send(requests: historyRequests) else {
+    print("🚨 Unable to get history")
+    exit(1)
 }
+
+let txIds = history.flatMap { $0.map { $0.tx_hash } }
+let txRequests = txIds.map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
+
+print("requesting transaction information for", txIds.count, "transactions")
+guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
+    print("🚨 Unable to get transactions")
+    exit(1)
+}
+
+print("Retrieved \(transactions.count) transactions")

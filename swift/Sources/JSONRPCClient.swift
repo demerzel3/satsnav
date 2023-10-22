@@ -86,8 +86,8 @@ public class JSONRPCClient: ObservableObject {
                 fatalError()
             }
         }
-        print("parsed up to @\(parsingInput.index)")
-        self.resultData.removeFirst(parsingInput.index)
+        print("parsed up to @\(parsingInput.index - self.resultData.startIndex)")
+        self.resultData.removeFirst(parsingInput.index - self.resultData.startIndex)
         print("remaining buffer size:", self.resultData.count)
     }
 
@@ -153,6 +153,7 @@ public class JSONRPCClient: ObservableObject {
 
                 var results = [Result]()
                 for (index, element) in responseArray.elements.enumerated() {
+                    // TODO: handle case where we have no "result" but we have "error"
                     let maybeResult = extractResult(response: element, expectedId: expectedIds[index])
                     guard let result = maybeResult else {
                         // TODO: Could return error for the specific request
@@ -214,7 +215,7 @@ public class JSONRPCClient: ObservableObject {
     }
 }
 
-func extractResult(response: JSON, expectedId: Int) -> JSON? {
+private func extractResult(response: JSON, expectedId: Int) -> JSON? {
     guard let obj = response.object else {
         return nil
     }
@@ -247,7 +248,7 @@ public extension JSON {
     }
 }
 
-public extension JSON.Object {
+private extension JSON.Object {
     func byKey(key: String) -> JSON? {
         self.fields.first(where: { $0.key.rawValue == key })?.value
     }
