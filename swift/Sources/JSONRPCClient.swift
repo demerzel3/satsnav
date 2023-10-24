@@ -105,11 +105,21 @@ public class JSONRPCClient: ObservableObject {
         }
     }
 
-    public func send(request: JSONRPCRequest) async -> JSON? {
+    public func send<Result>(request: JSONRPCRequest) async -> Result? where Result: Decodable {
         return await withCheckedContinuation { continuation in
             let (id, encodedRequest) = self.encodeRequest(request: request)
             self.send(request: encodedRequest) { response in
-                continuation.resume(returning: extractResult(response: response, expectedId: id))
+                if let result = extractResult(response: response, expectedId: id) {
+                    do {
+                        try continuation.resume(returning: Result(from: result))
+                    } catch {
+                        print("Unable to decode JSON")
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                } else {
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }

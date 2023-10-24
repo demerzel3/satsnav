@@ -157,7 +157,7 @@ struct GetScriptHashHistoryResultItem: Decodable {
 
 typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
 
-private let historyRequests = knownAddresses[0 ... 10].map { address in
+private let historyRequests = knownAddresses[0 ... 0].map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
@@ -166,13 +166,68 @@ guard let history: [GetScriptHashHistoryResult] = await client.send(requests: hi
     exit(1)
 }
 
-let txIds = history.flatMap { $0.map { $0.tx_hash } }
-let txRequests = txIds.map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
+let storage = TransactionStorage()
+func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
+    print("requesting transaction information for", txIds.count, "transactions")
 
-print("requesting transaction information for", txIds.count, "transactions")
-guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
-    print("🚨 Unable to get transactions")
-    exit(1)
+    // Do not request transactions that we have already stored
+    let filteredIds = await storage.notIncludedTxIds(txIds: txIds)
+    let txRequests = filteredIds.map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
+    print(txRequests)
+    guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
+        print("🚨 Unable to get transactions")
+        exit(1)
+    }
+
+    let storageSize = await storage.store(transactions: transactions)
+    print("Retrieved \(transactions.count) transactions, in store: \(storageSize)")
+
+    return transactions
 }
 
-print("Retrieved \(transactions.count) transactions")
+let txIds = history.flatMap { $0.map { $0.tx_hash } }
+let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
+let refTransactionIds = rootTransactions.flatMap { transaction in
+    transaction.vin.map { $0.txid }
+}.compactMap { $0 }
+_ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+
+for transaction in rootTransactions {
+    print("--- transaction \(transaction.txid) ---")
+    var totalIn = 0
+    for vin in transaction.vin {
+        guard let vinTxId = vin.txid else {
+            break
+        }
+        guard let vinTx = await storage.getTransaction(by: vinTxId) else {
+            print("\(vinTxId) not in store")
+            break
+        }
+
+        guard let voutIndex = vin.vout else {
+            break
+        }
+
+        let vout = vinTx.vout[voutIndex]
+        totalIn += Int(vout.value * 100000000)
+
+        guard let vinAddress = vout.scriptPubKey.address else {
+            print("\(vinTxId):\(voutIndex) has no address")
+            break
+        }
+
+        print("input \(vinAddress): \(vout.value)")
+    }
+
+    var totalOut = 0
+    for vout in transaction.vout {
+        guard let toAddress = vout.scriptPubKey.address else {
+            break
+        }
+
+        print("output \(toAddress): \(vout.value)")
+        totalOut += Int(vout.value * 100000000)
+    }
+
+    print("total amount \(Double(totalIn) / 100000000), fee \(totalIn - totalOut) sats")
+}
