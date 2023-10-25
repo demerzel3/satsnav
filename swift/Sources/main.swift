@@ -157,7 +157,7 @@ struct GetScriptHashHistoryResultItem: Decodable {
 
 typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
 
-private let historyRequests = knownAddresses[0 ... 0].map { address in
+private let historyRequests = knownAddresses[0 ... 5].map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
@@ -172,8 +172,7 @@ func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction
 
     // Do not request transactions that we have already stored
     let filteredIds = await storage.notIncludedTxIds(txIds: txIds)
-    let txRequests = filteredIds.map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
-    print(txRequests)
+    let txRequests = Set<String>(filteredIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
     guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
         print("🚨 Unable to get transactions")
         exit(1)
@@ -185,48 +184,83 @@ func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction
     return transactions
 }
 
+// Manual transactions have usually a number of inputs (in case of consolidation)
+// but only one output, + optional change
+func isManualTransaction(transaction: ElectrumTransaction) -> Bool {
+    return transaction.vout.count <= 2
+}
+
 let txIds = history.flatMap { $0.map { $0.tx_hash } }
 let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
-let refTransactionIds = rootTransactions.flatMap { transaction in
-    transaction.vin.map { $0.txid }
-}.compactMap { $0 }
+let refTransactionIds = rootTransactions
+    .filter { isManualTransaction(transaction: $0) }
+    .flatMap { transaction in transaction.vin.map { $0.txid } }
+    .compactMap { $0 }
 _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+
+enum TransactionType {
+    // known address on vout
+    case deposit
+    // known address on vin
+    case withdrawal
+    // knows addresses everywhere, basically a payment to self
+    case consolidation
+}
 
 for transaction in rootTransactions {
     print("--- transaction \(transaction.txid) ---")
     var totalIn = 0
+    var totalInUnknown = 0
     for vin in transaction.vin {
         guard let vinTxId = vin.txid else {
-            break
+            continue
         }
         guard let vinTx = await storage.getTransaction(by: vinTxId) else {
             print("\(vinTxId) not in store")
-            break
+            continue
         }
 
         guard let voutIndex = vin.vout else {
-            break
+            continue
         }
 
         let vout = vinTx.vout[voutIndex]
-        totalIn += Int(vout.value * 100000000)
+        let voutSats = Int(vout.value * 100000000)
 
         guard let vinAddress = vout.scriptPubKey.address else {
             print("\(vinTxId):\(voutIndex) has no address")
-            break
+            continue
+        }
+
+        totalIn += voutSats
+        if !knownAddressIds.contains(vinAddress) {
+            totalInUnknown += voutSats
         }
 
         print("input \(vinAddress): \(vout.value)")
     }
 
     var totalOut = 0
+    var totalOutUnknown = 0
     for vout in transaction.vout {
-        guard let toAddress = vout.scriptPubKey.address else {
-            break
+        guard let voutAddress = vout.scriptPubKey.address else {
+            continue
         }
 
-        print("output \(toAddress): \(vout.value)")
-        totalOut += Int(vout.value * 100000000)
+        print("output \(voutAddress): \(vout.value)")
+        let voutSats = Int(vout.value * 100000000)
+        totalOut += voutSats
+        if !knownAddressIds.contains(voutAddress) {
+            totalOutUnknown += voutSats
+        }
+    }
+
+    if totalInUnknown == 0, totalOutUnknown == 0 {
+        print("CONSOLIDATION", "\(totalOut - totalIn) sats")
+    } else if totalOut > totalOutUnknown {
+        print("DEPOSIT", Double(totalOut - totalOutUnknown) / 100000000)
+    } else if totalIn > totalInUnknown {
+        print("WITHDRAWAL", Double(totalInUnknown - totalIn) / 100000000)
     }
 
     print("total amount \(Double(totalIn) / 100000000), fee \(totalIn - totalOut) sats")

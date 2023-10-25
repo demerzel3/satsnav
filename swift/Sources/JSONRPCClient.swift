@@ -76,6 +76,15 @@ public class JSONRPCClient: ObservableObject {
         self.resultData.append(data)
         print("received data length", data.count)
 
+        guard let lastByte = self.resultData.last else {
+            return
+        }
+
+        guard lastByte == 10 else {
+            print("Probably not end of stream", lastByte)
+            return
+        }
+
         var parsingInput: ParsingInput<NoDiagnostics<Data>> = .init(resultData)
         while let result: JSON = parsingInput.parse(as: JSON.Rule<Int>.Root?.self) {
             if let completion = self.completion {
