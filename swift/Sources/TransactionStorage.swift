@@ -30,4 +30,30 @@ actor TransactionStorage {
     func notIncludedTxIds(txIds: [String]) -> [String] {
         return txIds.filter { !includes(txid: $0) }
     }
+
+    func write() {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("transactions.plist")
+        print(filePath)
+        do {
+            let data = try PropertyListEncoder().encode(transactions)
+            try data.write(to: filePath)
+            print("Data saved successfully!")
+        } catch {
+            print("Error saving data: \(error)")
+        }
+    }
+
+    func read() {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("transactions.plist")
+        print(filePath)
+        do {
+            let data = try Data(contentsOf: filePath)
+            transactions = try PropertyListDecoder().decode([String: ElectrumTransaction].self, from: data)
+            print("Retrieved data: \(transactions.count)")
+        } catch {
+            print("Error retrieving data: \(error)")
+        }
+    }
 }

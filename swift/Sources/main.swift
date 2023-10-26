@@ -19,21 +19,21 @@ private struct Asset {
 
     init(fromTicker ticker: String) {
         switch ticker {
-            case "XXBT":
-                self.name = "BTC"
-                self.type = .crypto
-            case "XXDG":
-                self.name = "DOGE"
-                self.type = .crypto
-            case let a where a.starts(with: "X"):
-                self.name = String(a.dropFirst())
-                self.type = .crypto
-            case let a where a.starts(with: "Z"):
-                self.name = String(a.dropFirst())
-                self.type = .fiat
-            default:
-                self.name = ticker
-                self.type = .crypto
+        case "XXBT":
+            self.name = "BTC"
+            self.type = .crypto
+        case "XXDG":
+            self.name = "DOGE"
+            self.type = .crypto
+        case let a where a.starts(with: "X"):
+            self.name = String(a.dropFirst())
+            self.type = .crypto
+        case let a where a.starts(with: "Z"):
+            self.name = String(a.dropFirst())
+            self.type = .fiat
+        default:
+            self.name = ticker
+            self.type = .crypto
         }
     }
 }
@@ -78,6 +78,10 @@ private struct Trade {
 private let rateFormatterFiat = NumberFormatter()
 rateFormatterFiat.maximumFractionDigits = 4
 rateFormatterFiat.minimumFractionDigits = 0
+
+private let btcFormatter = NumberFormatter()
+btcFormatter.maximumFractionDigits = 8
+btcFormatter.minimumFractionDigits = 8
 
 private let rateFormatterCrypto = NumberFormatter()
 rateFormatterCrypto.maximumFractionDigits = 10
@@ -157,7 +161,7 @@ struct GetScriptHashHistoryResultItem: Decodable {
 
 typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
 
-private let historyRequests = knownAddresses[0 ... 5].map { address in
+private let historyRequests = knownAddresses /* [0 ... 50] */ .map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
@@ -167,6 +171,8 @@ guard let history: [GetScriptHashHistoryResult] = await client.send(requests: hi
 }
 
 let storage = TransactionStorage()
+// Restore transactions storage from disk
+await storage.read()
 func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
     print("requesting transaction information for", txIds.count, "transactions")
 
@@ -180,6 +186,9 @@ func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction
 
     let storageSize = await storage.store(transactions: transactions)
     print("Retrieved \(transactions.count) transactions, in store: \(storageSize)")
+
+    // Commit transactions storage to disk
+    await storage.write()
 
     return transactions
 }
@@ -199,16 +208,33 @@ let refTransactionIds = rootTransactions
 _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
 
 enum TransactionType {
+    // couldn't figure this out
+    case unknown
     // known address on vout
-    case deposit
+    case deposit(amount: Int)
     // known address on vin
-    case withdrawal
+    case withdrawal(amount: Int)
     // knows addresses everywhere, basically a payment to self
-    case consolidation
+    case consolidation(fee: Int)
 }
 
-for transaction in rootTransactions {
-    print("--- transaction \(transaction.txid) ---")
+struct Transaction {
+    let txid: String
+    let rawTransaction: ElectrumTransaction
+    let type: TransactionType
+    let totalInSats: Int
+    let totalInSatsUnknown: Int
+    let totalOutSats: Int
+    let totalOutSatsUnknown: Int
+    let feeSats: Int
+}
+
+func satsToBtc(amount: Int) -> String {
+    btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
+}
+
+func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
+    // print("--- transaction \(transaction.txid) ---")
     var totalIn = 0
     var totalInUnknown = 0
     for vin in transaction.vin {
@@ -216,7 +242,7 @@ for transaction in rootTransactions {
             continue
         }
         guard let vinTx = await storage.getTransaction(by: vinTxId) else {
-            print("\(vinTxId) not in store")
+            // print("\(vinTxId) not in store")
             continue
         }
 
@@ -237,7 +263,7 @@ for transaction in rootTransactions {
             totalInUnknown += voutSats
         }
 
-        print("input \(vinAddress): \(vout.value)")
+        // print("input \(vinAddress): \(vout.value)")
     }
 
     var totalOut = 0
@@ -247,7 +273,7 @@ for transaction in rootTransactions {
             continue
         }
 
-        print("output \(voutAddress): \(vout.value)")
+        // print("output \(voutAddress): \(vout.value)")
         let voutSats = Int(vout.value * 100000000)
         totalOut += voutSats
         if !knownAddressIds.contains(voutAddress) {
@@ -255,13 +281,39 @@ for transaction in rootTransactions {
         }
     }
 
-    if totalInUnknown == 0, totalOutUnknown == 0 {
-        print("CONSOLIDATION", "\(totalOut - totalIn) sats")
+    let type: TransactionType = if totalInUnknown == 0, totalOutUnknown == 0 {
+        .consolidation(fee: totalOut - totalIn)
     } else if totalOut > totalOutUnknown {
-        print("DEPOSIT", Double(totalOut - totalOutUnknown) / 100000000)
+        // TODO: Doesn't work with payments, 5 BTC in -> 0.5 BTC payment, 4.5 BTC change
+        // Needs a check on sources and destinations
+        .deposit(amount: totalOut - totalOutUnknown)
     } else if totalIn > totalInUnknown {
-        print("WITHDRAWAL", Double(totalInUnknown - totalIn) / 100000000)
+        .withdrawal(amount: totalInUnknown - totalIn)
+    } else {
+        .unknown
     }
 
-    print("total amount \(Double(totalIn) / 100000000), fee \(totalIn - totalOut) sats")
+    // print("total amount \(Double(totalIn) / 100000000), fee \(totalIn - totalOut) sats")
+
+    return Transaction(
+        txid: transaction.txid,
+        rawTransaction: transaction,
+        type: type,
+        totalInSats: totalIn,
+        totalInSatsUnknown: totalInUnknown,
+        totalOutSats: totalOut,
+        totalOutSatsUnknown: totalOutUnknown,
+        feeSats: totalIn - totalOut
+    )
+}
+
+var transactions = [Transaction]()
+for rawTransaction in rootTransactions {
+    let transaction = await buildTransaction(transaction: rawTransaction)
+
+    if case .deposit(let amount) = transaction.type {
+        print("Deposit", satsToBtc(amount: amount), transaction.txid)
+        print("vin#", rawTransaction.vin.count, "vout#", rawTransaction.vout.count)
+        print()
+    }
 }

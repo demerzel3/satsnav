@@ -7,3 +7,4 @@ DerivedData/
 .netrc
 Sources/Addresses.swift
 *.csv
+transactions.plist
