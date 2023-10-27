@@ -174,38 +174,49 @@ let storage = TransactionStorage()
 // Restore transactions storage from disk
 await storage.read()
 func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
-    print("requesting transaction information for", txIds.count, "transactions")
+    let txIdsSet = Set<String>(txIds)
+    print("requesting transaction information for", txIdsSet.count, "transactions")
 
     // Do not request transactions that we have already stored
-    let filteredIds = await storage.notIncludedTxIds(txIds: txIds)
-    let txRequests = Set<String>(filteredIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
-    guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
-        print("🚨 Unable to get transactions")
-        exit(1)
+    let unknownTransactionIds = await storage.notIncludedTxIds(txIds: txIdsSet)
+    if unknownTransactionIds.count > 0 {
+        let txRequests = Set<String>(unknownTransactionIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
+        guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
+            print("🚨 Unable to get transactions")
+            exit(1)
+        }
+
+        let storageSize = await storage.store(transactions: transactions)
+        print("Retrieved \(transactions.count) transactions, in store: \(storageSize)")
+
+        // Commit transactions storage to disk
+        await storage.write()
     }
 
-    let storageSize = await storage.store(transactions: transactions)
-    print("Retrieved \(transactions.count) transactions, in store: \(storageSize)")
-
-    // Commit transactions storage to disk
-    await storage.write()
-
-    return transactions
+    return await storage.getTransactions(byIds: txIdsSet)
 }
 
 // Manual transactions have usually a number of inputs (in case of consolidation)
 // but only one output, + optional change
-func isManualTransaction(transaction: ElectrumTransaction) -> Bool {
+func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
     return transaction.vout.count <= 2
 }
 
 let txIds = history.flatMap { $0.map { $0.tx_hash } }
 let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
 let refTransactionIds = rootTransactions
-    .filter { isManualTransaction(transaction: $0) }
+    .filter { isManualTransaction($0) }
     .flatMap { transaction in transaction.vin.map { $0.txid } }
     .compactMap { $0 }
 _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+
+extension Array {
+    func partition(by predicate: (Element) -> Bool) -> ([Element], [Element]) {
+        let first = self.filter(predicate)
+        let second = self.filter { !predicate($0) }
+        return (first, second)
+    }
+}
 
 enum TransactionType {
     // couldn't figure this out
@@ -218,31 +229,46 @@ enum TransactionType {
     case consolidation(fee: Int)
 }
 
+struct TransactionVin {
+    let txid: String
+    let voutIndex: Int
+    let sats: Int
+    let address: String
+}
+
+struct TransactionVout {
+    let sats: Int
+    let address: String
+}
+
 struct Transaction {
     let txid: String
+    let time: Int
     let rawTransaction: ElectrumTransaction
     let type: TransactionType
     let totalInSats: Int
-    let totalInSatsUnknown: Int
     let totalOutSats: Int
-    let totalOutSatsUnknown: Int
     let feeSats: Int
+    let vin: [TransactionVin]
+    let vout: [TransactionVout]
 }
 
-func satsToBtc(amount: Int) -> String {
+func satsToBtc(_ amount: Int) -> String {
     btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
 }
 
+func btcToSats(_ amount: Double) -> Int {
+    Int(amount * 100000000)
+}
+
 func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
-    // print("--- transaction \(transaction.txid) ---")
     var totalIn = 0
-    var totalInUnknown = 0
+    var transactionVin = [TransactionVin]()
     for vin in transaction.vin {
         guard let vinTxId = vin.txid else {
             continue
         }
-        guard let vinTx = await storage.getTransaction(by: vinTxId) else {
-            // print("\(vinTxId) not in store")
+        guard let vinTx = await storage.getTransaction(byId: vinTxId) else {
             continue
         }
 
@@ -251,44 +277,52 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
         }
 
         let vout = vinTx.vout[voutIndex]
-        let voutSats = Int(vout.value * 100000000)
+        let sats = btcToSats(vout.value)
 
         guard let vinAddress = vout.scriptPubKey.address else {
             print("\(vinTxId):\(voutIndex) has no address")
             continue
         }
 
-        totalIn += voutSats
-        if !knownAddressIds.contains(vinAddress) {
-            totalInUnknown += voutSats
-        }
-
-        // print("input \(vinAddress): \(vout.value)")
+        totalIn += sats
+        transactionVin.append(TransactionVin(
+            txid: vinTxId,
+            voutIndex: voutIndex,
+            sats: sats,
+            address: vinAddress
+        ))
     }
 
     var totalOut = 0
-    var totalOutUnknown = 0
+    var transactionVout = [TransactionVout]()
     for vout in transaction.vout {
         guard let voutAddress = vout.scriptPubKey.address else {
             continue
         }
 
-        // print("output \(voutAddress): \(vout.value)")
-        let voutSats = Int(vout.value * 100000000)
-        totalOut += voutSats
-        if !knownAddressIds.contains(voutAddress) {
-            totalOutUnknown += voutSats
-        }
+        let sats = btcToSats(vout.value)
+        totalOut += sats
+        transactionVout.append(TransactionVout(
+            sats: sats,
+            address: voutAddress
+        ))
     }
 
-    let type: TransactionType = if totalInUnknown == 0, totalOutUnknown == 0 {
+    let (knownVin, _) = transactionVin.partition { knownAddressIds.contains($0.address) }
+    let (knownVout, unknownVout) = transactionVout.partition { knownAddressIds.contains($0.address) }
+
+    let type: TransactionType = if
+        knownVin.count == transaction.vin.count,
+        knownVout.count == transaction.vout.count
+    {
+        // vin and vout are all known, it's consolidation transaction
         .consolidation(fee: totalOut - totalIn)
-    } else if totalOut > totalOutUnknown {
-        // TODO: Doesn't work with payments, 5 BTC in -> 0.5 BTC payment, 4.5 BTC change
-        // Needs a check on sources and destinations
-        .deposit(amount: totalOut - totalOutUnknown)
-    } else if totalIn > totalInUnknown {
-        .withdrawal(amount: totalInUnknown - totalIn)
+    } else if knownVin.count == transaction.vin.count {
+        // All vin known, it must be a transfer out of some kind
+        .withdrawal(amount: unknownVout.reduce(0) { sum, vout in sum + vout.sats })
+    } else if knownVin.count == 0 {
+        // No vin is known, must be a deposit
+        .deposit(amount: knownVout.reduce(0) { sum, vout in sum + vout.sats })
     } else {
         .unknown
     }
@@ -297,23 +331,42 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
 
     return Transaction(
         txid: transaction.txid,
+        time: transaction.time ?? 0,
         rawTransaction: transaction,
         type: type,
         totalInSats: totalIn,
-        totalInSatsUnknown: totalInUnknown,
         totalOutSats: totalOut,
-        totalOutSatsUnknown: totalOutUnknown,
-        feeSats: totalIn - totalOut
+        feeSats: totalIn - totalOut,
+        vin: transactionVin,
+        vout: transactionVout
     )
 }
 
 var transactions = [Transaction]()
 for rawTransaction in rootTransactions {
-    let transaction = await buildTransaction(transaction: rawTransaction)
+    transactions.append(await buildTransaction(transaction: rawTransaction))
+}
 
-    if case .deposit(let amount) = transaction.type {
-        print("Deposit", satsToBtc(amount: amount), transaction.txid)
-        print("vin#", rawTransaction.vin.count, "vout#", rawTransaction.vout.count)
-        print()
+transactions.sort(by: { a, b in a.time < b.time })
+
+var otherAddresses = Set<String>()
+for transaction in transactions {
+    if case .deposit(let amount) = transaction.type, isManualTransaction(transaction.rawTransaction) {
+        print("Manual Deposit", satsToBtc(amount), transaction.txid)
+        // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
+        for vin in transaction.vin {
+            otherAddresses.insert(vin.address)
+        }
+        // print()
+    } else if case .deposit(let amount) = transaction.type {
+        print("External Service Deposit", satsToBtc(amount), transaction.txid)
+        // print()
     }
 }
+
+print("--- OTHER ADDRESSES ---")
+for address in otherAddresses {
+    print(address)
+}
+
+// TODO: convert otherAddresses to script hashes so that I can repeat this in a loop

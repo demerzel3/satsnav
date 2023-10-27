@@ -4,8 +4,12 @@ actor TransactionStorage {
     private var transactions = [String: ElectrumTransaction]()
 
     // Function to retrieve a transaction given its ID
-    func getTransaction(by id: String) async -> ElectrumTransaction? {
+    func getTransaction(byId id: String) async -> ElectrumTransaction? {
         return transactions[id]
+    }
+
+    func getTransactions(byIds ids: any Sequence<String>) async -> [ElectrumTransaction] {
+        return ids.map { transactions[$0] }.compactMap { $0 }
     }
 
     // Function to store a new transaction
@@ -27,7 +31,7 @@ actor TransactionStorage {
     }
 
     // Filters out txids that are currently in the storage
-    func notIncludedTxIds(txIds: [String]) -> [String] {
+    func notIncludedTxIds(txIds: any Sequence<String>) -> [String] {
         return txIds.filter { !includes(txid: $0) }
     }
 
@@ -38,9 +42,9 @@ actor TransactionStorage {
         do {
             let data = try PropertyListEncoder().encode(transactions)
             try data.write(to: filePath)
-            print("Data saved successfully!")
+            print("Transactions saved successfully!")
         } catch {
-            print("Error saving data: \(error)")
+            print("Error saving transactions: \(error)")
         }
     }
 
@@ -51,9 +55,9 @@ actor TransactionStorage {
         do {
             let data = try Data(contentsOf: filePath)
             transactions = try PropertyListDecoder().decode([String: ElectrumTransaction].self, from: data)
-            print("Retrieved data: \(transactions.count)")
+            print("Retrieved transactions from disk: \(transactions.count)")
         } catch {
-            print("Error retrieving data: \(error)")
+            print("Error retrieving transactions: \(error)")
         }
     }
 }
