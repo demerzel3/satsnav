@@ -1,4 +1,4 @@
-import ElectrumKit
+import CryptoKit
 import Foundation
 import Grammar
 import JSON
@@ -120,46 +120,10 @@ private let ledgersGroupedByRefId = ledgersByRefId.values.filter { $0.count > 1 
 
 print(ledgers.count)
 print(ledgersByRefId.count)
-// for trade in ledgersGroupedByRefId {
-//    printTrade(entries: trade)
-// }
-
-// if let firstTrade = ledgersGroupedByRefId.first {
-//
-// }
-
-// private let electrum = Electrum(hostName: "bitcoin.lu.ke", port: 50001, using: .tcp, debug: true)
-// private let transactions = try await electrum.addressTXS(address: knownAddresses[0])
-// print(transactions)
-//// go back one step
-// private let oneStepBackTransaction = try await electrum.transaction(txid: transactions[0].vin[0].txid)
-// print(oneStepBackTransaction)
 
 private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
+// private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
 client.start()
-
-extension JSONRPCRequest {
-    static func getScripthashHistory(scriptHash: String) -> JSONRPCRequest {
-        return self.init(
-            method: "blockchain.scripthash.get_history",
-            params: ["scripthash": .string(scriptHash)]
-        )
-    }
-
-    static func getTransaction(txHash: String, verbose: Bool) -> JSONRPCRequest {
-        return self.init(
-            method: "blockchain.transaction.get",
-            params: ["tx_hash": .string(txHash), "verbose": .bool(verbose)]
-        )
-    }
-}
-
-struct GetScriptHashHistoryResultItem: Decodable {
-    let tx_hash: String
-    let height: Int
-}
-
-typealias GetScriptHashHistoryResult = [GetScriptHashHistoryResultItem]
 
 private let historyRequests = knownAddresses /* [0 ... 50] */ .map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
@@ -210,49 +174,6 @@ let refTransactionIds = rootTransactions
     .compactMap { $0 }
 _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
 
-extension Array {
-    func partition(by predicate: (Element) -> Bool) -> ([Element], [Element]) {
-        let first = self.filter(predicate)
-        let second = self.filter { !predicate($0) }
-        return (first, second)
-    }
-}
-
-enum TransactionType {
-    // couldn't figure this out
-    case unknown
-    // known address on vout
-    case deposit(amount: Int)
-    // known address on vin
-    case withdrawal(amount: Int)
-    // knows addresses everywhere, basically a payment to self
-    case consolidation(fee: Int)
-}
-
-struct TransactionVin {
-    let txid: String
-    let voutIndex: Int
-    let sats: Int
-    let address: String
-}
-
-struct TransactionVout {
-    let sats: Int
-    let address: String
-}
-
-struct Transaction {
-    let txid: String
-    let time: Int
-    let rawTransaction: ElectrumTransaction
-    let type: TransactionType
-    let totalInSats: Int
-    let totalOutSats: Int
-    let feeSats: Int
-    let vin: [TransactionVin]
-    let vout: [TransactionVout]
-}
-
 func satsToBtc(_ amount: Int) -> String {
     btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
 }
@@ -271,7 +192,6 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
         guard let vinTx = await storage.getTransaction(byId: vinTxId) else {
             continue
         }
-
         guard let voutIndex = vin.vout else {
             continue
         }
@@ -283,13 +203,17 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
             print("\(vinTxId):\(voutIndex) has no address")
             continue
         }
+        guard let vinScriptHash = getScriptHashForElectrum(vout.scriptPubKey) else {
+            print("Could not compute script hash for address \(vinAddress)")
+            continue
+        }
 
         totalIn += sats
         transactionVin.append(TransactionVin(
             txid: vinTxId,
             voutIndex: voutIndex,
             sats: sats,
-            address: vinAddress
+            address: Address(id: vinAddress, scriptHash: vinScriptHash)
         ))
     }
 
@@ -308,7 +232,7 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
         ))
     }
 
-    let (knownVin, _) = transactionVin.partition { knownAddressIds.contains($0.address) }
+    let (knownVin, _) = transactionVin.partition { knownAddressIds.contains($0.address.id) }
     let (knownVout, unknownVout) = transactionVout.partition { knownAddressIds.contains($0.address) }
 
     let type: TransactionType = if
@@ -349,13 +273,15 @@ for rawTransaction in rootTransactions {
 
 transactions.sort(by: { a, b in a.time < b.time })
 
-var otherAddresses = Set<String>()
+var otherAddresses = Set<Address>()
 for transaction in transactions {
-    if case .deposit(let amount) = transaction.type, isManualTransaction(transaction.rawTransaction) {
-        print("Manual Deposit", satsToBtc(amount), transaction.txid)
+    if case .deposit = transaction.type, isManualTransaction(transaction.rawTransaction) {
+        // print("Manual Deposit", satsToBtc(amount), transaction.txid)
         // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
+        print("--- \(transaction.txid) --- other addresses:")
         for vin in transaction.vin {
             otherAddresses.insert(vin.address)
+            print(vin.address.id)
         }
         // print()
     } else if case .deposit(let amount) = transaction.type {
@@ -365,8 +291,34 @@ for transaction in transactions {
 }
 
 print("--- OTHER ADDRESSES ---")
-for address in otherAddresses {
+for address in otherAddresses.map({ $0.id }).sorted() {
     print(address)
 }
 
-// TODO: convert otherAddresses to script hashes so that I can repeat this in a loop
+let otherReqs = otherAddresses.map { JSONRPCRequest.getScripthashHistory(scriptHash: $0.scriptHash) }
+// print(otherReqs)
+if let otherRes: [GetScriptHashHistoryResult] = await client.send(requests: otherReqs) {
+    for res in otherRes {
+        if res.isEmpty {
+            print(res)
+        }
+    }
+} else {
+    print("nah...")
+}
+
+/*
+ BRAIN DUMP:
+ - implement error handling in JSONRPCClient to handle this shape of response:
+    `{"jsonrpc":"2.0","error":{"code":1,"message":"history too large"},"id":123}`
+ - when that kind of response is detected it means the address has too many transactions, so the
+   original transaction that was marked as "Manual" is not manual at all, it's part of an external service
+ - the thing that was considered a manual deposit must become an external service deposit,
+   marked for look up in external data sources (CSV and whatnot)
+ - so: tag transactions as manual/external by default using our euristics, but allow it to change and store the change
+ - link "other address" with originating transaction to allow updating of transaction tag
+ - once cleanup and transaction tagging is complete download all missing transactions by txid and recompute
+   external vs manual transactions, rinse and repeat
+ - open question: where to store "other addresses"? with knownAddresses? as its separate thing?
+   we need a more general solution that can scale beyond knownAddresses / other addresses to multiple wallets maybe?
+ */

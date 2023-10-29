@@ -170,6 +170,8 @@ public class JSONRPCClient: ObservableObject {
                     return a < b
                 }
 
+                print(responseArray.elements)
+
                 var results = [Result]()
                 for (index, element) in responseArray.elements.enumerated() {
                     // TODO: handle case where we have no "result" but we have "error"
