@@ -13,6 +13,11 @@ public struct JSONRPCRequest {
     let params: [String: JSONRPCParam]
 }
 
+public struct JSONRPCError: Error, Decodable {
+    let code: Int
+    let message: String
+}
+
 @available(iOS 13.0, macOS 10.15, *)
 public class JSONRPCClient: ObservableObject {
     public init(hostName: String, port: Int) {
@@ -133,7 +138,7 @@ public class JSONRPCClient: ObservableObject {
         }
     }
 
-    public func send<Result>(requests: [JSONRPCRequest]) async -> [Result]? where Result: Decodable {
+    public func send<R>(requests: [JSONRPCRequest]) async -> [Result<R, JSONRPCError>]? where R: Decodable {
         return await withCheckedContinuation { continuation in
             var expectedIds = [Int]()
             var encodedRequests = [JSON]()
@@ -170,20 +175,16 @@ public class JSONRPCClient: ObservableObject {
                     return a < b
                 }
 
-                print(responseArray.elements)
-
-                var results = [Result]()
+                var results = [Result<R, JSONRPCError>]()
                 for (index, element) in responseArray.elements.enumerated() {
-                    // TODO: handle case where we have no "result" but we have "error"
                     let maybeResult = extractResult(response: element, expectedId: expectedIds[index])
                     guard let result = maybeResult else {
-                        // TODO: Could return error for the specific request
-                        continuation.resume(returning: nil)
-                        return
+                        results.append(.failure(extractError(response: element, expectedId: expectedIds[index])))
+                        continue
                     }
 
                     do {
-                        try results.append(Result(from: result))
+                        try results.append(.success(R(from: result)))
                     } catch {
                         print("Unable to decode JSON")
                         continuation.resume(returning: nil)
@@ -255,6 +256,34 @@ private func extractResult(response: JSON, expectedId: Int) -> JSON? {
     }
 
     return obj.byKey(key: "result")
+}
+
+private func extractError(response: JSON, expectedId: Int) -> JSONRPCError {
+    guard let obj = response.object else {
+        return JSONRPCError(code: -1, message: "Invalid JSON response, expected object, received \(response.description)")
+    }
+
+    guard let idJson = obj.byKey(key: "id") else {
+        return JSONRPCError(code: -2, message: "Missing response id")
+    }
+
+    guard let id = idJson.number?.units else {
+        return JSONRPCError(code: -3, message: "Invalid response id, expected a number, received \(response.description)")
+    }
+
+    guard id == expectedId else {
+        return JSONRPCError(code: -4, message: "Invalid response id, expected \(expectedId), received \(id)")
+    }
+
+    guard let errorJson = obj.byKey(key: "error") else {
+        return JSONRPCError(code: -5, message: "Missing or unexpected error in \(response.description)")
+    }
+
+    do {
+        return try JSONRPCError(from: errorJson)
+    } catch {
+        return JSONRPCError(code: -6, message: "Invalid error \(errorJson.description)")
+    }
 }
 
 public extension JSON {

@@ -14,6 +14,12 @@ extension JSONRPCRequest {
     }
 }
 
+extension JSONRPCError {
+    var historyTooLarge: Bool {
+        self.message == "history too large"
+    }
+}
+
 struct GetScriptHashHistoryResultItem: Decodable {
     let tx_hash: String
     let height: Int

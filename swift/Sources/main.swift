@@ -129,7 +129,7 @@ private let historyRequests = knownAddresses /* [0 ... 50] */ .map { address in
     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
 }
 
-guard let history: [GetScriptHashHistoryResult] = await client.send(requests: historyRequests) else {
+guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
     print("🚨 Unable to get history")
     exit(1)
 }
@@ -145,13 +145,15 @@ func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction
     let unknownTransactionIds = await storage.notIncludedTxIds(txIds: txIdsSet)
     if unknownTransactionIds.count > 0 {
         let txRequests = Set<String>(unknownTransactionIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
-        guard let transactions: [ElectrumTransaction] = await client.send(requests: txRequests) else {
+        guard let transactions: [Result<ElectrumTransaction, JSONRPCError>] = await client.send(requests: txRequests) else {
             print("🚨 Unable to get transactions")
             exit(1)
         }
 
-        let storageSize = await storage.store(transactions: transactions)
-        print("Retrieved \(transactions.count) transactions, in store: \(storageSize)")
+        // TODO: do something with the errors maybe? at least log them!
+        let validTransactions = transactions.compactMap { if case .success(let t) = $0 { t } else { nil } }
+        let storageSize = await storage.store(transactions: validTransactions)
+        print("Retrieved \(validTransactions.count) transactions, in store: \(storageSize)")
 
         // Commit transactions storage to disk
         await storage.write()
@@ -166,7 +168,10 @@ func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
     return transaction.vout.count <= 2
 }
 
-let txIds = history.flatMap { $0.map { $0.tx_hash } }
+// TODO: do something with the errors maybe? at least log them!
+let txIds: [String] = history
+    .compactMap { if case .success(let t) = $0 { t } else { nil } }
+    .flatMap { $0.map { $0.tx_hash } }
 let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
 let refTransactionIds = rootTransactions
     .filter { isManualTransaction($0) }
@@ -273,45 +278,57 @@ for rawTransaction in rootTransactions {
 
 transactions.sort(by: { a, b in a.time < b.time })
 
-var otherAddresses = Set<Address>()
+// Addresses that are plausibly part of the wallet of the user or have been in the past
+var internalAddresses = Set<Address>()
+// Addresses that we know for sure are external (e.g. many, complex transactions, probably automated)
+var externalAddresses = Set<Address>()
+
 for transaction in transactions {
     if case .deposit = transaction.type, isManualTransaction(transaction.rawTransaction) {
         // print("Manual Deposit", satsToBtc(amount), transaction.txid)
         // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
         print("--- \(transaction.txid) --- other addresses:")
         for vin in transaction.vin {
-            otherAddresses.insert(vin.address)
+            internalAddresses.insert(vin.address)
             print(vin.address.id)
         }
-        // print()
     } else if case .deposit(let amount) = transaction.type {
         print("External Service Deposit", satsToBtc(amount), transaction.txid)
-        // print()
     }
 }
 
-print("--- OTHER ADDRESSES ---")
-for address in otherAddresses.map({ $0.id }).sorted() {
-    print(address)
-}
+let internalAddressesList = internalAddresses.map { $0 }.sorted(by: { $0.id < $1.id })
+let otherReqs = internalAddressesList.map { JSONRPCRequest.getScripthashHistory(scriptHash: $0.scriptHash) }
+if let otherRes: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: otherReqs) {
+    print("--- OTHER ADDRESSES ---")
+    for (index, res) in otherRes.enumerated() {
+        let address = internalAddressesList[index]
+        print(address.id)
 
-let otherReqs = otherAddresses.map { JSONRPCRequest.getScripthashHistory(scriptHash: $0.scriptHash) }
-// print(otherReqs)
-if let otherRes: [GetScriptHashHistoryResult] = await client.send(requests: otherReqs) {
-    for res in otherRes {
-        if res.isEmpty {
-            print(res)
+        switch res {
+        case .success(let history):
+            print(history.map { $0.tx_hash })
+        case .failure(let error):
+            if error.historyTooLarge {
+                print("Moving \(address.id) to external addresses")
+                print(internalAddresses.count)
+                internalAddresses.remove(address)
+                print(internalAddresses.count)
+                externalAddresses.insert(address)
+            } else {
+                print("🚨 history request failed", error)
+            }
         }
     }
 } else {
-    print("nah...")
+    print("🚨 Failed to fetch history of other addresses")
 }
 
 /*
  BRAIN DUMP:
  - implement error handling in JSONRPCClient to handle this shape of response:
     `{"jsonrpc":"2.0","error":{"code":1,"message":"history too large"},"id":123}`
- - when that kind of response is detected it means the address has too many transactions, so the
+ - when error message is "history too large" (code: 1) it means the address has too many transactions, so the
    original transaction that was marked as "Manual" is not manual at all, it's part of an external service
  - the thing that was considered a manual deposit must become an external service deposit,
    marked for look up in external data sources (CSV and whatnot)
