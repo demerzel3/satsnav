@@ -252,7 +252,7 @@ private func round(no: Int) async -> Int {
             // print("Manual Deposit", satsToBtc(amount), transaction.txid)
             // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
             print("--- Manual Deposit \(transaction.txid) --- other addresses:")
-            for vin in transaction.vin {
+            for vin in transaction.vin where !internalAddresses.contains(vin.address) {
                 internalAddresses.insert(vin.address)
                 print(vin.address.id)
             }
@@ -366,7 +366,7 @@ func buildTransaction(transaction: ElectrumTransaction, address: Address) async 
 }
 
 var no = 1
-while no <= 3 {
+while no <= 5 {
     let addressesAdded = await round(no: no)
     print("------------------------------")
     print("Round \(no) # addresses added: \(addressesAdded)")

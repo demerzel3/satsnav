@@ -1,8 +1,3 @@
-struct Address {
-    let id: String
-    let scriptHash: String
-}
-
 let knownAddresses: [Address] = [
     // Create a copy of this file, name it Addresses.swift and
     // add your wallet addresses.
