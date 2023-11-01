@@ -18,7 +18,7 @@ struct TransactionVin {
 
 struct TransactionVout {
     let sats: Int
-    let address: String
+    let address: Address
 }
 
 struct Transaction {

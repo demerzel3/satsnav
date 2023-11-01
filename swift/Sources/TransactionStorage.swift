@@ -22,7 +22,7 @@ actor TransactionStorage {
         for transaction in transactions {
             _ = store(transaction: transaction)
         }
-        return transactions.count
+        return self.transactions.count
     }
 
     // Function to check if a transaction ID exists in storage

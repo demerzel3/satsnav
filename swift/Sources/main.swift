@@ -121,23 +121,19 @@ private let ledgersGroupedByRefId = ledgersByRefId.values.filter { $0.count > 1 
 print(ledgers.count)
 print(ledgersByRefId.count)
 
+// Addresses that are plausibly part of the wallet of the user or have been in the past
+private var internalAddresses = Set<Address>(knownAddresses)
+// Addresses that we know for sure are external (e.g. many, complex transactions, probably automated)
+private var externalAddresses = Set<Address>()
+
 private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 // private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
 client.start()
 
-private let historyRequests = knownAddresses /* [0 ... 50] */ .map { address in
-    JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
-}
-
-guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
-    print("🚨 Unable to get history")
-    exit(1)
-}
-
-let storage = TransactionStorage()
+private let storage = TransactionStorage()
 // Restore transactions storage from disk
 await storage.read()
-func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
+private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
     let txIdsSet = Set<String>(txIds)
     print("requesting transaction information for", txIdsSet.count, "transactions")
 
@@ -164,20 +160,113 @@ func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction
 
 // Manual transactions have usually a number of inputs (in case of consolidation)
 // but only one output, + optional change
-func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
+private func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
     return transaction.vout.count <= 2
 }
 
-// TODO: do something with the errors maybe? at least log them!
-let txIds: [String] = history
-    .compactMap { if case .success(let t) = $0 { t } else { nil } }
-    .flatMap { $0.map { $0.tx_hash } }
-let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
-let refTransactionIds = rootTransactions
-    .filter { isManualTransaction($0) }
-    .flatMap { transaction in transaction.vin.map { $0.txid } }
-    .compactMap { $0 }
-_ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+private func hasExternalAddressesInputs(_ transaction: Transaction) -> Bool {
+    return transaction.vin.contains(where: { externalAddresses.contains($0.address) })
+}
+
+// History cache [ScriptHash: [TxId]]
+private var historyCache = [Address: [String]]()
+
+// TODO: study more about how actors work
+@MainActor
+private func round(no: Int) async -> Int {
+    print("---------------------")
+    print("---- ROUND \(no) ----")
+    print("---------------------")
+
+    let internalAddressesList = internalAddresses.filter { historyCache[$0] == nil }
+    let historyRequests = internalAddressesList
+        .map { address in
+            JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
+        }
+    print("Requesting transactions for \(historyRequests.count) addresses")
+    guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
+        print("🚨 Unable to get history")
+        exit(1)
+    }
+
+    // Collect transaction ids and log failures.
+    var txIds = [String](historyCache.values.flatMap { $0 })
+    var txIdToAddress = historyCache.reduce(into: [String: Address]()) { result, entry in
+        let (address, txIds) = entry
+        for txId in txIds where result[txId] == nil {
+            result[txId] = address
+        }
+    }
+
+//    if txIdToAddress.count > 0 {
+//        print(txIdToAddress)
+//        exit(0)
+//    }
+
+    for (address, res) in zip(internalAddressesList, history) {
+        print(address.id)
+
+        switch res {
+        case .success(let history):
+            let historyTxIds = history.map { $0.tx_hash }
+            historyCache[address] = historyTxIds
+            txIds.append(contentsOf: historyTxIds)
+            for txId in historyTxIds {
+                txIdToAddress[txId] = address
+            }
+        case .failure(let error):
+            print("🚨 history request failed for address \(address.id)", error)
+            // TODO: implement a retry mechanism if error is different from "historyTooLarge"
+            print("Moving \(address.id) to external addresses")
+            internalAddresses.remove(address)
+            externalAddresses.insert(address)
+            historyCache.removeValue(forKey: address)
+        }
+    }
+
+    let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
+    let refTransactionIds = rootTransactions
+        .filter { isManualTransaction($0) }
+        .flatMap { transaction in transaction.vin.map { $0.txid } }
+        .compactMap { $0 }
+    _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+
+    var transactions = [Transaction]()
+    for rawTransaction in rootTransactions {
+        transactions.append(await buildTransaction(
+            transaction: rawTransaction,
+            // TODO: handle this unwrap gracefully, should not happen but we don't want a crash
+            address: txIdToAddress[rawTransaction.txid]!
+        ))
+    }
+
+    transactions.sort(by: { a, b in a.time < b.time })
+
+    for transaction in transactions {
+        if case .deposit = transaction.type,
+           // Is a simple transaction
+           isManualTransaction(transaction.rawTransaction),
+           // None of the inputs are marked as external addresses from previous rounds
+           !hasExternalAddressesInputs(transaction)
+        {
+            // print("Manual Deposit", satsToBtc(amount), transaction.txid)
+            // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
+            print("--- Manual Deposit \(transaction.txid) --- other addresses:")
+            for vin in transaction.vin {
+                internalAddresses.insert(vin.address)
+                print(vin.address.id)
+            }
+        } else if case .deposit(let amount) = transaction.type {
+            if hasExternalAddressesInputs(transaction) {
+                print("🎉 Marked external from previous round!!")
+            }
+            print("External Service Deposit", satsToBtc(amount), transaction.txid)
+        }
+    }
+
+    // Returns the number of addresses added to the internal addresses.
+    return internalAddresses.count - internalAddressesList.count
+}
 
 func satsToBtc(_ amount: Int) -> String {
     btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
@@ -187,7 +276,8 @@ func btcToSats(_ amount: Double) -> Int {
     Int(amount * 100000000)
 }
 
-func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
+@MainActor
+func buildTransaction(transaction: ElectrumTransaction, address: Address) async -> Transaction {
     var totalIn = 0
     var transactionVin = [TransactionVin]()
     for vin in transaction.vin {
@@ -218,7 +308,7 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
             txid: vinTxId,
             voutIndex: voutIndex,
             sats: sats,
-            address: Address(id: vinAddress, scriptHash: vinScriptHash)
+            address: Address(id: vinAddress, scriptHash: vinScriptHash, path: [transaction.txid, address.id] + address.path)
         ))
     }
 
@@ -228,17 +318,21 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
         guard let voutAddress = vout.scriptPubKey.address else {
             continue
         }
+        guard let voutScriptHash = getScriptHashForElectrum(vout.scriptPubKey) else {
+            print("Could not compute script hash for address \(voutAddress)")
+            continue
+        }
 
         let sats = btcToSats(vout.value)
         totalOut += sats
         transactionVout.append(TransactionVout(
             sats: sats,
-            address: voutAddress
+            address: Address(id: voutAddress, scriptHash: voutScriptHash)
         ))
     }
 
-    let (knownVin, _) = transactionVin.partition { knownAddressIds.contains($0.address.id) }
-    let (knownVout, unknownVout) = transactionVout.partition { knownAddressIds.contains($0.address) }
+    let (knownVin, _) = transactionVin.partition { internalAddresses.contains($0.address) }
+    let (knownVout, unknownVout) = transactionVout.partition { internalAddresses.contains($0.address) }
 
     let type: TransactionType = if
         knownVin.count == transaction.vin.count,
@@ -271,58 +365,51 @@ func buildTransaction(transaction: ElectrumTransaction) async -> Transaction {
     )
 }
 
-var transactions = [Transaction]()
-for rawTransaction in rootTransactions {
-    transactions.append(await buildTransaction(transaction: rawTransaction))
-}
+var no = 1
+while no <= 3 {
+    let addressesAdded = await round(no: no)
+    print("------------------------------")
+    print("Round \(no) # addresses added: \(addressesAdded)")
+    print("------------------------------")
+    no += 1
 
-transactions.sort(by: { a, b in a.time < b.time })
-
-// Addresses that are plausibly part of the wallet of the user or have been in the past
-var internalAddresses = Set<Address>()
-// Addresses that we know for sure are external (e.g. many, complex transactions, probably automated)
-var externalAddresses = Set<Address>()
-
-for transaction in transactions {
-    if case .deposit = transaction.type, isManualTransaction(transaction.rawTransaction) {
-        // print("Manual Deposit", satsToBtc(amount), transaction.txid)
-        // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
-        print("--- \(transaction.txid) --- other addresses:")
-        for vin in transaction.vin {
-            internalAddresses.insert(vin.address)
-            print(vin.address.id)
-        }
-    } else if case .deposit(let amount) = transaction.type {
-        print("External Service Deposit", satsToBtc(amount), transaction.txid)
+    if addressesAdded == 0 {
+        break
     }
 }
 
-let internalAddressesList = internalAddresses.map { $0 }.sorted(by: { $0.id < $1.id })
-let otherReqs = internalAddressesList.map { JSONRPCRequest.getScripthashHistory(scriptHash: $0.scriptHash) }
-if let otherRes: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: otherReqs) {
-    print("--- OTHER ADDRESSES ---")
-    for (index, res) in otherRes.enumerated() {
-        let address = internalAddressesList[index]
-        print(address.id)
-
-        switch res {
-        case .success(let history):
-            print(history.map { $0.tx_hash })
-        case .failure(let error):
-            if error.historyTooLarge {
-                print("Moving \(address.id) to external addresses")
-                print(internalAddresses.count)
-                internalAddresses.remove(address)
-                print(internalAddresses.count)
-                externalAddresses.insert(address)
-            } else {
-                print("🚨 history request failed", error)
-            }
-        }
-    }
-} else {
-    print("🚨 Failed to fetch history of other addresses")
+print("---- All additional addresses so far 🤔 ---")
+for address in internalAddresses where address.path.count > 0 {
+    print(address.id, "->", address.path.joined(separator: " -> "))
+    print()
 }
+
+// let internalAddressesList = internalAddresses.map { $0 }.sorted(by: { $0.id < $1.id })
+// let otherReqs = internalAddressesList.map { JSONRPCRequest.getScripthashHistory(scriptHash: $0.scriptHash) }
+// if let otherRes: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: otherReqs) {
+//    print("--- OTHER ADDRESSES ---")
+//    for (index, res) in otherRes.enumerated() {
+//        let address = internalAddressesList[index]
+//        print(address.id)
+//
+//        switch res {
+//        case .success(let history):
+//            print(history.map { $0.tx_hash })
+//        case .failure(let error):
+//            if error.historyTooLarge {
+//                print("Moving \(address.id) to external addresses")
+//                print(internalAddresses.count)
+//                internalAddresses.remove(address)
+//                print(internalAddresses.count)
+//                externalAddresses.insert(address)
+//            } else {
+//                print("🚨 history request failed", error)
+//            }
+//        }
+//    }
+// } else {
+//    print("🚨 Failed to fetch history of other addresses")
+// }
 
 /*
  BRAIN DUMP:

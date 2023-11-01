@@ -79,14 +79,14 @@ public class JSONRPCClient: ObservableObject {
 
     private func checkData(data: Data) {
         self.resultData.append(data)
-        print("received data length", data.count)
+        // print("received data length", data.count)
 
         guard let lastByte = self.resultData.last else {
             return
         }
 
         guard lastByte == 10 else {
-            print("Probably not end of stream", lastByte)
+            // print("Probably not end of stream", lastByte)
             return
         }
 
@@ -100,9 +100,9 @@ public class JSONRPCClient: ObservableObject {
                 fatalError()
             }
         }
-        print("parsed up to @\(parsingInput.index - self.resultData.startIndex)")
+        // print("parsed up to @\(parsingInput.index - self.resultData.startIndex)")
         self.resultData.removeFirst(parsingInput.index - self.resultData.startIndex)
-        print("remaining buffer size:", self.resultData.count)
+        // print("remaining buffer size:", self.resultData.count)
     }
 
     private func startReceive() {
