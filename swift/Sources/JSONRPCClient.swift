@@ -139,6 +139,10 @@ public class JSONRPCClient: ObservableObject {
     }
 
     public func send<R>(requests: [JSONRPCRequest]) async -> [Result<R, JSONRPCError>]? where R: Decodable {
+        guard requests.count > 0 else {
+            return [Result<R, JSONRPCError>]()
+        }
+
         return await withCheckedContinuation { continuation in
             var expectedIds = [Int]()
             var encodedRequests = [JSON]()
