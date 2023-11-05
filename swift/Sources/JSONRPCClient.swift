@@ -215,7 +215,6 @@ public class JSONRPCClient: ObservableObject {
                 print("did send, error: %@", "\(error)")
                 self.stop()
             } else {
-                print("did send, no error")
                 self.completion = completion
             }
         })

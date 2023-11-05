@@ -1,12 +1,18 @@
 import Foundation
 
 struct LedgerEntry {
+    // TODO: switch from Provider to the concept of Wallets, so that I can have multiple
+    // wallets per provider. E.g. Kraken - spot, Kraken - staking
     enum Provider {
         case Onchain
         case Coinbase
         case Kraken
         case Celsius
         case Ledn
+        case BlockFi
+        case Relai
+        case ATM
+        case Present
     }
 
     enum LedgerEntryType {

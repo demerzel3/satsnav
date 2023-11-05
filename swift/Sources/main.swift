@@ -30,8 +30,9 @@ private let ledgers = try await readCSVFiles(config: [
     (CoinbaseCSVReader(), "../data/Coinbase.csv"),
     (CelsiusCSVReader(), "../data/Celsius.csv"),
     (KrakenCSVReader(), "../data/Kraken.csv"),
+    (BlockFiCSVReader(), "../data/BlockFi.csv"),
 ])
-private let btcWithdrawalsByAmount: [String: [LedgerEntry]] = ledgers
+private var btcWithdrawalsByAmount: [String: [LedgerEntry]] = ledgers
     .filter { $0.type == .Withdrawal && $0.asset.name == "BTC" }
     .reduce(into: [String: [LedgerEntry]]()) { map, entry in
         let amountKey = btcFormatter.string(from: -entry.amount as NSNumber)!
@@ -193,13 +194,10 @@ private func round(no: Int) async -> Int {
                     ledgers.map { String(describing: $0.provider) }.joined(separator: " or "),
                     "Deposit",
                     satsToBtc(amount),
-                    transaction.txid,
-                    Date(timeIntervalSince1970: TimeInterval(transaction.time)),
-                    ledgers[0].date,
-                    "~\((Date(timeIntervalSince1970: TimeInterval(transaction.time)).timeIntervalSince(ledgers[0].date) / 60).rounded()) minutes"
+                    transaction.txid
                 )
             } else {
-                print("External Service Deposit", satsToBtc(amount), transaction.txid)
+                print("⚠️ External Service Deposit", satsToBtc(amount), Date(timeIntervalSince1970: TimeInterval(transaction.time)), transaction.txid)
             }
         }
     }
@@ -316,9 +314,9 @@ while no <= 10 {
     }
 }
 
-print("---- All additional addresses so far 🤔 ---")
-for address in internalAddresses where address.path.count > 0 {
+// print("---- All additional addresses so far 🤔 ---")
+// for address in internalAddresses where address.path.count > 0 {
 //    print(address.id, "->", address.path.joined(separator: " -> "))
 //    print()
-    print(address.id)
-}
+////    print(address.id)
+// }
