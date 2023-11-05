@@ -1,6 +1,6 @@
 import Foundation
 
-struct Transaction {
+struct LedgerEntry {
     enum Provider {
         case Onchain
         case Coinbase
@@ -9,12 +9,13 @@ struct Transaction {
         case Ledn
     }
 
-    enum TransactionType {
+    enum LedgerEntryType {
         case Deposit
         case Withdrawal
         case Trade
         case Interest
         case Bonus
+        case Transfer // Fallback
     }
 
     enum AssetType {
@@ -29,12 +30,13 @@ struct Transaction {
 
     let provider: Provider
     let id: String
+    let groupId: String // Useful to group together ledgers from the same provider, usually part of the same transaction
     let date: Date
-    let type: TransactionType
+    let type: LedgerEntryType
     let amount: Double
     let asset: Asset
 }
 
 protocol CSVReader {
-    func read(filePath: String) async throws -> [Transaction]
+    func read(filePath: String) async throws -> [LedgerEntry]
 }

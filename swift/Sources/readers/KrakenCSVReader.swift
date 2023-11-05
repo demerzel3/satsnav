@@ -9,122 +9,116 @@ func createNumberFormatter(minimumFractionDigits: Int, maximumFranctionDigits: I
     return formatter
 }
 
+private func createDateFormatter() -> DateFormatter {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    // Set the locale to ensure that the date formatter doesn't get affected by the user's locale.
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+
+    return formatter
+}
+
+extension LedgerEntry.Asset {
+    init(fromKrakenTicker ticker: String) {
+        switch ticker {
+        case "XXBT":
+            self.name = "BTC"
+            self.type = .crypto
+        case "XXDG":
+            self.name = "DOGE"
+            self.type = .crypto
+        case let a where a.starts(with: "X"):
+            self.name = String(a.dropFirst())
+            self.type = .crypto
+        case let a where a.starts(with: "Z"):
+            self.name = String(a.dropFirst())
+            self.type = .fiat
+        default:
+            self.name = ticker
+            self.type = .crypto
+        }
+    }
+}
+
 class KrakenCSVReader: CSVReader {
     private let rateFormatterFiat = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 4)
     private let rateFormatterCrypto = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 10)
+    private let dateFormatter = createDateFormatter()
 
-    private enum AssetType {
-        case fiat
-        case crypto
-    }
+//    private struct Trade {
+//        let from: Asset
+//        let fromAmount: Decimal
+//        let to: Asset
+//        let toAmount: Decimal
+//        let rate: Decimal
+//
+//        init?(fromLedgers entries: [LedgerEntry]) {
+//            if entries.count < 2 {
+//                return nil
+//            }
+//
+//            if entries[0].amount < 0 {
+//                self.from = entries[0].asset
+//                self.fromAmount = -entries[0].amount
+//                self.to = entries[1].asset
+//                self.toAmount = entries[1].amount
+//            } else {
+//                self.from = entries[1].asset
+//                self.fromAmount = -entries[1].amount
+//                self.to = entries[0].asset
+//                self.toAmount = entries[0].amount
+//            }
+//
+//            self.rate = fromAmount / toAmount
+//        }
+//    }
 
-    private struct Asset {
-        let name: String
-        let type: AssetType
-
-        init(fromTicker ticker: String) {
-            switch ticker {
-            case "XXBT":
-                self.name = "BTC"
-                self.type = .crypto
-            case "XXDG":
-                self.name = "DOGE"
-                self.type = .crypto
-            case let a where a.starts(with: "X"):
-                self.name = String(a.dropFirst())
-                self.type = .crypto
-            case let a where a.starts(with: "Z"):
-                self.name = String(a.dropFirst())
-                self.type = .fiat
-            default:
-                self.name = ticker
-                self.type = .crypto
-            }
-        }
-    }
-
-    private struct LedgerEntry {
-        let txId: String
-        let refId: String
-        let time: String
-        let type: String
-        let asset: Asset
-        let amount: Decimal
-    }
-
-    private struct Trade {
-        let from: Asset
-        let fromAmount: Decimal
-        let to: Asset
-        let toAmount: Decimal
-        let rate: Decimal
-
-        init?(fromLedgers entries: [LedgerEntry]) {
-            if entries.count < 2 {
-                return nil
-            }
-
-            if entries[0].amount < 0 {
-                self.from = entries[0].asset
-                self.fromAmount = -entries[0].amount
-                self.to = entries[1].asset
-                self.toAmount = entries[1].amount
-            } else {
-                self.from = entries[1].asset
-                self.fromAmount = -entries[1].amount
-                self.to = entries[0].asset
-                self.toAmount = entries[0].amount
-            }
-
-            self.rate = fromAmount / toAmount
-        }
-    }
-
-    func read(filePath: String) async throws -> [Transaction] {
+    func read(filePath: String) async throws -> [LedgerEntry] {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
 
         var ledgers = [LedgerEntry]()
-        var ledgersByRefId = [String: [LedgerEntry]]()
         // "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
         try csv.enumerateAsDict { dict in
-            let entry = LedgerEntry(txId: dict["txid"] ?? "",
-                                    refId: dict["refid"] ?? "",
-                                    time: dict["time"] ?? "",
-                                    type: dict["type"] ?? "",
-                                    asset: Asset(fromTicker: dict["asset"] ?? ""),
-                                    amount: Decimal(string: dict["amount"] ?? "0") ?? 0)
-            ledgers.append(entry)
-            if !entry.refId.isEmpty {
-                ledgersByRefId[entry.refId, default: []].append(entry)
+            let type: LedgerEntry.LedgerEntryType = switch dict["type"] ?? "" {
+            case "deposit": .Deposit
+            case "withdrawal": .Withdrawal
+            case "trade": .Trade
+            case "spend": .Trade
+            case "receive": .Trade
+            case "staking": .Interest
+            case "dividend": .Interest
+            // TODO: handle subtypes for staking
+            case "transfer": .Transfer
+            default:
+                fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined") defaulting to Trade")
             }
+
+            let entry = LedgerEntry(
+                provider: .Kraken,
+                id: dict["txid"] ?? "",
+                groupId: dict["refid"] ?? "",
+                date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
+                type: type,
+                amount: Double(dict["amount"] ?? "0") ?? 0,
+                asset: LedgerEntry.Asset(fromKrakenTicker: dict["asset"] ?? "")
+            )
+            ledgers.append(entry)
         }
 
-        let ledgersGroupedByRefId = ledgersByRefId.values.filter { $0.count > 1 }
-
-        print(ledgers.count)
-        print(ledgersByRefId.count)
-
-        // TODO: convert to shared "Transaction"
-        return [Transaction(
-            provider: .Kraken,
-            id: "AAA-AAA-AAA",
-            date: Date.now,
-            type: .Withdrawal,
-            amount: 0.0001,
-            asset: Transaction.Asset(name: "BTC", type: .crypto)
-        )]
+        return ledgers
     }
 
-    private func printTrade(entries: [LedgerEntry]) {
-        guard let trade = Trade(fromLedgers: entries) else {
-            return
-        }
-
-        let rateFormatter = trade.from.type == .fiat ? rateFormatterFiat : rateFormatterCrypto
-
-        if trade.from.name != "EUR" || trade.to.name != "BTC" {
-            return
-        }
-        print("Traded", trade.fromAmount, trade.from.name, "for", trade.toAmount, trade.to.name, "@", rateFormatter.string(for: trade.rate)!)
-    }
+//    private func printTrade(entries: [LedgerEntry]) {
+//        guard let trade = Trade(fromLedgers: entries) else {
+//            return
+//        }
+//
+//        let rateFormatter = trade.from.type == .fiat ? rateFormatterFiat : rateFormatterCrypto
+//
+//        if trade.from.name != "EUR" || trade.to.name != "BTC" {
+//            return
+//        }
+//        print("Traded", trade.fromAmount, trade.from.name, "for", trade.toAmount, trade.to.name, "@", rateFormatter.string(for: trade.rate)!)
+//    }
 }

@@ -6,11 +6,31 @@ import JSONDecoding
 import KrakenAPI
 import SwiftCSV
 
-private let krakenReader = KrakenCSVReader()
-private let krakenTransactions = try await krakenReader.read(filePath: "../data/Kraken.csv")
+func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
+    var entries = [LedgerEntry]()
 
-for transaction in krakenTransactions.filter({ $0.type == .Withdrawal }) {
-    print("\(transaction.provider) \(transaction.date) \(transaction.amount) \(transaction.asset.name)")
+    try await withThrowingTaskGroup(of: [LedgerEntry].self) { group in
+        for (reader, filePath) in config {
+            group.addTask {
+                try await reader.read(filePath: filePath)
+            }
+        }
+
+        for try await fileEntries in group {
+            entries.append(contentsOf: fileEntries)
+        }
+    }
+
+    return entries
+}
+
+private let ledgers = try await readCSVFiles(config: [
+    (CoinbaseCSVReader(), "../data/Coinbase.csv"),
+    (KrakenCSVReader(), "../data/Kraken.csv"),
+])
+
+for entry in ledgers.filter({ $0.type == .Withdrawal }) {
+    print("\(entry.provider) \(entry.date) \(entry.amount) \(entry.asset.name)")
 }
 
 exit(0)
