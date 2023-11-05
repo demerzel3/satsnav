@@ -28,6 +28,9 @@ extension LedgerEntry.Asset {
         case "XXDG":
             self.name = "DOGE"
             self.type = .crypto
+        case "XBT.M":
+            self.name = "BTC.M"
+            self.type = .crypto
         case let a where a.starts(with: "X"):
             self.name = String(a.dropFirst())
             self.type = .crypto
@@ -106,7 +109,7 @@ class KrakenCSVReader: CSVReader {
             ledgers.append(entry)
         }
 
-        return ledgers
+        return ledgers.filter { ($0.type != .Withdrawal && $0.type != .Deposit) || $0.id == "" }
     }
 
 //    private func printTrade(entries: [LedgerEntry]) {

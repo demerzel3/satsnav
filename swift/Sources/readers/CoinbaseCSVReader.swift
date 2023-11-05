@@ -3,7 +3,7 @@ import SwiftCSV
 
 private func createDateFormatter() -> DateFormatter {
     let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss UTC"
+    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss 'UTC'"
     formatter.timeZone = TimeZone(secondsFromGMT: 0)
     // Set the locale to ensure that the date formatter doesn't get affected by the user's locale.
     formatter.locale = Locale(identifier: "en_US_POSIX")

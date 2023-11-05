@@ -26,10 +26,11 @@ func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
 
 private let ledgers = try await readCSVFiles(config: [
     (CoinbaseCSVReader(), "../data/Coinbase.csv"),
+    (CelsiusCSVReader(), "../data/Celsius.csv"),
     (KrakenCSVReader(), "../data/Kraken.csv"),
 ])
 
-for entry in ledgers.filter({ $0.type == .Withdrawal }) {
+for entry in ledgers.filter({ $0.type == .Withdrawal || $0.type == .Deposit }) {
     print("\(entry.provider) \(entry.date) \(entry.amount) \(entry.asset.name)")
 }
 
