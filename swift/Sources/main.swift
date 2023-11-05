@@ -189,7 +189,15 @@ private func round(no: Int) async -> Int {
             }
         } else if case .deposit(let amount) = transaction.type {
             if let ledgers = btcWithdrawalsByAmount[satsToBtc(amount)] {
-                print(ledgers.map { String(describing: $0.provider) }.joined(separator: " or "), "Deposit", satsToBtc(amount), transaction.txid)
+                print(
+                    ledgers.map { String(describing: $0.provider) }.joined(separator: " or "),
+                    "Deposit",
+                    satsToBtc(amount),
+                    transaction.txid,
+                    Date(timeIntervalSince1970: TimeInterval(transaction.time)),
+                    ledgers[0].date,
+                    "~\((Date(timeIntervalSince1970: TimeInterval(transaction.time)).timeIntervalSince(ledgers[0].date) / 60).rounded()) minutes"
+                )
             } else {
                 print("External Service Deposit", satsToBtc(amount), transaction.txid)
             }
@@ -310,6 +318,7 @@ while no <= 10 {
 
 print("---- All additional addresses so far 🤔 ---")
 for address in internalAddresses where address.path.count > 0 {
-    print(address.id, "->", address.path.joined(separator: " -> "))
-    print()
+//    print(address.id, "->", address.path.joined(separator: " -> "))
+//    print()
+    print(address.id)
 }
