@@ -106,6 +106,7 @@ private func round(no: Int) async -> Int {
     print("---- ROUND \(no) ----")
     print("---------------------")
 
+    let initialInternalAddressesCount = internalAddresses.count
     let internalAddressesList = internalAddresses.filter { historyCache[$0] == nil }
     let historyRequests = internalAddressesList
         .map { address in
@@ -171,9 +172,11 @@ private func round(no: Int) async -> Int {
     transactions.sort(by: { a, b in a.time < b.time })
 
     for transaction in transactions {
-        if case .deposit = transaction.type,
+        if case .deposit(let amount) = transaction.type,
            // Is a simple transaction
            isManualTransaction(transaction.rawTransaction),
+           // Amount doesn't match an external service deposit amount
+           btcWithdrawalsByAmount[satsToBtc(amount)] == nil,
            // None of the inputs are marked as external addresses from previous rounds
            !hasExternalAddressesInputs(transaction)
         {
@@ -185,15 +188,16 @@ private func round(no: Int) async -> Int {
                 print(vin.address.id)
             }
         } else if case .deposit(let amount) = transaction.type {
-//            if hasExternalAddressesInputs(transaction) {
-//                print("🎉 Interacting with external address!")
-//            }
-            print("External Service Deposit", satsToBtc(amount), transaction.txid)
+            if let ledgers = btcWithdrawalsByAmount[satsToBtc(amount)] {
+                print(ledgers.map { String(describing: $0.provider) }.joined(separator: " or "), "Deposit", satsToBtc(amount), transaction.txid)
+            } else {
+                print("External Service Deposit", satsToBtc(amount), transaction.txid)
+            }
         }
     }
 
     // Returns the number of addresses added to the internal addresses.
-    return internalAddresses.count - internalAddressesList.count
+    return internalAddresses.count - initialInternalAddressesCount
 }
 
 func satsToBtc(_ amount: Int) -> String {
@@ -278,8 +282,6 @@ func buildTransaction(transaction: ElectrumTransaction, address: Address) async 
         .unknown
     }
 
-    // print("total amount \(Double(totalIn) / 100000000), fee \(totalIn - totalOut) sats")
-
     return OnchainTransaction(
         txid: transaction.txid,
         time: transaction.time ?? 0,
@@ -311,13 +313,3 @@ for address in internalAddresses where address.path.count > 0 {
     print(address.id, "->", address.path.joined(separator: " -> "))
     print()
 }
-
-/*
- BRAIN DUMP:
- - the machinery above works!! but, it needs deposit amounts and dates so it can match them with
-   what is found on chain and tag external addresses. I've done this manually for a single address
-   (albeith a pretty complex one, the oldest probably) with great success.
- - so next step is ingest all CSV and make them available to be matched
- - what to do with Coinbase's pdf? copy-pasta or something.. I don't know...
- - ‼️ GOAL: have this work without the hardcoded Celsius and Coinbase addresses, but with that as part of the output
- */
