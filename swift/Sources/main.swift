@@ -6,6 +6,8 @@ import JSONDecoding
 import KrakenAPI
 import SwiftCSV
 
+private let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
+
 func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
     var entries = [LedgerEntry]()
 
@@ -21,7 +23,7 @@ func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
         }
     }
 
-    return entries
+    return entries.sorted(by: { a, b in a.date < b.date })
 }
 
 private let ledgers = try await readCSVFiles(config: [
@@ -29,12 +31,23 @@ private let ledgers = try await readCSVFiles(config: [
     (CelsiusCSVReader(), "../data/Celsius.csv"),
     (KrakenCSVReader(), "../data/Kraken.csv"),
 ])
+private let btcWithdrawalsByAmount: [String: [LedgerEntry]] = ledgers
+    .filter { $0.type == .Withdrawal && $0.asset.name == "BTC" }
+    .reduce(into: [String: [LedgerEntry]]()) { map, entry in
+        let amountKey = btcFormatter.string(from: -entry.amount as NSNumber)!
+        map[amountKey, default: []].append(entry)
+    }
 
-for entry in ledgers.filter({ $0.type == .Withdrawal || $0.type == .Deposit }) {
-    print("\(entry.provider) \(entry.date) \(entry.amount) \(entry.asset.name)")
+print("--- BTC Withdrawals by amount ---")
+for (key, value) in btcWithdrawalsByAmount {
+    print(key, value.count, value.map { String(describing: $0.provider) }.joined(separator: ", "))
 }
 
-exit(0)
+// for entry in ledgers.filter({ $0.type == .Withdrawal || $0.type == .Deposit }) {
+//    print("\(entry.provider) \(entry.date) \(entry.amount) \(entry.asset.name)")
+// }
+
+// exit(0)
 
 // Addresses that are plausibly part of the wallet of the user or have been in the past
 private var internalAddresses = Set<Address>(knownAddresses)
@@ -182,8 +195,6 @@ private func round(no: Int) async -> Int {
     // Returns the number of addresses added to the internal addresses.
     return internalAddresses.count - internalAddressesList.count
 }
-
-private let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
 
 func satsToBtc(_ amount: Int) -> String {
     btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
