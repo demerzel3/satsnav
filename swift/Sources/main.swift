@@ -8,6 +8,17 @@ import SwiftCSV
 
 private let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
 
+private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
+// private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
+client.start()
+
+private let storage = TransactionStorage()
+// Restore transactions storage from disk
+await storage.read()
+
+// Addresses that are part of the onchain wallet
+private var internalAddresses = Set<Address>(knownAddresses)
+
 func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
     var entries = [LedgerEntry]()
 
@@ -23,45 +34,9 @@ func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
         }
     }
 
-    return entries.sorted(by: { a, b in a.date < b.date })
+    return entries
 }
 
-private let ledgers = try await readCSVFiles(config: [
-    (CoinbaseCSVReader(), "../data/Coinbase.csv"),
-    (CelsiusCSVReader(), "../data/Celsius.csv"),
-    (KrakenCSVReader(), "../data/Kraken.csv"),
-    (BlockFiCSVReader(), "../data/BlockFi.csv"),
-])
-private var btcWithdrawalsByAmount: [String: [LedgerEntry]] = ledgers
-    .filter { $0.type == .Withdrawal && $0.asset.name == "BTC" }
-    .reduce(into: [String: [LedgerEntry]]()) { map, entry in
-        let amountKey = btcFormatter.string(from: -entry.amount as NSNumber)!
-        map[amountKey, default: []].append(entry)
-    }
-
-print("--- BTC Withdrawals by amount ---")
-for (key, value) in btcWithdrawalsByAmount {
-    print(key, value.count, value.map { String(describing: $0.provider) }.joined(separator: ", "))
-}
-
-// for entry in ledgers.filter({ $0.type == .Withdrawal || $0.type == .Deposit }) {
-//    print("\(entry.provider) \(entry.date) \(entry.amount) \(entry.asset.name)")
-// }
-
-// exit(0)
-
-// Addresses that are plausibly part of the wallet of the user or have been in the past
-private var internalAddresses = Set<Address>(knownAddresses)
-// Addresses that we know for sure are external (e.g. many, complex transactions, probably automated)
-private var externalAddresses = Set<Address>()
-
-private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
-// private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
-client.start()
-
-private let storage = TransactionStorage()
-// Restore transactions storage from disk
-await storage.read()
 private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
     let txIdsSet = Set<String>(txIds)
     print("requesting transaction information for", txIdsSet.count, "transactions")
@@ -93,22 +68,9 @@ private func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
     return transaction.vout.count <= 2
 }
 
-private func hasExternalAddressesInputs(_ transaction: OnchainTransaction) -> Bool {
-    return transaction.vin.contains(where: { externalAddresses.contains($0.address) })
-}
-
-// History cache [ScriptHash: [TxId]]
-private var historyCache = [Address: [String]]()
-
-// TODO: study more about how actors work
 @MainActor
-private func round(no: Int) async -> Int {
-    print("---------------------")
-    print("---- ROUND \(no) ----")
-    print("---------------------")
-
-    let initialInternalAddressesCount = internalAddresses.count
-    let internalAddressesList = internalAddresses.filter { historyCache[$0] == nil }
+private func getOnchainTransactions() async -> [OnchainTransaction] {
+    let internalAddressesList = internalAddresses.map { $0 }
     let historyRequests = internalAddressesList
         .map { address in
             JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
@@ -120,37 +82,18 @@ private func round(no: Int) async -> Int {
     }
 
     // Collect transaction ids and log failures.
-    var txIds = [String](historyCache.values.flatMap { $0 })
-    var txIdToAddress = historyCache.reduce(into: [String: Address]()) { result, entry in
-        let (address, txIds) = entry
-        for txId in txIds where result[txId] == nil {
-            result[txId] = address
-        }
-    }
-
-//    if txIdToAddress.count > 0 {
-//        print(txIdToAddress)
-//        exit(0)
-//    }
-
+    var txIds = [String]()
+    var txIdToAddress = [String: Address]()
     for (address, res) in zip(internalAddressesList, history) {
-        print(address.id)
-
         switch res {
         case .success(let history):
             let historyTxIds = history.map { $0.tx_hash }
-            historyCache[address] = historyTxIds
             txIds.append(contentsOf: historyTxIds)
             for txId in historyTxIds {
                 txIdToAddress[txId] = address
             }
         case .failure(let error):
             print("🚨 history request failed for address \(address.id)", error)
-            // TODO: implement a retry mechanism if error is different from "historyTooLarge"
-            print("Moving \(address.id) to external addresses")
-            internalAddresses.remove(address)
-            externalAddresses.insert(address)
-            historyCache.removeValue(forKey: address)
         }
     }
 
@@ -172,38 +115,7 @@ private func round(no: Int) async -> Int {
 
     transactions.sort(by: { a, b in a.time < b.time })
 
-    for transaction in transactions {
-        if case .deposit(let amount) = transaction.type,
-           // Is a simple transaction
-           isManualTransaction(transaction.rawTransaction),
-           // Amount doesn't match an external service deposit amount
-           btcWithdrawalsByAmount[satsToBtc(amount)] == nil,
-           // None of the inputs are marked as external addresses from previous rounds
-           !hasExternalAddressesInputs(transaction)
-        {
-            // print("Manual Deposit", satsToBtc(amount), transaction.txid)
-            // print("vin# \(transaction.rawTransaction.vin.count) (\(transaction.vin.count)) vout# \(transaction.vout.count)")
-            print("--- Manual Deposit \(transaction.txid) --- other addresses:")
-            for vin in transaction.vin where !internalAddresses.contains(vin.address) {
-                internalAddresses.insert(vin.address)
-                print(vin.address.id)
-            }
-        } else if case .deposit(let amount) = transaction.type {
-            if let ledgers = btcWithdrawalsByAmount[satsToBtc(amount)] {
-                print(
-                    ledgers.map { String(describing: $0.provider) }.joined(separator: " or "),
-                    "Deposit",
-                    satsToBtc(amount),
-                    transaction.txid
-                )
-            } else {
-                print("⚠️ External Service Deposit", satsToBtc(amount), Date(timeIntervalSince1970: TimeInterval(transaction.time)), transaction.txid)
-            }
-        }
-    }
-
-    // Returns the number of addresses added to the internal addresses.
-    return internalAddresses.count - initialInternalAddressesCount
+    return transactions
 }
 
 func satsToBtc(_ amount: Int) -> String {
@@ -301,22 +213,67 @@ func buildTransaction(transaction: ElectrumTransaction, address: Address) async 
     )
 }
 
-var no = 1
-while no <= 10 {
-    let addressesAdded = await round(no: no)
-    print("------------------------------")
-    print("Round \(no) # addresses added: \(addressesAdded)")
-    print("------------------------------")
-    no += 1
+private func onchainTransactionToLedger(transaction: OnchainTransaction) -> LedgerEntry {
+    let date = Date(timeIntervalSince1970: TimeInterval(transaction.time))
 
-    if addressesAdded == 0 {
-        break
+    switch transaction.type {
+    case .consolidation(let feeInSats):
+        return LedgerEntry(
+            provider: .Onchain,
+            id: transaction.txid,
+            groupId: transaction.txid,
+            date: date,
+            type: .Transfer,
+            amount: Double(satsToBtc(feeInSats))!,
+            asset: .init(name: "BTC", type: .crypto)
+        )
+    case .deposit(let amountInSats):
+        return LedgerEntry(
+            provider: .Onchain,
+            id: transaction.txid,
+            groupId: transaction.txid,
+            date: date,
+            type: .Deposit,
+            amount: Double(satsToBtc(amountInSats))!,
+            asset: .init(name: "BTC", type: .crypto)
+        )
+    case .withdrawal(let amountInSats):
+        return LedgerEntry(
+            provider: .Onchain,
+            id: transaction.txid,
+            groupId: transaction.txid,
+            date: date,
+            type: .Deposit,
+            amount: -Double(satsToBtc(amountInSats))!,
+            asset: .init(name: "BTC", type: .crypto)
+        )
+    case .unknown:
+        return LedgerEntry(
+            provider: .Onchain,
+            id: transaction.txid,
+            groupId: transaction.txid,
+            date: date,
+            type: .Deposit,
+            amount: 0,
+            asset: .init(name: "BTC", type: .crypto)
+        )
     }
 }
 
-// print("---- All additional addresses so far 🤔 ---")
-// for address in internalAddresses where address.path.count > 0 {
-//    print(address.id, "->", address.path.joined(separator: " -> "))
-//    print()
-////    print(address.id)
-// }
+private var ledgers = try await readCSVFiles(config: [
+    (CoinbaseCSVReader(), "../data/Coinbase.csv"),
+    (CelsiusCSVReader(), "../data/Celsius.csv"),
+    (KrakenCSVReader(), "../data/Kraken.csv"),
+    (BlockFiCSVReader(), "../data/BlockFi.csv"),
+])
+for transaction in await getOnchainTransactions() {
+    ledgers.append(onchainTransactionToLedger(transaction: transaction))
+}
+
+ledgers.sort(by: { a, b in a.date < b.date })
+
+for entry in ledgers.filter({ ($0.type == .Withdrawal || $0.type == .Deposit) && $0.asset.name == "BTC" }) {
+    print("\(entry.provider) \(entry.date) \(btcFormatter.string(from: entry.amount as NSNumber)!) \(entry.asset.name)")
+}
+
+// TODO: now that all ledgers are in a single place we can start matching transfers from one wallet to the other
