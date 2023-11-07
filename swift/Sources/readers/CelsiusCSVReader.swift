@@ -31,7 +31,7 @@ class CelsiusCSVReader: CSVReader {
             case "Loan Interest Payment": .Transfer
             case "Loan Principal Payment": .Transfer
             default:
-                fatalError("Unexpected Celsius transaction type: \(dict["Transaction type"] ?? "undefined") defaulting to Trade")
+                fatalError("Unexpected Celsius transaction type: \(dict["Transaction type"] ?? "undefined")")
             }
             let assetName = dict["Coin type"] ?? ""
 

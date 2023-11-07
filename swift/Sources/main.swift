@@ -213,6 +213,7 @@ private var ledgers = try await readCSVFiles(config: [
     (CelsiusCSVReader(), "../data/Celsius.csv"),
     (KrakenCSVReader(), "../data/Kraken.csv"),
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
+    (LednCSVReader(), "../data/Ledn.csv"),
 ])
 ledgers.append(contentsOf: await getOnchainTransactions())
 ledgers.sort(by: { a, b in a.date < b.date })

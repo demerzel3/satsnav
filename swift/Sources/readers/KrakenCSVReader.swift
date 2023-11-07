@@ -56,7 +56,7 @@ class KrakenCSVReader: CSVReader {
             // TODO: handle subtypes for staking
             case "transfer": .Transfer
             default:
-                fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined") defaulting to Trade")
+                fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined")")
             }
             let ticker = dict["asset"] ?? ""
             let asset = LedgerEntry.Asset(fromKrakenTicker: ticker)

@@ -32,7 +32,7 @@ class BlockFiCSVReader: CSVReader {
             case "Withdrawal Fee": .Transfer
             case "BIA Withdraw": .Transfer
             default:
-                fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined") defaulting to Trade")
+                fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined")")
             }
 
             let entry = LedgerEntry(

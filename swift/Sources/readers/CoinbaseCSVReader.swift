@@ -26,7 +26,7 @@ class CoinbaseCSVReader: CSVReader {
             case "Fee": .Transfer
             case "Withdrawal": .Withdrawal
             default:
-                fatalError("Unexpected Coinbase transaction type: \(dict["type"] ?? "undefined") defaulting to Trade")
+                fatalError("Unexpected Coinbase transaction type: \(dict["Type"] ?? "undefined")")
             }
             let assetName = dict["Asset"] ?? ""
 
