@@ -17,7 +17,7 @@ private let storage = TransactionStorage()
 await storage.read()
 
 // Addresses that are part of the onchain wallet
-private var internalAddresses = Set<Address>(knownAddresses)
+private let internalAddresses = Set<Address>(knownAddresses)
 
 func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
     var entries = [LedgerEntry]()
@@ -69,7 +69,7 @@ private func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
 }
 
 @MainActor
-private func getOnchainTransactions() async -> [OnchainTransaction] {
+private func getOnchainTransactions() async -> [LedgerEntry] {
     let internalAddressesList = internalAddresses.map { $0 }
     let historyRequests = internalAddressesList
         .map { address in
@@ -104,18 +104,12 @@ private func getOnchainTransactions() async -> [OnchainTransaction] {
         .compactMap { $0 }
     _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
 
-    var transactions = [OnchainTransaction]()
+    var entries = [LedgerEntry]()
     for rawTransaction in rootTransactions {
-        transactions.append(await buildTransaction(
-            transaction: rawTransaction,
-            // TODO: handle this unwrap gracefully, should not happen but we don't want a crash
-            address: txIdToAddress[rawTransaction.txid]!
-        ))
+        entries.append(await electrumTransactionToLedgerEntry(rawTransaction))
     }
 
-    transactions.sort(by: { a, b in a.time < b.time })
-
-    return transactions
+    return entries
 }
 
 func satsToBtc(_ amount: Int) -> String {
@@ -127,7 +121,7 @@ func btcToSats(_ amount: Double) -> Int {
 }
 
 @MainActor
-func buildTransaction(transaction: ElectrumTransaction, address: Address) async -> OnchainTransaction {
+func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async -> LedgerEntry {
     var totalIn = 0
     var transactionVin = [OnchainTransaction.Vin]()
     for vin in transaction.vin {
@@ -158,7 +152,7 @@ func buildTransaction(transaction: ElectrumTransaction, address: Address) async 
             txid: vinTxId,
             voutIndex: voutIndex,
             sats: sats,
-            address: Address(id: vinAddress, scriptHash: vinScriptHash, path: [transaction.txid, address.id] + address.path)
+            address: Address(id: vinAddress, scriptHash: vinScriptHash)
         ))
     }
 
@@ -184,80 +178,34 @@ func buildTransaction(transaction: ElectrumTransaction, address: Address) async 
     let (knownVin, _) = transactionVin.partition { internalAddresses.contains($0.address) }
     let (knownVout, unknownVout) = transactionVout.partition { internalAddresses.contains($0.address) }
 
-    let type: OnchainTransaction.TransactionType = if
+    let satsFees = totalOut - totalIn
+    let (type, satsAmount): (LedgerEntry.LedgerEntryType, Int) = if
         knownVin.count == transaction.vin.count,
         knownVout.count == transaction.vout.count
     {
         // vin and vout are all known, it's consolidation transaction
-        .consolidation(fee: totalOut - totalIn)
+        (.Transfer, -satsFees)
     } else if knownVin.count == transaction.vin.count {
         // All vin known, it must be a transfer out of some kind
-        .withdrawal(amount: unknownVout.reduce(0) { sum, vout in sum + vout.sats })
+        (.Withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.sats } + satsFees)
     } else if knownVin.count == 0 {
         // No vin is known, must be a deposit
-        .deposit(amount: knownVout.reduce(0) { sum, vout in sum + vout.sats })
+        (.Deposit, knownVout.reduce(0) { sum, vout in sum + vout.sats })
     } else {
-        .unknown
+        (.Transfer, 0)
     }
 
-    return OnchainTransaction(
-        txid: transaction.txid,
-        time: transaction.time ?? 0,
-        rawTransaction: transaction,
+    let date = Date(timeIntervalSince1970: TimeInterval(transaction.time ?? 0))
+
+    return LedgerEntry(
+        wallet: "❄️",
+        id: transaction.txid,
+        groupId: transaction.txid,
+        date: date,
         type: type,
-        totalInSats: totalIn,
-        totalOutSats: totalOut,
-        feeSats: totalIn - totalOut,
-        vin: transactionVin,
-        vout: transactionVout
+        amount: Double(satsAmount) / 100000000,
+        asset: .init(name: "BTC", type: .crypto)
     )
-}
-
-private func onchainTransactionToLedger(transaction: OnchainTransaction) -> LedgerEntry {
-    let date = Date(timeIntervalSince1970: TimeInterval(transaction.time))
-
-    switch transaction.type {
-    case .consolidation(let feeInSats):
-        return LedgerEntry(
-            provider: .Onchain,
-            id: transaction.txid,
-            groupId: transaction.txid,
-            date: date,
-            type: .Transfer,
-            amount: Double(satsToBtc(feeInSats))!,
-            asset: .init(name: "BTC", type: .crypto)
-        )
-    case .deposit(let amountInSats):
-        return LedgerEntry(
-            provider: .Onchain,
-            id: transaction.txid,
-            groupId: transaction.txid,
-            date: date,
-            type: .Deposit,
-            amount: Double(satsToBtc(amountInSats))!,
-            asset: .init(name: "BTC", type: .crypto)
-        )
-    case .withdrawal(let amountInSats):
-        return LedgerEntry(
-            provider: .Onchain,
-            id: transaction.txid,
-            groupId: transaction.txid,
-            date: date,
-            type: .Deposit,
-            amount: -Double(satsToBtc(amountInSats))!,
-            asset: .init(name: "BTC", type: .crypto)
-        )
-    case .unknown:
-        return LedgerEntry(
-            provider: .Onchain,
-            id: transaction.txid,
-            groupId: transaction.txid,
-            date: date,
-            type: .Deposit,
-            amount: 0,
-            asset: .init(name: "BTC", type: .crypto)
-        )
-    }
 }
 
 private var ledgers = try await readCSVFiles(config: [
@@ -266,14 +214,11 @@ private var ledgers = try await readCSVFiles(config: [
     (KrakenCSVReader(), "../data/Kraken.csv"),
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
 ])
-for transaction in await getOnchainTransactions() {
-    ledgers.append(onchainTransactionToLedger(transaction: transaction))
-}
-
+ledgers.append(contentsOf: await getOnchainTransactions())
 ledgers.sort(by: { a, b in a.date < b.date })
 
 for entry in ledgers.filter({ ($0.type == .Withdrawal || $0.type == .Deposit) && $0.asset.name == "BTC" }) {
-    print("\(entry.provider) \(entry.date) \(btcFormatter.string(from: entry.amount as NSNumber)!) \(entry.asset.name)")
+    print("\(entry.wallet) \(entry.date) \(btcFormatter.string(from: entry.amount as NSNumber)!) \(entry.asset.name)")
 }
 
 // TODO: now that all ledgers are in a single place we can start matching transfers from one wallet to the other

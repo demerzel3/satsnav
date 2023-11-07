@@ -1,20 +1,6 @@
 import Foundation
 
 struct LedgerEntry {
-    // TODO: switch from Provider to the concept of Wallets, so that I can have multiple
-    // wallets per provider. E.g. Kraken - spot, Kraken - staking
-    enum Provider {
-        case Onchain
-        case Coinbase
-        case Kraken
-        case Celsius
-        case Ledn
-        case BlockFi
-        case Relai
-        case ATM
-        case Present
-    }
-
     enum LedgerEntryType {
         case Deposit
         case Withdrawal
@@ -34,7 +20,7 @@ struct LedgerEntry {
         let type: AssetType
     }
 
-    let provider: Provider
+    let wallet: String
     let id: String
     let groupId: String // Useful to group together ledgers from the same provider, usually part of the same transaction
     let date: Date

@@ -1,14 +1,6 @@
 import Foundation
 import SwiftCSV
 
-func createNumberFormatter(minimumFractionDigits: Int, maximumFranctionDigits: Int) -> NumberFormatter {
-    let formatter = NumberFormatter()
-    formatter.minimumFractionDigits = minimumFractionDigits
-    formatter.maximumFractionDigits = maximumFranctionDigits
-
-    return formatter
-}
-
 private func createDateFormatter() -> DateFormatter {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -29,12 +21,12 @@ extension LedgerEntry.Asset {
             self.name = "DOGE"
             self.type = .crypto
         case "XBT.M":
-            self.name = "BTC.M"
+            self.name = "BTC"
             self.type = .crypto
-        case let a where a.starts(with: "X"):
+        case let a where a.hasPrefix("X"):
             self.name = String(a.dropFirst())
             self.type = .crypto
-        case let a where a.starts(with: "Z"):
+        case let a where a.hasPrefix("Z"):
             self.name = String(a.dropFirst())
             self.type = .fiat
         default:
@@ -45,37 +37,7 @@ extension LedgerEntry.Asset {
 }
 
 class KrakenCSVReader: CSVReader {
-    private let rateFormatterFiat = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 4)
-    private let rateFormatterCrypto = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 10)
     private let dateFormatter = createDateFormatter()
-
-//    private struct Trade {
-//        let from: Asset
-//        let fromAmount: Decimal
-//        let to: Asset
-//        let toAmount: Decimal
-//        let rate: Decimal
-//
-//        init?(fromLedgers entries: [LedgerEntry]) {
-//            if entries.count < 2 {
-//                return nil
-//            }
-//
-//            if entries[0].amount < 0 {
-//                self.from = entries[0].asset
-//                self.fromAmount = -entries[0].amount
-//                self.to = entries[1].asset
-//                self.toAmount = entries[1].amount
-//            } else {
-//                self.from = entries[1].asset
-//                self.fromAmount = -entries[1].amount
-//                self.to = entries[0].asset
-//                self.toAmount = entries[0].amount
-//            }
-//
-//            self.rate = fromAmount / toAmount
-//        }
-//    }
 
     func read(filePath: String) async throws -> [LedgerEntry] {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
@@ -96,32 +58,20 @@ class KrakenCSVReader: CSVReader {
             default:
                 fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined") defaulting to Trade")
             }
-
+            let ticker = dict["asset"] ?? ""
+            let asset = LedgerEntry.Asset(fromKrakenTicker: ticker)
             let entry = LedgerEntry(
-                provider: .Kraken,
+                wallet: ticker.hasSuffix(".M") ? "Kaken Staking" : "Kraken",
                 id: dict["txid"] ?? "",
                 groupId: dict["refid"] ?? "",
                 date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
                 type: type,
                 amount: Double(dict["amount"] ?? "0") ?? 0,
-                asset: LedgerEntry.Asset(fromKrakenTicker: dict["asset"] ?? "")
+                asset: asset
             )
             ledgers.append(entry)
         }
 
         return ledgers.filter { ($0.type != .Withdrawal && $0.type != .Deposit) || $0.id == "" }
     }
-
-//    private func printTrade(entries: [LedgerEntry]) {
-//        guard let trade = Trade(fromLedgers: entries) else {
-//            return
-//        }
-//
-//        let rateFormatter = trade.from.type == .fiat ? rateFormatterFiat : rateFormatterCrypto
-//
-//        if trade.from.name != "EUR" || trade.to.name != "BTC" {
-//            return
-//        }
-//        print("Traded", trade.fromAmount, trade.from.name, "for", trade.toAmount, trade.to.name, "@", rateFormatter.string(for: trade.rate)!)
-//    }
 }

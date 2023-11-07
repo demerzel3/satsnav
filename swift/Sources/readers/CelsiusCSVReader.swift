@@ -36,7 +36,7 @@ class CelsiusCSVReader: CSVReader {
             let assetName = dict["Coin type"] ?? ""
 
             let entry = LedgerEntry(
-                provider: .Celsius,
+                wallet: "Celsius",
                 id: dict["Internal id"] ?? "",
                 groupId: dict["Internal id"] ?? "",
                 date: self.dateFormatter.date(from: dict["Date and time"] ?? "") ?? Date.now,

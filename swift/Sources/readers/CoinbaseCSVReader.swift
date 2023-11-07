@@ -31,7 +31,7 @@ class CoinbaseCSVReader: CSVReader {
             let assetName = dict["Asset"] ?? ""
 
             let entry = LedgerEntry(
-                provider: .Coinbase,
+                wallet: "Coinbase",
                 id: dict["ID"] ?? "",
                 groupId: dict["ID"] ?? "",
                 date: self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now,
