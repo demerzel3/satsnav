@@ -7,6 +7,7 @@ import KrakenAPI
 import SwiftCSV
 
 private let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
+private let fiatFormatter = createNumberFormatter(minimumFractionDigits: 2, maximumFranctionDigits: 2)
 
 private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 // private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
@@ -203,7 +204,7 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
         groupId: transaction.txid,
         date: date,
         type: type,
-        amount: Double(satsAmount) / 100000000,
+        amount: Decimal(satsAmount) / 100000000,
         asset: .init(name: "BTC", type: .crypto)
     )
 }
@@ -218,8 +219,15 @@ private var ledgers = try await readCSVFiles(config: [
 ledgers.append(contentsOf: await getOnchainTransactions())
 ledgers.sort(by: { a, b in a.date < b.date })
 
-for entry in ledgers.filter({ ($0.type == .Withdrawal || $0.type == .Deposit) && $0.asset.name == "BTC" }) {
-    print("\(entry.wallet) \(entry.date) \(btcFormatter.string(from: entry.amount as NSNumber)!) \(entry.asset.name)")
+//             [Wallet:[Asset:balance]]
+var balances = [String: [LedgerEntry.Asset: Decimal]]()
+for entry in ledgers {
+    balances[entry.wallet, default: [LedgerEntry.Asset: Decimal]()][entry.asset, default: 0] += entry.amount
 }
 
-// TODO: now that all ledgers are in a single place we can start matching transfers from one wallet to the other
+for (wallet, assets) in balances {
+    print("--- \(wallet) ---")
+    for (asset, amount) in assets {
+        print("\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)")
+    }
+}

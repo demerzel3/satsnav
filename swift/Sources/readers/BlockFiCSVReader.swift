@@ -21,16 +21,21 @@ class BlockFiCSVReader: CSVReader {
         var ledgers = [LedgerEntry]()
         // Cryptocurrency,Amount,Transaction Type,Exchange Rate Per Coin (USD),Confirmed At
         try csv.enumerateAsDict { dict in
-            let type: LedgerEntry.LedgerEntryType = switch dict["Transaction Type"] ?? "" {
+            let transactionType = dict["Transaction Type"] ?? ""
+            // Ignore these as they are messing up with the ledger
+            if transactionType == "BIA Withdraw" {
+                return
+            }
+
+            let type: LedgerEntry.LedgerEntryType = switch transactionType {
             case "Interest Payment": .Interest
             case "Bonus Payment": .Bonus
             case "Referral Bonus": .Bonus
             case "Trade": .Trade
             case "Crypto Transfer": .Deposit
             case "Withdrawal": .Withdrawal
-            // TODO: handle the following two better
+            // TODO: handle the following better
             case "Withdrawal Fee": .Transfer
-            case "BIA Withdraw": .Transfer
             default:
                 fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined")")
             }
@@ -41,7 +46,7 @@ class BlockFiCSVReader: CSVReader {
                 groupId: "",
                 date: self.dateFormatter.date(from: dict["Confirmed At"] ?? "") ?? Date.now,
                 type: type,
-                amount: Double(dict["Amount"] ?? "0") ?? 0,
+                amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
                 asset: LedgerEntry.Asset(name: dict["Cryptocurrency"] ?? "", type: .crypto)
             )
             ledgers.append(entry)

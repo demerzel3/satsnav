@@ -32,7 +32,7 @@ class LednCSVReader: CSVReader {
             }
 
             let isSending = dict["Direction of funds"] == "Sending"
-            let amount = Double(dict["Amount"] ?? "0") ?? 0
+            let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
             let entry = LedgerEntry(
                 wallet: "Ledn",
                 id: "",

@@ -15,7 +15,7 @@ struct LedgerEntry {
         case crypto
     }
 
-    struct Asset {
+    struct Asset: Hashable {
         let name: String
         let type: AssetType
     }
@@ -25,7 +25,7 @@ struct LedgerEntry {
     let groupId: String // Useful to group together ledgers from the same provider, usually part of the same transaction
     let date: Date
     let type: LedgerEntryType
-    let amount: Double
+    let amount: Decimal
     let asset: Asset
 }
 

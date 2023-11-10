@@ -36,7 +36,7 @@ class CoinbaseCSVReader: CSVReader {
                 groupId: dict["ID"] ?? "",
                 date: self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now,
                 type: type,
-                amount: Double(dict["Amount"] ?? "0") ?? 0,
+                amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
                 asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)

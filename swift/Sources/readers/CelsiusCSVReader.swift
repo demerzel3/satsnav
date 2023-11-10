@@ -41,8 +41,8 @@ class CelsiusCSVReader: CSVReader {
                 groupId: dict["Internal id"] ?? "",
                 date: self.dateFormatter.date(from: dict["Date and time"] ?? "") ?? Date.now,
                 type: type,
-                amount: Double(dict["Coin amount"] ?? "0") ?? 0,
-                asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
+                amount: Decimal(string: dict["Coin amount"] ?? "0") ?? 0,
+                asset: LedgerEntry.Asset(name: assetName == "USDT ERC20" ? "USDT" : assetName, type: .crypto)
             )
             ledgers.append(entry)
         }
