@@ -20,23 +20,51 @@ class CoinbaseCSVReader: CSVReader {
         var ledgers = [LedgerEntry]()
         // Asset,Type,Time,Amount,Balance,ID
         try csv.enumerateAsDict { dict in
+            let date = self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now
+            let typeString = dict["Type"] ?? ""
+            let id = dict["ID"] ?? ""
+            let groupId = "\(id)-\(date.ISO8601Format())"
+            let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
+            let assetName = dict["Asset"] ?? ""
+
+            // Fee usually follows the match it applies to, if that's the case we want to amend it
+            if typeString == "Fee" {
+                guard let lastEntry = ledgers.popLast() else {
+                    fatalError("Unable to apply fee \(amount) \(assetName), is first entry")
+                }
+
+                guard lastEntry.asset.name == assetName && lastEntry.groupId == groupId && lastEntry.type == .Trade else {
+                    fatalError("Unable to apply fee \(amount) \(assetName), previous entry does not match")
+                }
+
+                ledgers.append(LedgerEntry(
+                    wallet: lastEntry.wallet,
+                    id: lastEntry.id,
+                    groupId: lastEntry.groupId,
+                    date: lastEntry.date,
+                    type: lastEntry.type,
+                    amount: lastEntry.amount + amount,
+                    asset: lastEntry.asset
+                ))
+
+                return
+            }
+
             let type: LedgerEntry.LedgerEntryType = switch dict["Type"] ?? "" {
             case "Deposit": .Deposit
             case "Match": .Trade
-            case "Fee": .Transfer
             case "Withdrawal": .Withdrawal
             default:
                 fatalError("Unexpected Coinbase transaction type: \(dict["Type"] ?? "undefined")")
             }
-            let assetName = dict["Asset"] ?? ""
 
             let entry = LedgerEntry(
                 wallet: "Coinbase",
-                id: dict["ID"] ?? "",
-                groupId: dict["ID"] ?? "",
-                date: self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now,
+                id: id,
+                groupId: groupId,
+                date: date,
                 type: type,
-                amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
+                amount: amount,
                 asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)

@@ -42,8 +42,8 @@ class BlockFiCSVReader: CSVReader {
 
             let entry = LedgerEntry(
                 wallet: "BlockFi",
-                id: "",
-                groupId: "",
+                id: "\(ledgers.count)",
+                groupId: "\(ledgers.count)",
                 date: self.dateFormatter.date(from: dict["Confirmed At"] ?? "") ?? Date.now,
                 type: type,
                 amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,

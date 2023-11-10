@@ -35,8 +35,8 @@ class LednCSVReader: CSVReader {
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
             let entry = LedgerEntry(
                 wallet: "Ledn",
-                id: "",
-                groupId: "",
+                id: dict["Txn ID"] ?? "",
+                groupId: dict["Txn ID"] ?? "",
                 date: self.dateFormatter.date(from: dict["Posted Date"] ?? "") ?? Date.now,
                 type: type,
                 amount: (isSending ? -1 : 1) * amount,

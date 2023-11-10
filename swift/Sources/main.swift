@@ -209,6 +209,13 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
     )
 }
 
+func formatAmount(_ entry: LedgerEntry) -> String {
+    let asset = entry.asset
+    let amount = entry.amount
+
+    return "\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)"
+}
+
 private var ledgers = try await readCSVFiles(config: [
     (CoinbaseCSVReader(), "../data/Coinbase.csv"),
     (CelsiusCSVReader(), "../data/Celsius.csv"),
@@ -219,15 +226,33 @@ private var ledgers = try await readCSVFiles(config: [
 ledgers.append(contentsOf: await getOnchainTransactions())
 ledgers.sort(by: { a, b in a.date < b.date })
 
-//             [Wallet:[Asset:balance]]
-var balances = [String: [LedgerEntry.Asset: Decimal]]()
-for entry in ledgers {
-    balances[entry.wallet, default: [LedgerEntry.Asset: Decimal]()][entry.asset, default: 0] += entry.amount
+////             [Wallet:[Asset:balance]]
+// var balances = [String: [LedgerEntry.Asset: Decimal]]()
+// for entry in ledgers {
+//    balances[entry.wallet, default: [LedgerEntry.Asset: Decimal]()][entry.asset, default: 0] += entry.amount
+// }
+//
+// for (wallet, assets) in balances {
+//    print("--- \(wallet) ---")
+//    for (asset, amount) in assets {
+//        print("\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)")
+//    }
+// }
+
+let groupedLedgers = ledgers.reduce(into: [String: [LedgerEntry]]()) { groupIdToLedgers, entry in
+    let groupId = "\(entry.wallet)-\(entry.groupId)"
+    groupIdToLedgers[groupId, default: [LedgerEntry]()].append(entry)
+}.values.sorted { a, b in
+    a[0].date < b[0].date
 }
 
-for (wallet, assets) in balances {
-    print("--- \(wallet) ---")
-    for (asset, amount) in assets {
-        print("\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)")
-    }
+guard groupedLedgers.filter({ $0.count > 2 }).isEmpty else {
+    fatalError("Some grouping has more than 2 elements")
+}
+
+print("= 1", groupedLedgers.filter { $0.count == 1 }.count)
+print("= 2", groupedLedgers.filter { $0.count == 2 }.count)
+
+for group in groupedLedgers where group.count == 2 && group[0].type == .Trade {
+    print("Trade! \(group[0].date) \(formatAmount(group[0])) \(formatAmount(group[1]))")
 }
