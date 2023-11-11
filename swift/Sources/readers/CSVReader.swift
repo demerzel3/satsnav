@@ -7,6 +7,7 @@ struct LedgerEntry {
         case Trade
         case Interest
         case Bonus
+        case Fee
         case Transfer // Fallback
     }
 

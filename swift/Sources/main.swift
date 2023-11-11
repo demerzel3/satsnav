@@ -188,6 +188,7 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
         (.Transfer, -satsFees)
     } else if knownVin.count == transaction.vin.count {
         // All vin known, it must be a transfer out of some kind
+        // TODO: track fees separately from withdrawals for easy direct matching!
         (.Withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.sats } + satsFees)
     } else if knownVin.count == 0 {
         // No vin is known, must be a deposit
@@ -239,20 +240,121 @@ ledgers.sort(by: { a, b in a.date < b.date })
 //    }
 // }
 
-let groupedLedgers = ledgers.reduce(into: [String: [LedgerEntry]]()) { groupIdToLedgers, entry in
-    let groupId = "\(entry.wallet)-\(entry.groupId)"
+// for entry in ledgers where (entry.type == .Deposit || entry.type == .Withdrawal) && entry.asset.name == "BTC" {
+//    print("\(entry.date) \(entry.wallet) \(entry.type) \(formatAmount(entry))")
+// }
+
+enum GroupedLedger {
+    case single(entry: LedgerEntry)
+    case trade(spend: LedgerEntry, receive: LedgerEntry)
+}
+
+let groupedLedgers: [GroupedLedger] = ledgers.reduce(into: [String: [LedgerEntry]]()) { groupIdToLedgers, entry in
+    // Explicitly exclude fees from grouping
+    let groupId = "\(entry.wallet)-\(entry.groupId)\(entry.type == .Fee ? "-fee" : "")"
     groupIdToLedgers[groupId, default: [LedgerEntry]()].append(entry)
 }.values.sorted { a, b in
     a[0].date < b[0].date
+}.map {
+    switch $0.count {
+    case 1: return .single(entry: $0[0])
+    case 2 where $0[0].amount > 0: return .trade(spend: $0[1], receive: $0[0])
+    case 2 where $0[0].amount <= 0: return .trade(spend: $0[0], receive: $0[1])
+    default:
+        print($0)
+        fatalError("Group has more than 2 elements")
+    }
 }
 
-guard groupedLedgers.filter({ $0.count > 2 }).isEmpty else {
-    fatalError("Some grouping has more than 2 elements")
+struct Ref {
+    // "\(wallet)-\(id)"
+    let wallet: String
+    let id: String
+    let amount: Decimal
+    let rate: Decimal?
 }
 
-print("= 1", groupedLedgers.filter { $0.count == 1 }.count)
-print("= 2", groupedLedgers.filter { $0.count == 2 }.count)
+let BASE_ASSET = LedgerEntry.Asset(name: "EUR", type: .fiat)
 
-for group in groupedLedgers where group.count == 2 && group[0].type == .Trade {
-    print("Trade! \(group[0].date) \(formatAmount(group[0])) \(formatAmount(group[1]))")
+//             [Wallet: [Asset:             Refs]]
+var balances = [String: [LedgerEntry.Asset: [Ref]]]()
+for group in groupedLedgers {
+    switch group {
+    case .single(let entry):
+        // Not keeping track of base asset
+        guard entry.asset != BASE_ASSET else {
+            continue
+        }
+
+        print("\(entry.wallet) \(entry.type) \(formatAmount(entry))")
+
+        if entry.amount > 0 {
+            let ref = Ref(wallet: entry.wallet, id: entry.id, amount: entry.amount, rate: nil)
+            balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset, default: [Ref]()].append(ref)
+        } else {
+            // Remove refs from asset balance using FIFO strategy
+            var refs = balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset, default: [Ref]()]
+            var removedRefs = [Ref]()
+            var totalRemoved: Decimal = 0
+            while totalRemoved < -entry.amount {
+                let removed = refs.removeFirst()
+                totalRemoved += removed.amount
+                removedRefs.append(removed)
+            }
+
+            if totalRemoved > -entry.amount {
+                let leftOnBalance = totalRemoved + entry.amount
+                guard let last = removedRefs.popLast() else {
+                    fatalError("This should definitely never happen")
+                }
+                // Put leftover back to top of refs
+                refs.insert(Ref(wallet: last.wallet, id: last.id, amount: leftOnBalance, rate: last.rate), at: 0)
+                // Add rest to removed refs
+                removedRefs.append(Ref(wallet: last.wallet, id: last.id, amount: last.amount - leftOnBalance, rate: last.rate))
+            }
+
+            balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset] = refs
+            if entry.asset.name == "BTC", entry.type == .Withdrawal {
+                let refsString = removedRefs.map { "\($0.amount)@\($0.rate ?? 0)" }.joined(separator: ", ")
+                print("  refs: \(refsString)")
+            }
+        }
+    case .trade(let spend, let receive):
+        let rate = (-spend.amount / receive.amount)
+        print("\(spend.wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(rate)")
+
+        if spend.asset != BASE_ASSET {
+            // "move" refs to receive balance
+            var refs = balances[spend.wallet, default: [LedgerEntry.Asset: [Ref]]()][spend.asset, default: [Ref]()]
+            var removedRefs = [Ref]()
+            var totalRemoved: Decimal = 0
+            while totalRemoved < -spend.amount {
+                let removed = refs.removeFirst()
+                totalRemoved += removed.amount
+                removedRefs.append(removed)
+            }
+
+            if totalRemoved > spend.amount {
+                print(balances)
+                fatalError("Not implemented")
+            }
+
+            print("REFS", refs)
+            print("REMOVED REFS", removedRefs)
+            break
+        }
+
+        if receive.asset != BASE_ASSET {
+            // Add ref to balance
+            let ref = Ref(wallet: receive.wallet, id: receive.groupId, amount: receive.amount, rate: rate)
+            balances[receive.wallet, default: [LedgerEntry.Asset: [Ref]]()][receive.asset, default: [Ref]()].append(ref)
+        }
+    }
 }
+
+/*
+ NEXT STEPS
+  - track onchain fees separately from withdrawal transactions
+  - cache addresses history so I don't hammer bluewallet server during testing
+  - match deposits with withdrawals before starting the balances exercise so that they can handled at the same time
+ */

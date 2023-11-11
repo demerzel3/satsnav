@@ -80,7 +80,6 @@ class KrakenCSVReader: CSVReader {
             let asset = LedgerEntry.Asset(fromKrakenTicker: ticker)
             let amount = Decimal(string: dict["amount"] ?? "0") ?? 0
             let fee = Decimal(string: dict["fee"] ?? "0") ?? 0
-            let amountMinusFee = amount - fee
             let balance = Decimal(string: dict["balance"] ?? "0") ?? 0
             let entry = LedgerEntry(
                 wallet: "Kraken",
@@ -88,11 +87,23 @@ class KrakenCSVReader: CSVReader {
                 groupId: dict["refid"] ?? "",
                 date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
                 type: type,
-                amount: amountMinusFee,
+                amount: amount,
                 asset: asset
             )
 
-            balances[ticker, default: 0] += amountMinusFee
+            if fee > 0 {
+                ledgers.append(LedgerEntry(
+                    wallet: entry.wallet,
+                    id: "fee-\(entry.id)",
+                    groupId: entry.groupId,
+                    date: entry.date,
+                    type: .Fee,
+                    amount: -fee,
+                    asset: asset
+                ))
+            }
+
+            balances[ticker, default: 0] += amount - fee
             ledgers.append(entry)
 
             // Ledger sanity check
