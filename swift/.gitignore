@@ -8,3 +8,4 @@ DerivedData/
 Sources/Addresses.swift
 *.csv
 transactions.plist
+rootTransactionIds.plist

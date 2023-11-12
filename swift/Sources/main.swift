@@ -70,34 +70,63 @@ private func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
 }
 
 @MainActor
-private func getOnchainTransactions() async -> [LedgerEntry] {
-    let internalAddressesList = internalAddresses.map { $0 }
-    let historyRequests = internalAddressesList
-        .map { address in
-            JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
+private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerEntry] {
+    func writeCache(txIds: [String]) {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("rootTransactionIds.plist")
+        print(filePath)
+        do {
+            let data = try PropertyListEncoder().encode(txIds)
+            try data.write(to: filePath)
+            print("Root tx ids saved successfully!")
+        } catch {
+            fatalError("Error saving root tx ids: \(error)")
         }
-    print("Requesting transactions for \(historyRequests.count) addresses")
-    guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
-        print("🚨 Unable to get history")
-        exit(1)
     }
 
-    // Collect transaction ids and log failures.
-    var txIds = [String]()
-    var txIdToAddress = [String: Address]()
-    for (address, res) in zip(internalAddressesList, history) {
-        switch res {
-        case .success(let history):
-            let historyTxIds = history.map { $0.tx_hash }
-            txIds.append(contentsOf: historyTxIds)
-            for txId in historyTxIds {
-                txIdToAddress[txId] = address
+    func readCache() -> [String] {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("rootTransactionIds.plist")
+        print(filePath)
+        do {
+            let data = try Data(contentsOf: filePath)
+            let txIds = try PropertyListDecoder().decode([String].self, from: data)
+            print("Retrieved root tx ids from disk: \(txIds.count)")
+
+            return txIds
+        } catch {
+            fatalError("Error retrieving root tx ids: \(error)")
+        }
+    }
+
+    func fetchRootTransactionIds() async -> [String] {
+        let internalAddressesList = internalAddresses.map { $0 }
+        let historyRequests = internalAddressesList
+            .map { address in
+                JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
             }
-        case .failure(let error):
-            print("🚨 history request failed for address \(address.id)", error)
+        print("Requesting transactions for \(historyRequests.count) addresses")
+        guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
+            fatalError("🚨 Unable to get history")
         }
+
+        // Collect transaction ids and log failures.
+        var txIds = [String]()
+        for (address, res) in zip(internalAddressesList, history) {
+            switch res {
+            case .success(let history):
+                txIds.append(contentsOf: history.map { $0.tx_hash })
+            case .failure(let error):
+                print("🚨 history request failed for address \(address.id)", error)
+            }
+        }
+        // Save collected txids to cache
+        writeCache(txIds: txIds)
+
+        return txIds
     }
 
+    let txIds = cacheOnly ? readCache() : await fetchRootTransactionIds()
     let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
     let refTransactionIds = rootTransactions
         .filter { isManualTransaction($0) }
@@ -224,7 +253,7 @@ private var ledgers = try await readCSVFiles(config: [
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
     (LednCSVReader(), "../data/Ledn.csv"),
 ])
-ledgers.append(contentsOf: await getOnchainTransactions())
+ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 ledgers.sort(by: { a, b in a.date < b.date })
 
 ////             [Wallet:[Asset:balance]]
