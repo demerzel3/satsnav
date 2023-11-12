@@ -1,3 +1,4 @@
+import Collections
 import CryptoKit
 import Foundation
 import Grammar
@@ -8,6 +9,8 @@ import SwiftCSV
 
 private let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
 private let fiatFormatter = createNumberFormatter(minimumFractionDigits: 2, maximumFranctionDigits: 2)
+private let cryptoRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 6)
+private let fiatRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 2)
 
 private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 // private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
@@ -246,6 +249,60 @@ func formatAmount(_ entry: LedgerEntry) -> String {
     return "\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)"
 }
 
+func formatRate(_ optionalRate: Decimal?, spendType: LedgerEntry.AssetType = .crypto) -> String {
+    guard let rate = optionalRate else {
+        return "unknown"
+    }
+
+    switch spendType {
+    case .crypto: return cryptoRateFormatter.string(from: rate as NSNumber)!
+    case .fiat: return fiatRateFormatter.string(from: rate as NSNumber)!
+    }
+}
+
+struct Ref {
+    // "\(wallet)-\(id)"
+    let wallet: String
+    let id: String
+    let amount: Decimal
+    let rate: Decimal?
+}
+
+typealias RefsDeque = Deque<Ref>
+typealias RefsArray = [Ref]
+typealias Balance = [LedgerEntry.Asset: RefsDeque]
+
+/**
+ Removes refs from asset balance using FIFO strategy
+ */
+func subtract(refs: inout RefsDeque, amount: Decimal) -> RefsArray {
+    guard amount >= 0 else {
+        fatalError("amount must be positive")
+    }
+
+    // Remove refs from asset balance using FIFO strategy
+    var subtractedRefs = RefsArray()
+    var totalRemoved: Decimal = 0
+    while totalRemoved < amount {
+        let removed = refs.removeFirst()
+        totalRemoved += removed.amount
+        subtractedRefs.append(removed)
+    }
+
+    if totalRemoved > amount {
+        let leftOnBalance = totalRemoved - amount
+        guard let last = subtractedRefs.popLast() else {
+            fatalError("This should definitely never happen")
+        }
+        // Put leftover back to top of refs
+        refs.insert(Ref(wallet: last.wallet, id: last.id, amount: leftOnBalance, rate: last.rate), at: 0)
+        // Add rest to removed refs
+        subtractedRefs.append(Ref(wallet: last.wallet, id: last.id, amount: last.amount - leftOnBalance, rate: last.rate))
+    }
+
+    return subtractedRefs
+}
+
 private var ledgers = try await readCSVFiles(config: [
     (CoinbaseCSVReader(), "../data/Coinbase.csv"),
     (CelsiusCSVReader(), "../data/Celsius.csv"),
@@ -295,88 +352,64 @@ let groupedLedgers: [GroupedLedger] = ledgers.reduce(into: [String: [LedgerEntry
     }
 }
 
-struct Ref {
-    // "\(wallet)-\(id)"
-    let wallet: String
-    let id: String
-    let amount: Decimal
-    let rate: Decimal?
-}
-
 let BASE_ASSET = LedgerEntry.Asset(name: "EUR", type: .fiat)
 
-//             [Wallet: [Asset:             Refs]]
-var balances = [String: [LedgerEntry.Asset: [Ref]]]()
+//             [Wallet: Balance]
+var balances = [String: Balance]()
 for group in groupedLedgers {
     switch group {
     case .single(let entry):
+        print("\(entry.wallet) \(entry.type) \(formatAmount(entry))")
+
         // Not keeping track of base asset
         guard entry.asset != BASE_ASSET else {
             continue
         }
 
-        print("\(entry.wallet) \(entry.type) \(formatAmount(entry))")
-
+        var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsDeque()]
         if entry.amount > 0 {
-            let ref = Ref(wallet: entry.wallet, id: entry.id, amount: entry.amount, rate: nil)
-            balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset, default: [Ref]()].append(ref)
+            refs.append(Ref(wallet: entry.wallet, id: entry.id, amount: entry.amount, rate: nil))
         } else {
-            // Remove refs from asset balance using FIFO strategy
-            var refs = balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset, default: [Ref]()]
-            var removedRefs = [Ref]()
-            var totalRemoved: Decimal = 0
-            while totalRemoved < -entry.amount {
-                let removed = refs.removeFirst()
-                totalRemoved += removed.amount
-                removedRefs.append(removed)
-            }
+            let removedRefs = subtract(refs: &refs, amount: -entry.amount)
 
-            if totalRemoved > -entry.amount {
-                let leftOnBalance = totalRemoved + entry.amount
-                guard let last = removedRefs.popLast() else {
-                    fatalError("This should definitely never happen")
-                }
-                // Put leftover back to top of refs
-                refs.insert(Ref(wallet: last.wallet, id: last.id, amount: leftOnBalance, rate: last.rate), at: 0)
-                // Add rest to removed refs
-                removedRefs.append(Ref(wallet: last.wallet, id: last.id, amount: last.amount - leftOnBalance, rate: last.rate))
-            }
-
-            balances[entry.wallet, default: [LedgerEntry.Asset: [Ref]]()][entry.asset] = refs
-            if entry.asset.name == "BTC", entry.type == .Withdrawal {
-                let refsString = removedRefs.map { "\($0.amount)@\($0.rate ?? 0)" }.joined(separator: ", ")
-                print("  refs: \(refsString)")
+            if entry.type == .Withdrawal {
+                let refsString = refs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ", ")
+                let removedRefsString = removedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ", ")
+                print("  refs: \(removedRefsString)")
+                print("  balance: \(refsString)")
             }
         }
+        balances[entry.wallet, default: Balance()][entry.asset] = refs
     case .trade(let spend, let receive):
         let rate = (-spend.amount / receive.amount)
-        print("\(spend.wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(rate)")
+        print("\(spend.wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(formatRate(rate, spendType: spend.asset.type))")
 
         if spend.asset != BASE_ASSET {
             // "move" refs to receive balance
-            var refs = balances[spend.wallet, default: [LedgerEntry.Asset: [Ref]]()][spend.asset, default: [Ref]()]
-            var removedRefs = [Ref]()
-            var totalRemoved: Decimal = 0
-            while totalRemoved < -spend.amount {
-                let removed = refs.removeFirst()
-                totalRemoved += removed.amount
-                removedRefs.append(removed)
+            var refs = balances[spend.wallet, default: Balance()][spend.asset, default: RefsDeque()]
+            let removedRefs = subtract(refs: &refs, amount: -spend.amount)
+
+            // Propagate rate to receive side
+            let receiveRefs = removedRefs.map {
+                Ref(wallet: $0.wallet, id: $0.id, amount: $0.amount / rate, rate: $0.rate != nil ? $0.rate! * rate : nil)
             }
 
-            if totalRemoved > spend.amount {
-                print(balances)
-                fatalError("Not implemented")
-            }
+//            if let receiveRate = receiveRefs[0].rate {
+//                print("Removed refs", removedRefs)
+//                print("Receive refs", receiveRefs)
+//                fatalError("check rate!!")
+//            }
 
-            print("REFS", refs)
-            print("REMOVED REFS", removedRefs)
+            balances[spend.wallet, default: Balance()][spend.asset] = refs
+            balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()]
+                .append(contentsOf: receiveRefs)
             break
         }
 
         if receive.asset != BASE_ASSET {
             // Add ref to balance
             let ref = Ref(wallet: receive.wallet, id: receive.groupId, amount: receive.amount, rate: rate)
-            balances[receive.wallet, default: [LedgerEntry.Asset: [Ref]]()][receive.asset, default: [Ref]()].append(ref)
+            balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()].append(ref)
         }
     }
 }
@@ -384,6 +417,5 @@ for group in groupedLedgers {
 /*
  NEXT STEPS
   - track onchain fees separately from withdrawal transactions
-  - cache addresses history so I don't hammer bluewallet server during testing
   - match deposits with withdrawals before starting the balances exercise so that they can handled at the same time
  */

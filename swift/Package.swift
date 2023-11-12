@@ -14,6 +14,7 @@ let package = Package(
         .package(url: "https://github.com/swiftcsv/SwiftCSV.git", .upToNextMinor(from: "0.9.1")),
         .package(url: "https://github.com/tayloraswift/swift-json", .upToNextMinor(from: "0.6.0")),
         .package(url: "https://github.com/FlorianHubl/ElectrumKit", branch: "main"),
+        .package(url: "https://github.com/apple/swift-collections.git", .upToNextMajor(from: "1.0.5")),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -26,6 +27,7 @@ let package = Package(
                 "ElectrumKit",
                 .product(name: "JSON", package: "swift-json"),
                 .product(name: "JSONDecoding", package: "swift-json"),
+                .product(name: "Collections", package: "swift-collections"),
             ]
         ),
     ]
