@@ -97,7 +97,8 @@ class KrakenCSVReader: CSVReader {
                     wallet: entry.wallet,
                     id: "fee-\(entry.id)",
                     groupId: entry.groupId,
-                    date: entry.date,
+                    // Putting the fee 1 second after the trade avoids issues with balance not being present.
+                    date: entry.date.addingTimeInterval(1),
                     type: .fee,
                     amount: -fee,
                     asset: asset

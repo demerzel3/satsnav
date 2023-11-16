@@ -40,7 +40,8 @@ class CoinbaseCSVReader: CSVReader {
                 wallet: "Coinbase",
                 id: id,
                 groupId: groupId,
-                date: date,
+                // Add 1 second to the fee entry so that it's always after the trade
+                date: type == .fee ? date.addingTimeInterval(1) : date,
                 type: type,
                 amount: amount,
                 asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)

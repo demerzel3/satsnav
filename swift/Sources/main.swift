@@ -145,17 +145,20 @@ private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerE
     return entries
 }
 
-func satsToBtc(_ amount: Int) -> String {
-    btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
-}
+/**
+ Convert Double to Decimal, truncating at the 8th decimal
+ */
+func readBtcAmount(_ amount: Double) -> Decimal {
+    var decimalValue = Decimal(amount)
+    var roundedValue = Decimal()
+    NSDecimalRound(&roundedValue, &decimalValue, 8, .down)
 
-func btcToSats(_ amount: Decimal) -> Int {
-    NSDecimalNumber(decimal: amount * 100000000).intValue
+    return roundedValue
 }
 
 @MainActor
 func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) async -> [LedgerEntry] {
-    var totalIn = 0
+    var totalIn: Decimal = 0
     var transactionVin = [OnchainTransaction.Vin]()
     for vin in transaction.vin {
         guard let vinTxId = vin.txid else {
@@ -169,7 +172,7 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
         }
 
         let vout = vinTx.vout[voutIndex]
-        let sats = btcToSats(Decimal(vout.value))
+        let amount = readBtcAmount(vout.value)
 
         guard let vinAddress = vout.scriptPubKey.address else {
             print("\(vinTxId):\(voutIndex) has no address")
@@ -180,16 +183,16 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
             continue
         }
 
-        totalIn += sats
+        totalIn += amount
         transactionVin.append(OnchainTransaction.Vin(
             txid: vinTxId,
             voutIndex: voutIndex,
-            sats: sats,
+            amount: amount,
             address: Address(id: vinAddress, scriptHash: vinScriptHash)
         ))
     }
 
-    var totalOut = 0
+    var totalOut: Decimal = 0
     var transactionVout = [OnchainTransaction.Vout]()
     for vout in transaction.vout {
         guard let voutAddress = vout.scriptPubKey.address else {
@@ -200,10 +203,10 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
             continue
         }
 
-        let sats = btcToSats(Decimal(vout.value))
-        totalOut += sats
+        let amount = readBtcAmount(vout.value)
+        totalOut += amount
         transactionVout.append(OnchainTransaction.Vout(
-            sats: sats,
+            amount: amount,
             address: Address(id: voutAddress, scriptHash: voutScriptHash)
         ))
     }
@@ -211,35 +214,35 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
     let (knownVin, _) = transactionVin.partition { internalAddresses.contains($0.address) }
     let (knownVout, unknownVout) = transactionVout.partition { internalAddresses.contains($0.address) }
 
-    let satsFees = totalOut - totalIn
-    let types: [(LedgerEntry.LedgerEntryType, Int)] = if
+    let fees = totalIn - totalOut
+    let types: [(LedgerEntry.LedgerEntryType, Decimal)] = if
         knownVin.count == transaction.vin.count,
         knownVout.count == transaction.vout.count
     {
         // vin and vout are all known, it's consolidation or internal transaction, we only track the fees
-        [(.fee, -satsFees)]
+        [(.fee, -fees)]
     } else if knownVin.count == transaction.vin.count {
         // All vin known, it must be a transfer out of some kind
         [
-            (.withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.sats }),
-            (.fee, satsFees),
+            (.withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.amount }),
+            (.fee, -fees),
         ]
     } else if knownVin.count == 0 {
         // No vin is known, must be a deposit
-        [(.deposit, knownVout.reduce(0) { sum, vout in sum + vout.sats })]
+        [(.deposit, knownVout.reduce(0) { sum, vout in sum + vout.amount })]
     } else {
         [(.transfer, 0)]
     }
 
     let date = Date(timeIntervalSince1970: TimeInterval(transaction.time ?? 0))
 
-    return types.map { type, satsAmount in LedgerEntry(
+    return types.map { type, amount in LedgerEntry(
         wallet: "❄️",
         id: transaction.txid,
         groupId: transaction.txid,
         date: date,
         type: type,
-        amount: Decimal(satsAmount) / 100000000,
+        amount: amount,
         asset: .init(name: "BTC", type: .crypto)
     ) }
 }
@@ -311,6 +314,7 @@ private var ledgers = try await readCSVFiles(config: [
     (KrakenCSVReader(), "../data/Kraken.csv"),
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
     (LednCSVReader(), "../data/Ledn.csv"),
+    (CoinifyCSVReader(), "../data/Coinify.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 ledgers.sort(by: { a, b in a.date < b.date })
@@ -393,7 +397,7 @@ var balances = [String: Balance]()
 for group in groupedLedgers {
     switch group {
     case .single(let entry):
-        print("\(entry.wallet) \(entry.type) \(formatAmount(entry))")
+        print("\(entry.wallet) \(entry.type) \(formatAmount(entry)) - \(entry.id)")
 
         // Not keeping track of base asset
         guard entry.asset != BASE_ASSET else {
@@ -420,24 +424,46 @@ for group in groupedLedgers {
             continue
         }
         print("TRANSFER! \(from.wallet) -> \(to.wallet) \(formatAmount(to))")
-        fatalError("Not implemented!")
+        guard var fromRefs = balances[from.wallet]?[from.asset] else {
+            fatalError("Transfer failed, balance is empty")
+        }
+
+        let subtractedRefs = subtract(refs: &fromRefs, amount: to.amount)
+        balances[from.wallet, default: Balance()][from.asset] = fromRefs
+        balances[to.wallet, default: Balance()][to.asset, default: RefsDeque()].append(contentsOf: subtractedRefs)
+        print("  Transfered refs:", subtractedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" })
     case .trade(let spend, let receive):
+        let wallet = spend.wallet
         let rate = (-spend.amount / receive.amount)
-        print("\(spend.wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(formatRate(rate, spendType: spend.asset.type))")
+        print("\(wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(formatRate(rate, spendType: spend.asset.type))")
 
         if spend.asset != BASE_ASSET {
             // "move" refs to receive balance
-            var refs = balances[spend.wallet, default: Balance()][spend.asset, default: RefsDeque()]
+            var refs = balances[wallet, default: Balance()][spend.asset, default: RefsDeque()]
             let removedRefs = subtract(refs: &refs, amount: -spend.amount)
 
-            // Propagate rate to receive side
-            let receiveRefs = removedRefs.map {
-                Ref(wallet: $0.wallet, id: $0.id, amount: $0.amount / rate, rate: $0.rate != nil ? $0.rate! * rate : nil)
+            balances[wallet, default: Balance()][spend.asset] = refs
+            print("  \(spend.asset.name) balance \(refs.reduce(0) { $0 + $1.amount })")
+            print("    \(refs.map { $0.amount })")
+
+            if receive.asset != BASE_ASSET {
+                // Propagate rate to receive side
+                // 🚨🚨 The operations here with the amount are not precise enough and leading to wrong balance
+                // TODO: receivedRefs total MUST match receive.amount
+                let receiveRefs = removedRefs.map {
+                    Ref(wallet: $0.wallet, id: $0.id, amount: $0.amount / rate, rate: $0.rate != nil ? $0.rate! * rate : nil)
+                }
+
+                let allReceiveRefs = balances[wallet, default: Balance()][receive.asset, default: RefsDeque()] + receiveRefs
+                balances[wallet, default: Balance()][receive.asset] = allReceiveRefs
+                print("  \(receive.asset.name) balance \(allReceiveRefs.reduce(0) { $0 + $1.amount })")
+                print("    \(allReceiveRefs.map { $0.amount })")
+
+                if (receiveRefs.reduce(0) { $0 + $1.amount } != receive.amount) {
+                    fatalError("Trade balance update error, should be \(receive.amount), is \(receiveRefs.reduce(0) { $0 + $1.amount })")
+                }
             }
 
-            balances[spend.wallet, default: Balance()][spend.asset] = refs
-            balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()]
-                .append(contentsOf: receiveRefs)
             break
         }
 
