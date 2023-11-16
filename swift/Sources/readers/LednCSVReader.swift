@@ -22,11 +22,11 @@ class LednCSVReader: CSVReader {
         // Posted Date,Source,Amount,Type,Currency,Ledn Fee Amount,Fee Currency,Status,Blockchain,Txn ID,Txn Hash,Direction of funds
         try csv.enumerateAsDict { dict in
             let type: LedgerEntry.LedgerEntryType = switch dict["Source"] ?? "" {
-            case "Interest": .Interest
-            case "Withdrawal": .Withdrawal
-            case "Deposit": .Deposit
+            case "Interest": .interest
+            case "Withdrawal": .withdrawal
+            case "Deposit": .deposit
             // TODO: add something specific for loans maybe?
-            case "B2X": .Deposit
+            case "B2X": .deposit
             default:
                 fatalError("Unexpected Ledn transaction type: \(dict["Source"] ?? "undefined")")
             }

@@ -189,10 +189,9 @@ public class JSONRPCClient: ObservableObject {
 
                     do {
                         try results.append(.success(R(from: result)))
-                    } catch {
-                        print("Unable to decode JSON")
+                    } catch (let e) {
+                        print("Unable to decode JSON", e)
                         continuation.resume(returning: nil)
-                        return
                     }
                 }
                 continuation.resume(returning: results)

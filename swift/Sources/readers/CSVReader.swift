@@ -2,13 +2,13 @@ import Foundation
 
 struct LedgerEntry {
     enum LedgerEntryType {
-        case Deposit
-        case Withdrawal
-        case Trade
-        case Interest
-        case Bonus
-        case Fee
-        case Transfer // Fallback
+        case deposit
+        case withdrawal
+        case trade
+        case interest
+        case bonus
+        case fee
+        case transfer // Fallback
     }
 
     enum AssetType {

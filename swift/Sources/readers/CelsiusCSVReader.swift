@@ -21,15 +21,15 @@ class CelsiusCSVReader: CSVReader {
         // Internal id,Date and time,Transaction type,Coin type,Coin amount,USD Value,Original Reward Coin,Reward Amount In Original Coin,Confirmed
         try csv.enumerateAsDict { dict in
             let type: LedgerEntry.LedgerEntryType = switch dict["Transaction type"] ?? "" {
-            case "Transfer": .Deposit
-            case "Inbound Transfer": .Deposit
-            case "Reward": .Interest
-            case "Bonus Token": .Bonus
-            case "Withdrawal": .Withdrawal
+            case "Transfer": .deposit
+            case "Inbound Transfer": .deposit
+            case "Reward": .interest
+            case "Bonus Token": .bonus
+            case "Withdrawal": .withdrawal
             // TODO: how to handle loans?
-            case "Collateral": .Transfer
-            case "Loan Interest Payment": .Transfer
-            case "Loan Principal Payment": .Transfer
+            case "Collateral": .transfer
+            case "Loan Interest Payment": .transfer
+            case "Loan Principal Payment": .transfer
             default:
                 fatalError("Unexpected Celsius transaction type: \(dict["Transaction type"] ?? "undefined")")
             }

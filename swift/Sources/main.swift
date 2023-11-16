@@ -139,7 +139,7 @@ private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerE
 
     var entries = [LedgerEntry]()
     for rawTransaction in rootTransactions {
-        entries.append(await electrumTransactionToLedgerEntry(rawTransaction))
+        entries.append(contentsOf: await electrumTransactionToLedgerEntries(rawTransaction))
     }
 
     return entries
@@ -149,12 +149,12 @@ func satsToBtc(_ amount: Int) -> String {
     btcFormatter.string(from: Double(amount) / 100000000 as NSNumber)!
 }
 
-func btcToSats(_ amount: Double) -> Int {
-    Int(amount * 100000000)
+func btcToSats(_ amount: Decimal) -> Int {
+    NSDecimalNumber(decimal: amount * 100000000).intValue
 }
 
 @MainActor
-func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async -> LedgerEntry {
+func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) async -> [LedgerEntry] {
     var totalIn = 0
     var transactionVin = [OnchainTransaction.Vin]()
     for vin in transaction.vin {
@@ -169,7 +169,7 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
         }
 
         let vout = vinTx.vout[voutIndex]
-        let sats = btcToSats(vout.value)
+        let sats = btcToSats(Decimal(vout.value))
 
         guard let vinAddress = vout.scriptPubKey.address else {
             print("\(vinTxId):\(voutIndex) has no address")
@@ -200,7 +200,7 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
             continue
         }
 
-        let sats = btcToSats(vout.value)
+        let sats = btcToSats(Decimal(vout.value))
         totalOut += sats
         transactionVout.append(OnchainTransaction.Vout(
             sats: sats,
@@ -212,26 +212,28 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
     let (knownVout, unknownVout) = transactionVout.partition { internalAddresses.contains($0.address) }
 
     let satsFees = totalOut - totalIn
-    let (type, satsAmount): (LedgerEntry.LedgerEntryType, Int) = if
+    let types: [(LedgerEntry.LedgerEntryType, Int)] = if
         knownVin.count == transaction.vin.count,
         knownVout.count == transaction.vout.count
     {
-        // vin and vout are all known, it's consolidation transaction
-        (.Transfer, -satsFees)
+        // vin and vout are all known, it's consolidation or internal transaction, we only track the fees
+        [(.fee, -satsFees)]
     } else if knownVin.count == transaction.vin.count {
         // All vin known, it must be a transfer out of some kind
-        // TODO: track fees separately from withdrawals for easy direct matching!
-        (.Withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.sats } + satsFees)
+        [
+            (.withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.sats }),
+            (.fee, satsFees),
+        ]
     } else if knownVin.count == 0 {
         // No vin is known, must be a deposit
-        (.Deposit, knownVout.reduce(0) { sum, vout in sum + vout.sats })
+        [(.deposit, knownVout.reduce(0) { sum, vout in sum + vout.sats })]
     } else {
-        (.Transfer, 0)
+        [(.transfer, 0)]
     }
 
     let date = Date(timeIntervalSince1970: TimeInterval(transaction.time ?? 0))
 
-    return LedgerEntry(
+    return types.map { type, satsAmount in LedgerEntry(
         wallet: "❄️",
         id: transaction.txid,
         groupId: transaction.txid,
@@ -239,7 +241,7 @@ func electrumTransactionToLedgerEntry(_ transaction: ElectrumTransaction) async 
         type: type,
         amount: Decimal(satsAmount) / 100000000,
         asset: .init(name: "BTC", type: .crypto)
-    )
+    ) }
 }
 
 func formatAmount(_ entry: LedgerEntry) -> String {
@@ -331,23 +333,55 @@ ledgers.sort(by: { a, b in a.date < b.date })
 // }
 
 enum GroupedLedger {
+    // Single transaction within a wallet (e.g. Fee, Interest, Bonus) or ungrouped ledger entry
     case single(entry: LedgerEntry)
+    // Trade within a single wallet
     case trade(spend: LedgerEntry, receive: LedgerEntry)
+    // Transfer between wallets
+    case transfer(from: LedgerEntry, to: LedgerEntry)
 }
 
 let groupedLedgers: [GroupedLedger] = ledgers.reduce(into: [String: [LedgerEntry]]()) { groupIdToLedgers, entry in
-    // Explicitly exclude fees from grouping
-    let groupId = "\(entry.wallet)-\(entry.groupId)\(entry.type == .Fee ? "-fee" : "")"
-    groupIdToLedgers[groupId, default: [LedgerEntry]()].append(entry)
+    switch entry.type {
+    // Group trades by ledger-provided groupId
+    case .trade:
+        groupIdToLedgers["\(entry.wallet)-\(entry.groupId)", default: [LedgerEntry]()].append(entry)
+    // Group deposit and withdrawals by amount (may lead to false positives)
+    case .deposit where entry.asset.type == .crypto,
+         .withdrawal where entry.asset.type == .crypto:
+        var id = "\(entry.asset.name)-\(btcFormatter.string(from: abs(entry.amount) as NSNumber)!)"
+
+        // Skip until we find a suitable group, greedy strategy
+        while groupIdToLedgers[id]?.count == 2 ||
+            groupIdToLedgers[id]?[0].type == entry.type
+        {
+            id += "-"
+        }
+
+        groupIdToLedgers[id, default: [LedgerEntry]()].append(entry)
+    default:
+        // Avoid grouping other ledger entries
+        groupIdToLedgers[UUID().uuidString] = [entry]
+    }
+
+    // let groupId = "\(entry.wallet)-\(entry.groupId)\(entry.type == .Fee ? "-fee" : "")"
+    // groupIdToLedgers[groupId, default: [LedgerEntry]()].append(entry)
 }.values.sorted { a, b in
     a[0].date < b[0].date
-}.map {
-    switch $0.count {
-    case 1: return .single(entry: $0[0])
-    case 2 where $0[0].amount > 0: return .trade(spend: $0[1], receive: $0[0])
-    case 2 where $0[0].amount <= 0: return .trade(spend: $0[0], receive: $0[1])
+}.flatMap { group -> [GroupedLedger] in
+    switch group.count {
+    case 1: return [.single(entry: group[0])]
+    case 2 where group[0].type == .trade && group[0].amount > 0: return [.trade(spend: group[1], receive: group[0])]
+    case 2 where group[0].type == .trade && group[0].amount <= 0: return [.trade(spend: group[0], receive: group[1])]
+    case 2 where group[0].type == .withdrawal && group[1].type == .deposit && group[0].wallet != group[1].wallet:
+        return [.transfer(from: group[0], to: group[1])]
+    case 2 where group[0].type == .deposit && group[1].type == .withdrawal && group[0].wallet != group[1].wallet:
+        return [.transfer(from: group[1], to: group[0])]
+    case 2 where group[0].type == group[1].type || group[0].wallet == group[1].wallet:
+        // Wrongly matched by amount, ungroup!
+        return [.single(entry: group[0]), .single(entry: group[1])]
     default:
-        print($0)
+        print(group)
         fatalError("Group has more than 2 elements")
     }
 }
@@ -372,7 +406,7 @@ for group in groupedLedgers {
         } else {
             let removedRefs = subtract(refs: &refs, amount: -entry.amount)
 
-            if entry.type == .Withdrawal {
+            if entry.type == .withdrawal {
                 let refsString = refs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ", ")
                 let removedRefsString = removedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ", ")
                 print("  refs: \(removedRefsString)")
@@ -380,6 +414,13 @@ for group in groupedLedgers {
             }
         }
         balances[entry.wallet, default: Balance()][entry.asset] = refs
+    case .transfer(let from, let to):
+        if from.wallet == to.wallet {
+            print("noop internal transfer \(from.wallet) \(formatAmount(to))")
+            continue
+        }
+        print("TRANSFER! \(from.wallet) -> \(to.wallet) \(formatAmount(to))")
+        fatalError("Not implemented!")
     case .trade(let spend, let receive):
         let rate = (-spend.amount / receive.amount)
         print("\(spend.wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(formatRate(rate, spendType: spend.asset.type))")
@@ -393,12 +434,6 @@ for group in groupedLedgers {
             let receiveRefs = removedRefs.map {
                 Ref(wallet: $0.wallet, id: $0.id, amount: $0.amount / rate, rate: $0.rate != nil ? $0.rate! * rate : nil)
             }
-
-//            if let receiveRate = receiveRefs[0].rate {
-//                print("Removed refs", removedRefs)
-//                print("Receive refs", receiveRefs)
-//                fatalError("check rate!!")
-//            }
 
             balances[spend.wallet, default: Balance()][spend.asset] = refs
             balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()]

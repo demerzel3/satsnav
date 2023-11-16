@@ -28,10 +28,10 @@ class CoinbaseCSVReader: CSVReader {
             let assetName = dict["Asset"] ?? ""
 
             let type: LedgerEntry.LedgerEntryType = switch dict["Type"] ?? "" {
-            case "Deposit": .Deposit
-            case "Match": .Trade
-            case "Withdrawal": .Withdrawal
-            case "Fee": .Fee
+            case "Deposit": .deposit
+            case "Match": .trade
+            case "Withdrawal": .withdrawal
+            case "Fee": .fee
             default:
                 fatalError("Unexpected Coinbase transaction type: \(dict["Type"] ?? "undefined")")
             }

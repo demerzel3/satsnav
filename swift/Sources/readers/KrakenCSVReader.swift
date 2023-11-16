@@ -58,21 +58,21 @@ class KrakenCSVReader: CSVReader {
         try csv.enumerateAsDict { dict in
             let id = dict["txid"] ?? ""
             let type: LedgerEntry.LedgerEntryType = switch dict["type"] ?? "" {
-            case "deposit": .Deposit
-            case "withdrawal": .Withdrawal
-            case "trade": .Trade
-            case "spend": .Trade
-            case "receive": .Trade
-            case "staking": .Interest
-            case "dividend": .Interest
+            case "deposit": .deposit
+            case "withdrawal": .withdrawal
+            case "trade": .trade
+            case "spend": .trade
+            case "receive": .trade
+            case "staking": .interest
+            case "dividend": .interest
             // TODO: handle subtypes for staking
-            case "transfer": .Transfer
+            case "transfer": .transfer
             default:
                 fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined")")
             }
 
             // Duplicated Deposit/Withdrawal, skip
-            if (type == .Withdrawal || type == .Deposit) && id == "" {
+            if (type == .withdrawal || type == .deposit) && id == "" {
                 return
             }
 
@@ -86,7 +86,8 @@ class KrakenCSVReader: CSVReader {
                 id: id,
                 groupId: dict["refid"] ?? "",
                 date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
-                type: type,
+                // Failed withdrwals get reaccredited, we want to track those as deposits
+                type: type == .withdrawal && amount > 0 ? .deposit : type,
                 amount: amount,
                 asset: asset
             )
@@ -97,7 +98,7 @@ class KrakenCSVReader: CSVReader {
                     id: "fee-\(entry.id)",
                     groupId: entry.groupId,
                     date: entry.date,
-                    type: .Fee,
+                    type: .fee,
                     amount: -fee,
                     asset: asset
                 ))

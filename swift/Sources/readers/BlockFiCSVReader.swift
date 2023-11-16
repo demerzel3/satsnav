@@ -28,14 +28,14 @@ class BlockFiCSVReader: CSVReader {
             }
 
             let type: LedgerEntry.LedgerEntryType = switch transactionType {
-            case "Interest Payment": .Interest
-            case "Bonus Payment": .Bonus
-            case "Referral Bonus": .Bonus
-            case "Trade": .Trade
-            case "Crypto Transfer": .Deposit
-            case "Withdrawal": .Withdrawal
+            case "Interest Payment": .interest
+            case "Bonus Payment": .bonus
+            case "Referral Bonus": .bonus
+            case "Trade": .trade
+            case "Crypto Transfer": .deposit
+            case "Withdrawal": .withdrawal
             // TODO: handle the following better
-            case "Withdrawal Fee": .Transfer
+            case "Withdrawal Fee": .transfer
             default:
                 fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined")")
             }
