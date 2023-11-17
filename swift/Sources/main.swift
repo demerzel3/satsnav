@@ -145,6 +145,14 @@ private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerE
     return entries
 }
 
+func round(_ value: Decimal, precision: Int, mode: NSDecimalNumber.RoundingMode = .plain) -> Decimal {
+    var decimalValue = value
+    var roundedValue = Decimal()
+    NSDecimalRound(&roundedValue, &decimalValue, precision, mode)
+
+    return roundedValue
+}
+
 /**
  Convert Double to Decimal, truncating at the 8th decimal
  */
@@ -277,37 +285,6 @@ typealias RefsDeque = Deque<Ref>
 typealias RefsArray = [Ref]
 typealias Balance = [LedgerEntry.Asset: RefsDeque]
 
-/**
- Removes refs from asset balance using FIFO strategy
- */
-func subtract(refs: inout RefsDeque, amount: Decimal) -> RefsArray {
-    guard amount >= 0 else {
-        fatalError("amount must be positive")
-    }
-
-    // Remove refs from asset balance using FIFO strategy
-    var subtractedRefs = RefsArray()
-    var totalRemoved: Decimal = 0
-    while totalRemoved < amount {
-        let removed = refs.removeFirst()
-        totalRemoved += removed.amount
-        subtractedRefs.append(removed)
-    }
-
-    if totalRemoved > amount {
-        let leftOnBalance = totalRemoved - amount
-        guard let last = subtractedRefs.popLast() else {
-            fatalError("This should definitely never happen")
-        }
-        // Put leftover back to top of refs
-        refs.insert(Ref(wallet: last.wallet, id: last.id, amount: leftOnBalance, rate: last.rate), at: 0)
-        // Add rest to removed refs
-        subtractedRefs.append(Ref(wallet: last.wallet, id: last.id, amount: last.amount - leftOnBalance, rate: last.rate))
-    }
-
-    return subtractedRefs
-}
-
 private var ledgers = try await readCSVFiles(config: [
     (CoinbaseCSVReader(), "../data/Coinbase.csv"),
     (CelsiusCSVReader(), "../data/Celsius.csv"),
@@ -375,8 +352,13 @@ let groupedLedgers: [GroupedLedger] = ledgers.reduce(into: [String: [LedgerEntry
 }.flatMap { group -> [GroupedLedger] in
     switch group.count {
     case 1: return [.single(entry: group[0])]
-    case 2 where group[0].type == .trade && group[0].amount > 0: return [.trade(spend: group[1], receive: group[0])]
-    case 2 where group[0].type == .trade && group[0].amount <= 0: return [.trade(spend: group[0], receive: group[1])]
+    case 2 where group[0].type == .trade && group[0].amount > 0 && group[1].amount < 0:
+        return [.trade(spend: group[1], receive: group[0])]
+    case 2 where group[0].type == .trade && group[0].amount < 0 && group[1].amount > 0:
+        return [.trade(spend: group[0], receive: group[1])]
+    case 2 where group[0].type == .trade:
+        // Trade with 0 spend or receive, ungroup
+        return [.single(entry: group[0]), .single(entry: group[1])]
     case 2 where group[0].type == .withdrawal && group[1].type == .deposit && group[0].wallet != group[1].wallet:
         return [.transfer(from: group[0], to: group[1])]
     case 2 where group[0].type == .deposit && group[1].type == .withdrawal && group[0].wallet != group[1].wallet:
@@ -391,10 +373,12 @@ let groupedLedgers: [GroupedLedger] = ledgers.reduce(into: [String: [LedgerEntry
 }
 
 let BASE_ASSET = LedgerEntry.Asset(name: "EUR", type: .fiat)
+let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 
 //             [Wallet: Balance]
 var balances = [String: Balance]()
-for group in groupedLedgers {
+for (index, group) in groupedLedgers.enumerated() {
+    print("Entry #\(index)")
     switch group {
     case .single(let entry):
         print("\(entry.wallet) \(entry.type) \(formatAmount(entry)) - \(entry.id)")
@@ -436,30 +420,62 @@ for group in groupedLedgers {
         let wallet = spend.wallet
         let rate = (-spend.amount / receive.amount)
         print("\(wallet) trade! spent \(formatAmount(spend)), received \(formatAmount(receive)) @\(formatRate(rate, spendType: spend.asset.type))")
+        print("full spend \(spend.amount) rate \(rate) receive \(receive.amount)")
 
         if spend.asset != BASE_ASSET {
             // "move" refs to receive balance
             var refs = balances[wallet, default: Balance()][spend.asset, default: RefsDeque()]
+            let balanceBefore = refs.reduce(0) { $0 + $1.amount }
+            print("  \(spend.asset.name) balance \(refs.reduce(0) { $0 + $1.amount })")
+            print("    bef: \(refs.map { $0.amount })")
             let removedRefs = subtract(refs: &refs, amount: -spend.amount)
+            print("    rem: \(removedRefs.map { $0.amount })")
+            print("    aft: \(refs.map { $0.amount })")
+
+            let balanceAfter = (refs + removedRefs).reduce(0) { $0 + $1.amount }
+            if balanceBefore != balanceAfter {
+                fatalError("Balance subtract error, should be \(balanceBefore), it's \(balanceAfter)")
+            }
 
             balances[wallet, default: Balance()][spend.asset] = refs
-            print("  \(spend.asset.name) balance \(refs.reduce(0) { $0 + $1.amount })")
-            print("    \(refs.map { $0.amount })")
 
             if receive.asset != BASE_ASSET {
+                let precision = receive.amount.significantFractionalDecimalDigits
                 // Propagate rate to receive side
                 // 🚨🚨 The operations here with the amount are not precise enough and leading to wrong balance
                 // TODO: receivedRefs total MUST match receive.amount
-                let receiveRefs = removedRefs.map {
-                    Ref(wallet: $0.wallet, id: $0.id, amount: $0.amount / rate, rate: $0.rate != nil ? $0.rate! * rate : nil)
+                var receiveRefs = removedRefs.map {
+                    let nextRate = $0.rate.map { $0 * rate }
+                    let nextAmount = round($0.amount / rate, precision: precision)
+                    print("\(nextAmount) \($0.amount / rate)")
+                    // let nextAmount = $0.amount / rate
+
+                    return Ref(wallet: $0.wallet, id: $0.id, amount: nextAmount, rate: nextRate)
+                }
+                let dust = receive.amount - receiveRefs.sum
+                // TODO: alert if dust is significantly bigger than a rounding error
+                if dust != 0 {
+                    print("⚠️ Receive ref diff: \(dust), adding to first ref")
+                    guard let first = receiveRefs.first else {
+                        fatalError("Cannot fix rounding error, no elements")
+                    }
+
+                    receiveRefs[0] = Ref(
+                        wallet: first.wallet,
+                        id: first.id,
+                        amount: first.amount + dust,
+                        rate: first.rate
+                    )
                 }
 
                 let allReceiveRefs = balances[wallet, default: Balance()][receive.asset, default: RefsDeque()] + receiveRefs
                 balances[wallet, default: Balance()][receive.asset] = allReceiveRefs
                 print("  \(receive.asset.name) balance \(allReceiveRefs.reduce(0) { $0 + $1.amount })")
                 print("    \(allReceiveRefs.map { $0.amount })")
+                print("    \(receiveRefs.map { $0.amount })")
 
-                if (receiveRefs.reduce(0) { $0 + $1.amount } != receive.amount) {
+                // receivedRefs total MUST match receive.amount or balances start to drift
+                if receiveRefs.sum != receive.amount {
                     fatalError("Trade balance update error, should be \(receive.amount), is \(receiveRefs.reduce(0) { $0 + $1.amount })")
                 }
             }
@@ -475,8 +491,13 @@ for group in groupedLedgers {
     }
 }
 
-/*
- NEXT STEPS
-  - track onchain fees separately from withdrawal transactions
-  - match deposits with withdrawals before starting the balances exercise so that they can handled at the same time
+if let btcColdStorage = balances["❄️"]?[BTC] {
+    print("❄️")
+    print("total", btcColdStorage.sum)
+    print("total without rate", btcColdStorage.unknownSum)
+    // print("refs", btcColdStorage.description)
+}
+
+/**
+ TODO: alert if dust is significantly bigger than a rounding error
  */

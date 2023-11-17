@@ -7,3 +7,13 @@ extension Array {
         return (first, second)
     }
 }
+
+extension Array where Element == Ref {
+    var sum: Decimal {
+        reduce(0) { $0 + $1.amount }
+    }
+
+    var description: String {
+        map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ",")
+    }
+}
