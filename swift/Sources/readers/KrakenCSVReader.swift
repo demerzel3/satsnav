@@ -53,6 +53,7 @@ class KrakenCSVReader: CSVReader {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
 
         var balances = [String: Decimal]()
+        var sanitizedCount = 0
         var ledgers = [LedgerEntry]()
         // "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
         try csv.enumerateAsDict { dict in
@@ -78,19 +79,24 @@ class KrakenCSVReader: CSVReader {
 
             let ticker = dict["asset"] ?? ""
             let asset = LedgerEntry.Asset(fromKrakenTicker: ticker)
+            let balance = Decimal(string: dict["balance"] ?? "0") ?? 0
             let amount = Decimal(string: dict["amount"] ?? "0") ?? 0
             let fee = Decimal(string: dict["fee"] ?? "0") ?? 0
-            let balance = Decimal(string: dict["balance"] ?? "0") ?? 0
             let entry = LedgerEntry(
                 wallet: "Kraken",
-                id: id,
+                id: balance < 0 ? "sanitized-\(id)" : id,
                 groupId: dict["refid"] ?? "",
                 date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
                 // Failed withdrwals get reaccredited, we want to track those as deposits
                 type: type == .withdrawal && amount > 0 ? .deposit : type,
-                amount: amount,
+                amount: balance < 0 ? amount - balance : amount,
                 asset: asset
             )
+
+            if balance < 0 {
+                sanitizedCount += 1
+                print("SANITIZED", amount, entry.amount, "missing", amount - entry.amount)
+            }
 
             if fee > 0 {
                 ledgers.append(LedgerEntry(
@@ -105,6 +111,22 @@ class KrakenCSVReader: CSVReader {
                 ))
             }
 
+            // Compensate amount sanitization with a separate fee entry
+            if amount > 0 && balances[ticker, default: 0] < 0 {
+                ledgers.append(LedgerEntry(
+                    wallet: entry.wallet,
+                    id: "sanitized-fee-\(entry.id)",
+                    groupId: entry.groupId,
+                    // Putting the fee 1 second after the trade avoids issues with balance not being present.
+                    date: entry.date.addingTimeInterval(1),
+                    type: .fee,
+                    amount: balances[ticker, default: 0],
+                    asset: asset
+                ))
+                print("COMPENSATED", balances[ticker, default: 0])
+                sanitizedCount -= 1
+            }
+
             balances[ticker, default: 0] += amount - fee
             ledgers.append(entry)
 
@@ -112,6 +134,10 @@ class KrakenCSVReader: CSVReader {
             if balances[ticker, default: 0] != balance {
                 fatalError("Wrong balance for \(ticker), is \(balances[ticker, default: 0]), expected \(balance)")
             }
+        }
+
+        if sanitizedCount > 0 {
+            fatalError("Sanitized count should be 0, is \(sanitizedCount)")
         }
 
         return ledgers
