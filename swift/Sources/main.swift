@@ -218,8 +218,9 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
             (.fee, -fees),
         ]
     } else if knownVin.count == 0 {
-        // No vin is known, must be a deposit
-        [(.deposit, knownVout.reduce(0) { sum, vout in sum + vout.amount })]
+        // No vin is known, must be a deposit.
+        // Split by vout in case we are receiving multiple from different sources, easier to match.
+        knownVout.map { (.deposit, $0.amount) }
     } else {
         [(.transfer, 0)]
     }
@@ -276,9 +277,10 @@ ledgers.sort(by: { a, b in a.date < b.date })
 //    print("\(entry.date) \(entry.wallet) \(entry.type) \(formatAmount(entry))")
 // }
 
+let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
 let unmatchedTransfers = groupedLedgers.compactMap {
-    if case .single(let entry) = $0, entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
+    if case .single(let entry) = $0, entry.asset == BTC || entry.asset.name == "USDC", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
         return entry
     }
     return nil
@@ -286,11 +288,12 @@ let unmatchedTransfers = groupedLedgers.compactMap {
 
 print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count)] ---")
 for entry in unmatchedTransfers {
-    print(entry)
+    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
 }
 
+// TODO: Ledn ledger is lacking when it comes to loans, need a way to square it...
+
 // let balances = buildBalances(groupedLedgers: groupedLedgers)
-// let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 // if let btcColdStorage = balances["❄️"]?[BTC] {
 //    print("❄️")
 //    print("total", btcColdStorage.sum)

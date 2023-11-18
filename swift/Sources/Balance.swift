@@ -44,9 +44,9 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
                     let removedRefsString = removedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" }.joined(separator: ", ")
                     print("  refs: \(removedRefsString)")
                     print("  balance: \(refsString)")
-                    fatalError("can we match this one?")
+                    // fatalError("can we match this one?")
                 } else if entry.type == .deposit {
-                    fatalError("can we match this one?")
+                    // fatalError("can we match this one?")
                 }
             }
             balances[entry.wallet, default: Balance()][entry.asset] = refs

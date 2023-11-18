@@ -7,56 +7,78 @@ enum GroupedLedger {
     case trade(spend: LedgerEntry, receive: LedgerEntry)
     // Transfer between wallets
     case transfer(from: LedgerEntry, to: LedgerEntry)
+
+    var date: Date {
+        switch self {
+        case .single(let entry):
+            return entry.date
+        case .trade(let spend, let receive):
+            return spend.date < receive.date ? spend.date : receive.date
+        case .transfer(let from, let to):
+            return from.date < to.date ? from.date : to.date
+        }
+    }
 }
 
 func groupLedgers(ledgers: [LedgerEntry]) -> [GroupedLedger] {
-    return ledgers.reduce(into: [String: [LedgerEntry]]()) { groupIdToLedgers, entry in
+    var transferByAmount = [String: LedgerEntry]()
+    var tradesByGroupId = [String: LedgerEntry]()
+    var groups = [GroupedLedger]()
+
+    for entry in ledgers {
         switch entry.type {
-        // Group trades by ledger-provided groupId
-        case .trade:
-            groupIdToLedgers["\(entry.wallet)-\(entry.groupId)", default: [LedgerEntry]()].append(entry)
-        // Group deposit and withdrawals by amount (may lead to false positives)
         case .deposit where entry.asset.type == .crypto,
              .withdrawal where entry.asset.type == .crypto:
-            var id = "\(entry.asset.name)-\(btcFormatter.string(from: abs(entry.amount) as NSNumber)!)"
+            let key = entry.abs().formattedAmount
 
-            // Skip until we find a suitable group, greedy strategy
-            while groupIdToLedgers[id]?.count == 2 ||
-                groupIdToLedgers[id]?[0].type == entry.type
-            {
-                id += "-"
+            // pair with existing transfer
+            if let transfer = transferByAmount[key], transfer.type != entry.type {
+                if entry.amount > 0 {
+                    groups.append(.transfer(from: transfer, to: entry))
+                } else {
+                    groups.append(.transfer(from: entry, to: transfer))
+                }
+                transferByAmount.removeValue(forKey: key)
+                continue
             }
 
-            groupIdToLedgers[id, default: [LedgerEntry]()].append(entry)
-        default:
-            // Avoid grouping other ledger entries
-            groupIdToLedgers[UUID().uuidString] = [entry]
-        }
+            // a transfer with same amount already exists, move that to single entry and replace
+            if let transferWithSameAmount = transferByAmount[key] {
+                print("⚠️ Found another non-matching transfer with the same amount", transferWithSameAmount)
+                groups.append(.single(entry: transferWithSameAmount))
+            }
 
-        // let groupId = "\(entry.wallet)-\(entry.groupId)\(entry.type == .Fee ? "-fee" : "")"
-        // groupIdToLedgers[groupId, default: [LedgerEntry]()].append(entry)
-    }.values.sorted { a, b in
-        a[0].date < b[0].date
-    }.flatMap { group -> [GroupedLedger] in
-        switch group.count {
-        case 1: return [.single(entry: group[0])]
-        case 2 where group[0].type == .trade && group[0].amount > 0 && group[1].amount < 0:
-            return [.trade(spend: group[1], receive: group[0])]
-        case 2 where group[0].type == .trade && group[0].amount < 0 && group[1].amount > 0:
-            return [.trade(spend: group[0], receive: group[1])]
-        case 2 where group[0].type == .trade:
-            // Trade with 0 spend or receive, ungroup
-            return [.single(entry: group[0]), .single(entry: group[1])]
-        case 2 where group[0].type == .withdrawal && group[1].type == .deposit && group[0].wallet != group[1].wallet:
-            return [.transfer(from: group[0], to: group[1])]
-        case 2 where group[0].type == .deposit && group[1].type == .withdrawal && group[0].wallet != group[1].wallet:
-            return [.transfer(from: group[1], to: group[0])]
-        case 2 where group[0].type == group[1].type || group[0].wallet == group[1].wallet:
-            // Wrongly matched by amount, ungroup!
-            return [.single(entry: group[0]), .single(entry: group[1])]
+            // save for later pairing with another transfer
+            transferByAmount[key] = entry
+        case .trade where entry.amount != 0:
+            let key = "\(entry.wallet)-\(entry.groupId)"
+            if let match = tradesByGroupId[key] {
+                if entry.amount > 0 {
+                    groups.append(.trade(spend: match, receive: entry))
+                } else {
+                    groups.append(.trade(spend: entry, receive: match))
+                }
+                tradesByGroupId.removeValue(forKey: key)
+                continue
+            }
+
+            if tradesByGroupId[key] != nil {
+                fatalError("Found invalid entry in tradesByGroupId for key \(key)")
+            }
+
+            // save for later pairing with another trade
+            tradesByGroupId[key] = entry
         default:
-            print(group)
-            fatalError("Group has more than 2 elements")
+            groups.append(.single(entry: entry))
         }
     }
+
+    // TODO: try some more fuzzy matching with these bois
+    print("Leftover trasfers: \(transferByAmount.count)")
+    print("Leftover trades: \(tradesByGroupId.count)")
+
+    groups.append(contentsOf: transferByAmount.values.map { .single(entry: $0) })
+    groups.append(contentsOf: tradesByGroupId.values.map { .single(entry: $0) })
+
+    return groups.sorted { $0.date < $1.date }
 }

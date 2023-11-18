@@ -36,6 +36,26 @@ struct LedgerEntry: CustomStringConvertible {
     var description: String {
         "\(date) \(wallet) \(type) \(formattedAmount) - \(id)"
     }
+
+    func abs() -> LedgerEntry {
+        if amount >= 0 {
+            return self
+        } else {
+            return withAmount(-amount)
+        }
+    }
+
+    func withAmount(_ amount: Decimal) -> LedgerEntry {
+        return LedgerEntry(
+            wallet: wallet,
+            id: id,
+            groupId: groupId,
+            date: date,
+            type: type,
+            amount: amount,
+            asset: asset
+        )
+    }
 }
 
 protocol CSVReader {
