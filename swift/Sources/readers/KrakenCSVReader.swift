@@ -95,7 +95,6 @@ class KrakenCSVReader: CSVReader {
 
             if balance < 0 {
                 sanitizedCount += 1
-                print("SANITIZED", amount, entry.amount, "missing", amount - entry.amount)
             }
 
             if fee > 0 {
@@ -123,7 +122,6 @@ class KrakenCSVReader: CSVReader {
                     amount: balances[ticker, default: 0],
                     asset: asset
                 ))
-                print("COMPENSATED", balances[ticker, default: 0])
                 sanitizedCount -= 1
             }
 

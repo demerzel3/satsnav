@@ -1,6 +1,6 @@
 import Foundation
 
-struct LedgerEntry {
+struct LedgerEntry: CustomStringConvertible {
     enum LedgerEntryType {
         case deposit
         case withdrawal
@@ -28,8 +28,34 @@ struct LedgerEntry {
     let type: LedgerEntryType
     let amount: Decimal
     let asset: Asset
+
+    var formattedAmount: String {
+        "\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)"
+    }
+
+    var description: String {
+        "\(date) \(wallet) \(type) \(formattedAmount) - \(id)"
+    }
 }
 
 protocol CSVReader {
     func read(filePath: String) async throws -> [LedgerEntry]
+}
+
+func readCSVFiles(config: [(CSVReader, String)]) async throws -> [LedgerEntry] {
+    var entries = [LedgerEntry]()
+
+    try await withThrowingTaskGroup(of: [LedgerEntry].self) { group in
+        for (reader, filePath) in config {
+            group.addTask {
+                try await reader.read(filePath: filePath)
+            }
+        }
+
+        for try await fileEntries in group {
+            entries.append(contentsOf: fileEntries)
+        }
+    }
+
+    return entries
 }
