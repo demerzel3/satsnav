@@ -256,7 +256,10 @@ private var ledgers = try await readCSVFiles(config: [
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
     (LednCSVReader(), "../data/Ledn.csv"),
     (CoinifyCSVReader(), "../data/Coinify.csv"),
+
+    // TODO: add proper blockchain support?
     (EtherscanCSVReader(), "../data/Eth.csv"),
+    (CryptoIdCSVReader(), "../data/Ltc.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 ledgers.sort(by: { a, b in a.date < b.date })
@@ -281,22 +284,23 @@ ledgers.sort(by: { a, b in a.date < b.date })
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
 
-// print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count) - ETH \(unmatchedTransfers.reduce(0) { $0 + $1.amount })] ---")
-// let unmatchedTransfers = groupedLedgers.compactMap {
-//    if case .single(let entry) = $0, entry.asset.name == "ETH", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
-//        return entry
-//    }
-//    return nil
-// }
-// for entry in unmatchedTransfers {
-//    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
-// }
+let unmatchedTransfers = groupedLedgers.compactMap {
+    if case .single(let entry) = $0, entry.asset.name == "LTC", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
+        return entry
+    }
+    return nil
+}
 
-let balances = buildBalances(groupedLedgers: groupedLedgers)
-if let btcColdStorage = balances["❄️"]?[BTC] {
+print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count) - LTC \(unmatchedTransfers.reduce(0) { $0 + $1.amount })] ---")
+for entry in unmatchedTransfers {
+    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
+}
+
+ let balances = buildBalances(groupedLedgers: groupedLedgers)
+ if let btcColdStorage = balances["❄️"]?[BTC] {
     print("total interest BTC", ledgers.filter { $0.asset == BTC && ($0.type == .bonus || $0.type == .interest) }.reduce(0) { $0 + $1.amount })
     print("-- Cold storage --")
     print("total", btcColdStorage.sum)
     print("total without rate", btcColdStorage.unknownSum)
     // print("refs", btcColdStorage.description)
-}
+ }
