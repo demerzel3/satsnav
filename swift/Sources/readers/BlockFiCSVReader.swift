@@ -40,11 +40,12 @@ class BlockFiCSVReader: CSVReader {
                 fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined")")
             }
 
+            let dateString = dict["Confirmed At"] ?? ""
             let entry = LedgerEntry(
                 wallet: "BlockFi",
-                id: "\(ledgers.count)",
-                groupId: "\(ledgers.count)",
-                date: self.dateFormatter.date(from: dict["Confirmed At"] ?? "") ?? Date.now,
+                id: "\(dateString)",
+                groupId: "\(dateString)",
+                date: self.dateFormatter.date(from: dateString) ?? Date.now,
                 type: type,
                 amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
                 asset: LedgerEntry.Asset(name: dict["Cryptocurrency"] ?? "", type: .crypto)

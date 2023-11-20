@@ -256,6 +256,7 @@ private var ledgers = try await readCSVFiles(config: [
     (BlockFiCSVReader(), "../data/BlockFi.csv"),
     (LednCSVReader(), "../data/Ledn.csv"),
     (CoinifyCSVReader(), "../data/Coinify.csv"),
+    (EtherscanCSVReader(), "../data/Eth.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 ledgers.sort(by: { a, b in a.date < b.date })
@@ -279,24 +280,23 @@ ledgers.sort(by: { a, b in a.date < b.date })
 
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
-let unmatchedTransfers = groupedLedgers.compactMap {
-    if case .single(let entry) = $0, entry.asset == BTC || entry.asset.name == "USDC", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
-        return entry
-    }
-    return nil
-}
 
-print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count)] ---")
-for entry in unmatchedTransfers {
-    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
-}
-
-// TODO: Ledn ledger is lacking when it comes to loans, need a way to square it...
-
-// let balances = buildBalances(groupedLedgers: groupedLedgers)
-// if let btcColdStorage = balances["❄️"]?[BTC] {
-//    print("❄️")
-//    print("total", btcColdStorage.sum)
-//    print("total without rate", btcColdStorage.unknownSum)
-//    // print("refs", btcColdStorage.description)
+// print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count) - ETH \(unmatchedTransfers.reduce(0) { $0 + $1.amount })] ---")
+// let unmatchedTransfers = groupedLedgers.compactMap {
+//    if case .single(let entry) = $0, entry.asset.name == "ETH", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
+//        return entry
+//    }
+//    return nil
 // }
+// for entry in unmatchedTransfers {
+//    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
+// }
+
+let balances = buildBalances(groupedLedgers: groupedLedgers)
+if let btcColdStorage = balances["❄️"]?[BTC] {
+    print("total interest BTC", ledgers.filter { $0.asset == BTC && ($0.type == .bonus || $0.type == .interest) }.reduce(0) { $0 + $1.amount })
+    print("-- Cold storage --")
+    print("total", btcColdStorage.sum)
+    print("total without rate", btcColdStorage.unknownSum)
+    // print("refs", btcColdStorage.description)
+}
