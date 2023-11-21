@@ -294,5 +294,7 @@ if let btcColdStorage = balances["❄️"]?[BTC] {
     print("-- Cold storage --")
     print("total", btcColdStorage.sum)
     print("total without rate", btcColdStorage.unknownSum)
-    // print("refs", btcColdStorage.description)
+    print("refs without rate, sorted", btcColdStorage.filter { $0.amount > 0.01 && $0.rate == nil }.sorted(by: { a, b in
+        a.amount < b.amount
+    }).map { "\($0.amount) \($0.wallet)-\($0.id)" })
 }
