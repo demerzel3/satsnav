@@ -20,6 +20,12 @@ class CelsiusCSVReader: CSVReader {
         var ledgers = [LedgerEntry]()
         // Internal id,Date and time,Transaction type,Coin type,Coin amount,USD Value,Original Reward Coin,Reward Amount In Original Coin,Confirmed
         try csv.enumerateAsDict { dict in
+            let typeString = dict["Transaction type"] ?? ""
+            // I can ignore this because all the loans have been paid out so they cancel each other.
+            // TODO: allocate these funds to a "Celsius-Loan" wallet or something in case they don't cancel out
+            if typeString == "Collateral" {
+                return
+            }
             let type: LedgerEntry.LedgerEntryType = switch dict["Transaction type"] ?? "" {
             case "Transfer": .deposit
             case "Inbound Transfer": .deposit
@@ -27,7 +33,6 @@ class CelsiusCSVReader: CSVReader {
             case "Bonus Token": .bonus
             case "Withdrawal": .withdrawal
             // TODO: how to handle loans?
-            case "Collateral": .transfer
             case "Loan Interest Payment": .transfer
             case "Loan Principal Payment": .transfer
             default:

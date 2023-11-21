@@ -21,7 +21,6 @@ class CoinbaseCSVReader: CSVReader {
         // Asset,Type,Time,Amount,Balance,ID
         try csv.enumerateAsDict { dict in
             let date = self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now
-            let typeString = dict["Type"] ?? ""
             let id = dict["ID"] ?? ""
             let groupId = "\(id)-\(date.ISO8601Format())"
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0

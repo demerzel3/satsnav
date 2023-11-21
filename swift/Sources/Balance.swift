@@ -80,18 +80,18 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
         case .trade(let spend, let receive):
             let wallet = spend.wallet
             let rate = (-spend.amount / receive.amount)
-            // print("\(wallet) trade! spent \(spend.formattedAmount), received \(receive.formattedAmount) @\(formatRate(rate, spendType: spend.asset.type))")
+//            print("\(wallet) trade! spent \(spend.formattedAmount), received \(receive.formattedAmount) @\(formatRate(rate, spendType: spend.asset.type))")
             // print("full spend \(spend.amount) rate \(rate) receive \(receive.amount)")
 
             if spend.asset != BASE_ASSET {
                 // "move" refs to receive balance
                 var refs = balances[wallet, default: Balance()][spend.asset, default: RefsDeque()]
                 let balanceBefore = refs.reduce(0) { $0 + $1.amount }
-                // print("  \(spend.asset.name) balance \(refs.reduce(0) { $0 + $1.amount })")
-                // print("    bef: \(refs.map { $0.amount })")
+//                print("  \(spend.asset.name) balance \(refs.sum)")
+//                print("    bef: \(refs.map { $0.amount })")
                 let removedRefs = subtract(refs: &refs, amount: -spend.amount)
-                // print("    rem: \(removedRefs.map { $0.amount })")
-                // print("    aft: \(refs.map { $0.amount })")
+//                print("    rem: \(removedRefs.map { $0.amount })")
+//                print("    aft: \(refs.map { $0.amount })")
 
                 let balanceAfter = (refs + removedRefs).reduce(0) { $0 + $1.amount }
                 if balanceBefore != balanceAfter {
@@ -103,8 +103,6 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
                 if receive.asset != BASE_ASSET {
                     let precision = receive.amount.significantFractionalDecimalDigits
                     // Propagate rate to receive side
-                    // 🚨🚨 The operations here with the amount are not precise enough and leading to wrong balance
-                    // TODO: receivedRefs total MUST match receive.amount
                     var receiveRefs = removedRefs.map {
                         let nextRate = $0.rate.map { $0 * rate }
                         let nextAmount = round($0.amount / rate, precision: precision)

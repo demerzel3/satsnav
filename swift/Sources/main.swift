@@ -260,47 +260,39 @@ private var ledgers = try await readCSVFiles(config: [
     // TODO: add proper blockchain support?
     (EtherscanCSVReader(), "../data/Eth.csv"),
     (CryptoIdCSVReader(), "../data/Ltc.csv"),
+    (DogeCSVReader(), "../data/Doge.csv"),
+    (RippleCSVReader(), "../data/Ripple.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 ledgers.sort(by: { a, b in a.date < b.date })
-
-////             [Wallet:[Asset:balance]]
-// var balances = [String: [LedgerEntry.Asset: Decimal]]()
-// for entry in ledgers {
-//    balances[entry.wallet, default: [LedgerEntry.Asset: Decimal]()][entry.asset, default: 0] += entry.amount
-// }
-//
-// for (wallet, assets) in balances {
-//    print("--- \(wallet) ---")
-//    for (asset, amount) in assets {
-//        print("\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)")
-//    }
-// }
-
-// for entry in ledgers where (entry.type == .Deposit || entry.type == .Withdrawal) && entry.asset.name == "BTC" {
-//    print("\(entry.date) \(entry.wallet) \(entry.type) \(formatAmount(entry))")
-// }
 
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
 
 let unmatchedTransfers = groupedLedgers.compactMap {
-    if case .single(let entry) = $0, entry.asset.name == "LTC", entry.asset.type == .crypto, entry.type == .deposit || entry.type == .withdrawal {
+    if case .single(let entry) = $0,
+       entry.asset != BTC,
+       entry.asset.name != "DOGE",
+       entry.asset.name != "ETH",
+       entry.asset.name != "LTC",
+       entry.asset.type == .crypto,
+       entry.type == .deposit || entry.type == .withdrawal
+    {
         return entry
     }
     return nil
 }
 
-print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count) - LTC \(unmatchedTransfers.reduce(0) { $0 + $1.amount })] ---")
+print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count)] ---")
 for entry in unmatchedTransfers {
     print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
 }
 
- let balances = buildBalances(groupedLedgers: groupedLedgers)
- if let btcColdStorage = balances["❄️"]?[BTC] {
+let balances = buildBalances(groupedLedgers: groupedLedgers)
+if let btcColdStorage = balances["❄️"]?[BTC] {
     print("total interest BTC", ledgers.filter { $0.asset == BTC && ($0.type == .bonus || $0.type == .interest) }.reduce(0) { $0 + $1.amount })
     print("-- Cold storage --")
     print("total", btcColdStorage.sum)
     print("total without rate", btcColdStorage.unknownSum)
     // print("refs", btcColdStorage.description)
- }
+}

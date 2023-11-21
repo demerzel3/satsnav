@@ -22,9 +22,10 @@ class LednCSVReader: CSVReader {
         // Posted Date,Source,Amount,Type,Currency,Ledn Fee Amount,Fee Currency,Status,Blockchain,Txn ID,Txn Hash,Direction of funds
         func readRow(_ dict: [String: String]) {
             let id = dict["Txn ID"] ?? ""
+            let groupId = id.split(separator: "-", maxSplits: 2).first.map { String($0) } ?? id
             let source = dict["Source"] ?? ""
             // This is a made up entry to make sense of the rows related to B2X, only used in patch
-            // TODO: allocate these funds to a "Ledn-Loan" wallet or something in case they con't cancel out
+            // TODO: allocate these funds to a "Ledn-Loan" wallet or something in case they don't cancel out
             if source == "Collateral" {
                 ledgers.removeValue(forKey: id)
                 return
@@ -51,7 +52,7 @@ class LednCSVReader: CSVReader {
             ledgers[id] = LedgerEntry(
                 wallet: "Ledn",
                 id: id,
-                groupId: id,
+                groupId: groupId,
                 date: date,
                 type: type,
                 amount: (isSending ? -1 : 1) * amount,
