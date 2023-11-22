@@ -16,7 +16,6 @@ typealias RefsArray = [Ref]
 typealias Balance = [LedgerEntry.Asset: RefsDeque]
 
 /**
- ⭐️ TODO: add some ETH, XRP and LTC tracking 😔
  ⭐️ TODO: improve tracking of loan in Celsius, do something similar to Ledn? all info should be available in csv
 
  TODO: consolidate Refs without rate if they come from interests/bonus or other kinds of presents
@@ -69,14 +68,14 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
             // print("  Transfered refs:", subtractedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" })
             let withRate = subtractedRefs.filter { $0.rate != nil }.sum
             let withoutRate = subtractedRefs.filter { $0.rate == nil }.sum
-            if to.amount >= 0.1, (withoutRate / subtractedRefs.sum) > 0.05 {
-                print("TRANSFER! \(from.wallet) -> \(to.wallet) \(to.formattedAmount)")
-                // print("  Transfered refs:", subtractedRefs.count)
-                print("  without rate:", (withoutRate / subtractedRefs.sum) * 100, "%")
-                print("  without rate:", withoutRate, "with rate:", withRate)
-                print("  refs without rate (> 0.01):", subtractedRefs.filter { $0.rate == nil && $0.amount > 0.01 }.map { "\($0.amount) \($0.wallet)-\($0.id)" })
-                // print("  Transfered refs:", subtractedRefs)
-            }
+//            if to.amount >= 0.1, (withoutRate / subtractedRefs.sum) > 0.05 {
+//                print("TRANSFER! \(from.wallet) -> \(to.wallet) \(to.formattedAmount)")
+//                // print("  Transfered refs:", subtractedRefs.count)
+//                print("  without rate:", (withoutRate / subtractedRefs.sum) * 100, "%")
+//                print("  without rate:", withoutRate, "with rate:", withRate)
+//                print("  refs without rate (> 0.01):", subtractedRefs.filter { $0.rate == nil && $0.amount > 0.01 }.map { "\($0.amount) \($0.wallet)-\($0.id)" })
+//                // print("  Transfered refs:", subtractedRefs)
+//            }
         case .trade(let spend, let receive):
             let wallet = spend.wallet
             let rate = (-spend.amount / receive.amount)

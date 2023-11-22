@@ -227,13 +227,13 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
 
     let date = Date(timeIntervalSince1970: TimeInterval(transaction.time ?? 0))
 
-    return types.map { type, amount in LedgerEntry(
+    return types.enumerated().map { index, item in LedgerEntry(
         wallet: "❄️",
-        id: transaction.txid,
+        id: types.count > 1 ? "\(transaction.txid)-\(index)" : transaction.txid,
         groupId: transaction.txid,
         date: date,
-        type: type,
-        amount: amount,
+        type: item.0,
+        amount: item.1,
         asset: .init(name: "BTC", type: .crypto)
     ) }
 }
@@ -262,9 +262,20 @@ private var ledgers = try await readCSVFiles(config: [
     (CryptoIdCSVReader(), "../data/Ltc.csv"),
     (DogeCSVReader(), "../data/Doge.csv"),
     (RippleCSVReader(), "../data/Ripple.csv"),
+    (DefiCSVReader(), "../data/Defi.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
+let ledgersCountBeforeIgnore = ledgers.count
+ledgers = ledgers.filter { ledgersMeta["\($0.wallet)-\($0.id)"].map { !$0.ignored } ?? true }
+guard ledgers.count - ledgersCountBeforeIgnore < ledgersMeta.map({ $1.ignored }).count else {
+    fatalError("Some entries in blocklist where not found in the ledger")
+}
+
 ledgers.sort(by: { a, b in a.date < b.date })
+
+let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
+    index["\(entry.wallet)-\(entry.id)"] = entry
+}
 
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
@@ -290,11 +301,31 @@ for entry in unmatchedTransfers {
 
 let balances = buildBalances(groupedLedgers: groupedLedgers)
 if let btcColdStorage = balances["❄️"]?[BTC] {
-    print("total interest BTC", ledgers.filter { $0.asset == BTC && ($0.type == .bonus || $0.type == .interest) }.reduce(0) { $0 + $1.amount })
+    let interestAndBonuses = btcColdStorage.filter {
+        if let entry = ledgersIndex["\($0.wallet)-\($0.id)"] {
+            return entry.type == .interest || entry.type == .bonus
+        }
+        return false
+    }.reduce(0) { $0 + $1.amount }
     print("-- Cold storage --")
     print("total", btcColdStorage.sum)
-    print("total without rate", btcColdStorage.unknownSum)
-    print("refs without rate, sorted", btcColdStorage.filter { $0.amount > 0.01 && $0.rate == nil }.sorted(by: { a, b in
-        a.amount < b.amount
-    }).map { "\($0.amount) \($0.wallet)-\($0.id)" })
+    print("total without rate", btcColdStorage.unknownSum - interestAndBonuses, "+", btcFormatter.string(from: interestAndBonuses as NSNumber)!, "in interest and bonuses")
+    print("refs without rate, sorted:")
+
+    let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage.compactMap {
+        let id = "\($0.wallet)-\($0.id)"
+        guard let entry = ledgersIndex[id] else {
+            return nil
+        }
+
+        return ($0, entry, ledgersMeta[id].map { $0.comment })
+    }.filter { $0.entry.type != .bonus && $0.entry.type != .interest }
+
+    print(enrichedRefs
+        .sorted(by: { a, b in
+            a.ref.amount < b.ref.amount
+        })
+        .map { "\($0.ref.amount) \($0.ref.wallet)-\($0.ref.id)\($0.comment != nil ? " 💬 \($0.comment!)" : "")" }
+        .joined(separator: "\n")
+    )
 }

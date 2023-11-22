@@ -1,4 +1,3 @@
-
 import Foundation
 import SwiftCSV
 
@@ -12,32 +11,31 @@ private func createDateFormatter() -> DateFormatter {
     return formatter
 }
 
-class RippleCSVReader: CSVReader {
+class DefiCSVReader: CSVReader {
     private let dateFormatter = createDateFormatter()
     func read(filePath: String) async throws -> [LedgerEntry] {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
 
         var ledgers = [LedgerEntry]()
-        // Transaction,Date/Time,Type,Amount
+        // Transaction,Date/Time,Type,Amount,Asset
         try csv.enumerateAsDict { (dict: [String: String]) in
             let type: LedgerEntry.LedgerEntryType = switch dict["Type"] ?? "" {
             case "Receive": .deposit
             case "Send": .withdrawal
-            case "Fee": .fee
             default:
-                fatalError("Unexpected Ripple transaction type: \(dict["Type"] ?? "undefined")")
+                fatalError("Unexpected Defi transaction type: \(dict["Type"] ?? "undefined")")
             }
 
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
             let date = self.dateFormatter.date(from: dict["Date/Time"] ?? "") ?? Date.now
             let entry = LedgerEntry(
-                wallet: "Ripple",
+                wallet: "Defi",
                 id: dict["Transaction"] ?? "",
                 groupId: dict["Transaction"] ?? "",
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: "XRP", type: .crypto)
+                asset: LedgerEntry.Asset(name: dict["Asset"] ?? "", type: .crypto)
             )
             ledgers.append(entry)
         }
