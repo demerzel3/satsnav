@@ -29,6 +29,10 @@ struct LedgerEntry: CustomStringConvertible {
     let amount: Decimal
     let asset: Asset
 
+    var globalId: String {
+        "\(wallet)-\(id)"
+    }
+
     var formattedAmount: String {
         "\(asset.name) \(asset.type == .crypto ? btcFormatter.string(from: amount as NSNumber)! : fiatFormatter.string(from: amount as NSNumber)!)"
     }

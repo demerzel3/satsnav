@@ -274,7 +274,7 @@ guard ledgers.count - ledgersCountBeforeIgnore < ledgersMeta.map({ $1.ignored })
 ledgers.sort(by: { a, b in a.date < b.date })
 
 let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
-    index["\(entry.wallet)-\(entry.id)"] = entry
+    index[entry.globalId] = entry
 }
 
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
@@ -302,7 +302,7 @@ for entry in unmatchedTransfers {
 let balances = buildBalances(groupedLedgers: groupedLedgers)
 if let btcColdStorage = balances["❄️"]?[BTC] {
     let interestAndBonuses = btcColdStorage.filter {
-        if let entry = ledgersIndex["\($0.wallet)-\($0.id)"] {
+        if let entry = ledgersIndex[$0.globalId] {
             return entry.type == .interest || entry.type == .bonus
         }
         return false
@@ -313,13 +313,13 @@ if let btcColdStorage = balances["❄️"]?[BTC] {
     print("refs without rate, sorted:")
 
     let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage.compactMap {
-        let id = "\($0.wallet)-\($0.id)"
-        guard let entry = ledgersIndex[id] else {
+        guard let entry = ledgersIndex[$0.globalId] else {
+            print("Entry not found \($0.globalId)")
             return nil
         }
 
-        return ($0, entry, ledgersMeta[id].map { $0.comment })
-    }.filter { $0.entry.type != .bonus && $0.entry.type != .interest }
+        return ($0, entry, ledgersMeta[$0.globalId].flatMap { $0.comment })
+    }.filter { $0.ref.rate == nil && $0.entry.type != .bonus && $0.entry.type != .interest }
 
     print(enrichedRefs
         .sorted(by: { a, b in

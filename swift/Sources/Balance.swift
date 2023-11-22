@@ -9,6 +9,10 @@ struct Ref {
     let id: String
     let amount: Decimal
     let rate: Decimal?
+
+    var globalId: String {
+        "\(wallet)-\(id)"
+    }
 }
 
 typealias RefsDeque = Deque<Ref>
@@ -40,7 +44,13 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
 
             var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsDeque()]
             if entry.amount > 0 {
-                refs.append(Ref(wallet: entry.wallet, id: entry.id, amount: entry.amount, rate: nil))
+                let rate = ledgersMeta[entry.globalId].flatMap { $0.rate }
+
+                if let userProvidedRate = rate {
+                    print("🚨🚨🚨 Using user-provided rate for \(entry), rate: \(userProvidedRate)")
+                }
+
+                refs.append(Ref(wallet: entry.wallet, id: entry.id, amount: entry.amount, rate: rate))
             } else {
                 _ = subtract(refs: &refs, amount: -entry.amount)
 
@@ -65,9 +75,9 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
             let subtractedRefs = subtract(refs: &fromRefs, amount: to.amount)
             balances[from.wallet, default: Balance()][from.asset] = fromRefs
             balances[to.wallet, default: Balance()][to.asset, default: RefsDeque()].append(contentsOf: subtractedRefs)
-            // print("  Transfered refs:", subtractedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" })
-            let withRate = subtractedRefs.filter { $0.rate != nil }.sum
-            let withoutRate = subtractedRefs.filter { $0.rate == nil }.sum
+        // print("  Transfered refs:", subtractedRefs.map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat))" })
+//            let withRate = subtractedRefs.filter { $0.rate != nil }.sum
+//            let withoutRate = subtractedRefs.filter { $0.rate == nil }.sum
 //            if to.amount >= 0.1, (withoutRate / subtractedRefs.sum) > 0.05 {
 //                print("TRANSFER! \(from.wallet) -> \(to.wallet) \(to.formattedAmount)")
 //                // print("  Transfered refs:", subtractedRefs.count)
@@ -143,7 +153,7 @@ func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
 
             if receive.asset != BASE_ASSET {
                 // Add ref to balance
-                let ref = Ref(wallet: receive.wallet, id: receive.groupId, amount: receive.amount, rate: rate)
+                let ref = Ref(wallet: receive.wallet, id: receive.id, amount: receive.amount, rate: rate)
                 balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()].append(ref)
             }
         }
