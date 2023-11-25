@@ -58,6 +58,7 @@ class KrakenCSVReader: CSVReader {
         // "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
         try csv.enumerateAsDict { dict in
             let id = dict["txid"] ?? ""
+            let subtype = dict["subtype"] ?? ""
             let type: LedgerEntry.LedgerEntryType = switch dict["type"] ?? "" {
             case "deposit": .deposit
             case "withdrawal": .withdrawal
@@ -66,7 +67,8 @@ class KrakenCSVReader: CSVReader {
             case "receive": .trade
             case "staking": .interest
             case "dividend": .interest
-            // TODO: handle subtypes for staking
+            case "transfer" where subtype == "spottostaking": .withdrawal
+            case "transfer" where subtype == "stakingfromspot": .deposit
             case "transfer": .transfer
             default:
                 fatalError("Unexpected Kraken transaction type: \(dict["type"] ?? "undefined")")
