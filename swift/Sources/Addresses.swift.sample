@@ -1,4 +1,5 @@
-let knownAddresses = [
+let knownAddresses: [Address] = [
     // Create a copy of this file, name it Addresses.swift and
     // add your wallet addresses.
+    Address(id: "1", scriptHash: "0"),
 ]

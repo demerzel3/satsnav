@@ -1,121 +1,343 @@
+import Collections
+import CryptoKit
 import Foundation
+import Grammar
+import JSON
+import JSONDecoding
 import KrakenAPI
 import SwiftCSV
 
-private let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: "./ledgers.csv"))
+let btcFormatter = createNumberFormatter(minimumFractionDigits: 8, maximumFranctionDigits: 8)
+let fiatFormatter = createNumberFormatter(minimumFractionDigits: 2, maximumFranctionDigits: 2)
+private let cryptoRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 6)
+private let fiatRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 2)
 
-private enum AssetType {
-    case fiat
-    case crypto
-}
+private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
+// private let client = JSONRPCClient(hostName: "bitcoin.lu.ke", port: 50001)
+client.start()
 
-private struct Asset {
-    let name: String
-    let type: AssetType
+private let storage = TransactionStorage()
+// Restore transactions storage from disk
+await storage.read()
 
-    init(fromTicker ticker: String) {
-        switch ticker {
-            case "XXBT":
-                self.name = "BTC"
-                self.type = .crypto
-            case "XXDG":
-                self.name = "DOGE"
-                self.type = .crypto
-            case let a where a.starts(with: "X"):
-                self.name = String(a.dropFirst())
-                self.type = .crypto
-            case let a where a.starts(with: "Z"):
-                self.name = String(a.dropFirst())
-                self.type = .fiat
-            default:
-                self.name = ticker
-                self.type = .crypto
-        }
-    }
-}
+// Addresses that are part of the onchain wallet
+private let internalAddresses = Set<Address>(knownAddresses)
 
-private struct LedgerEntry {
-    let txId: String
-    let refId: String
-    let time: String
-    let type: String
-    let asset: Asset
-    let amount: Decimal
-}
+private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
+    let txIdsSet = Set<String>(txIds)
+    print("requesting transaction information for", txIdsSet.count, "transactions")
 
-private struct Trade {
-    let from: Asset
-    let fromAmount: Decimal
-    let to: Asset
-    let toAmount: Decimal
-    let rate: Decimal
-
-    init?(fromLedgers entries: [LedgerEntry]) {
-        if entries.count < 2 {
-            return nil
+    // Do not request transactions that we have already stored
+    let unknownTransactionIds = await storage.notIncludedTxIds(txIds: txIdsSet)
+    if unknownTransactionIds.count > 0 {
+        let txRequests = Set<String>(unknownTransactionIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
+        guard let transactions: [Result<ElectrumTransaction, JSONRPCError>] = await client.send(requests: txRequests) else {
+            print("🚨 Unable to get transactions")
+            exit(1)
         }
 
-        if entries[0].amount < 0 {
-            self.from = entries[0].asset
-            self.fromAmount = -entries[0].amount
-            self.to = entries[1].asset
-            self.toAmount = entries[1].amount
-        } else {
-            self.from = entries[1].asset
-            self.fromAmount = -entries[1].amount
-            self.to = entries[0].asset
-            self.toAmount = entries[0].amount
+        // TODO: do something with the errors maybe? at least log them!
+        let validTransactions = transactions.compactMap { if case .success(let t) = $0 { t } else { nil } }
+        let storageSize = await storage.store(transactions: validTransactions)
+        print("Retrieved \(validTransactions.count) transactions, in store: \(storageSize)")
+
+        // Commit transactions storage to disk
+        await storage.write()
+    }
+
+    return await storage.getTransactions(byIds: txIdsSet)
+}
+
+// Manual transactions have usually a number of inputs (in case of consolidation)
+// but only one output, + optional change
+private func isManualTransaction(_ transaction: ElectrumTransaction) -> Bool {
+    return transaction.vout.count <= 2
+}
+
+@MainActor
+private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerEntry] {
+    func writeCache(txIds: [String]) {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("rootTransactionIds.plist")
+        print(filePath)
+        do {
+            let data = try PropertyListEncoder().encode(txIds)
+            try data.write(to: filePath)
+            print("Root tx ids saved successfully!")
+        } catch {
+            fatalError("Error saving root tx ids: \(error)")
+        }
+    }
+
+    func readCache() -> [String] {
+        let filePath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("rootTransactionIds.plist")
+        print(filePath)
+        do {
+            let data = try Data(contentsOf: filePath)
+            let txIds = try PropertyListDecoder().decode([String].self, from: data)
+            print("Retrieved root tx ids from disk: \(txIds.count)")
+
+            return txIds
+        } catch {
+            fatalError("Error retrieving root tx ids: \(error)")
+        }
+    }
+
+    func fetchRootTransactionIds() async -> [String] {
+        let internalAddressesList = internalAddresses.map { $0 }
+        let historyRequests = internalAddressesList
+            .map { address in
+                JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
+            }
+        print("Requesting transactions for \(historyRequests.count) addresses")
+        guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
+            fatalError("🚨 Unable to get history")
         }
 
-        self.rate = self.fromAmount / self.toAmount
+        // Collect transaction ids and log failures.
+        var txIds = [String]()
+        for (address, res) in zip(internalAddressesList, history) {
+            switch res {
+            case .success(let history):
+                txIds.append(contentsOf: history.map { $0.tx_hash })
+            case .failure(let error):
+                print("🚨 history request failed for address \(address.id)", error)
+            }
+        }
+        // Save collected txids to cache
+        writeCache(txIds: txIds)
+
+        return txIds
+    }
+
+    let txIds = cacheOnly ? readCache() : await fetchRootTransactionIds()
+    let rootTransactions = await retrieveAndStoreTransactions(txIds: txIds)
+    let refTransactionIds = rootTransactions
+        .filter { isManualTransaction($0) }
+        .flatMap { transaction in transaction.vin.map { $0.txid } }
+        .compactMap { $0 }
+    _ = await retrieveAndStoreTransactions(txIds: refTransactionIds)
+
+    var entries = [LedgerEntry]()
+    for rawTransaction in rootTransactions {
+        entries.append(contentsOf: await electrumTransactionToLedgerEntries(rawTransaction))
+    }
+
+    return entries
+}
+
+func round(_ value: Decimal, precision: Int, mode: NSDecimalNumber.RoundingMode = .plain) -> Decimal {
+    var decimalValue = value
+    var roundedValue = Decimal()
+    NSDecimalRound(&roundedValue, &decimalValue, precision, mode)
+
+    return roundedValue
+}
+
+/**
+ Convert Double to Decimal, truncating at the 8th decimal
+ */
+func readBtcAmount(_ amount: Double) -> Decimal {
+    var decimalValue = Decimal(amount)
+    var roundedValue = Decimal()
+    NSDecimalRound(&roundedValue, &decimalValue, 8, .plain)
+
+    return roundedValue
+}
+
+@MainActor
+func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) async -> [LedgerEntry] {
+    var totalIn: Decimal = 0
+    var transactionVin = [OnchainTransaction.Vin]()
+    for vin in transaction.vin {
+        guard let vinTxId = vin.txid else {
+            continue
+        }
+        guard let vinTx = await storage.getTransaction(byId: vinTxId) else {
+            continue
+        }
+        guard let voutIndex = vin.vout else {
+            continue
+        }
+
+        let vout = vinTx.vout[voutIndex]
+        let amount = readBtcAmount(vout.value)
+
+        guard let vinAddress = vout.scriptPubKey.address else {
+            print("\(vinTxId):\(voutIndex) has no address")
+            continue
+        }
+        guard let vinScriptHash = getScriptHashForElectrum(vout.scriptPubKey) else {
+            print("Could not compute script hash for address \(vinAddress)")
+            continue
+        }
+
+        totalIn += amount
+        transactionVin.append(OnchainTransaction.Vin(
+            txid: vinTxId,
+            voutIndex: voutIndex,
+            amount: amount,
+            address: Address(id: vinAddress, scriptHash: vinScriptHash)
+        ))
+    }
+
+    var totalOut: Decimal = 0
+    var transactionVout = [OnchainTransaction.Vout]()
+    for vout in transaction.vout {
+        guard let voutAddress = vout.scriptPubKey.address else {
+            continue
+        }
+        guard let voutScriptHash = getScriptHashForElectrum(vout.scriptPubKey) else {
+            print("Could not compute script hash for address \(voutAddress)")
+            continue
+        }
+
+        let amount = readBtcAmount(vout.value)
+        totalOut += amount
+        transactionVout.append(OnchainTransaction.Vout(
+            amount: amount,
+            address: Address(id: voutAddress, scriptHash: voutScriptHash)
+        ))
+    }
+
+    let (knownVin, _) = transactionVin.partition { internalAddresses.contains($0.address) }
+    let (knownVout, unknownVout) = transactionVout.partition { internalAddresses.contains($0.address) }
+
+    let fees = totalIn - totalOut
+    let types: [(LedgerEntry.LedgerEntryType, Decimal)] = if
+        knownVin.count == transaction.vin.count,
+        knownVout.count == transaction.vout.count
+    {
+        // vin and vout are all known, it's consolidation or internal transaction, we track each output separately
+        transactionVout.flatMap { [(.withdrawal, $0.amount), (.deposit, $0.amount)] } + [(.fee, -fees)]
+    } else if knownVin.count == transaction.vin.count {
+        // All vin known, it must be a transfer out of some kind
+        [
+            (.withdrawal, -unknownVout.reduce(0) { sum, vout in sum + vout.amount }),
+            (.fee, -fees),
+        ]
+    } else if knownVin.count == 0 {
+        // No vin is known, must be a deposit.
+        // Split by vout in case we are receiving multiple from different sources, easier to match.
+        knownVout.map { (.deposit, $0.amount) }
+    } else {
+        [(.transfer, 0)]
+    }
+
+    let date = Date(timeIntervalSince1970: TimeInterval(transaction.time ?? 0))
+
+    return types.enumerated().map { index, item in LedgerEntry(
+        wallet: "❄️",
+        id: types.count > 1 ? "\(transaction.txid)-\(index)" : transaction.txid,
+        groupId: transaction.txid,
+        date: date,
+        type: item.0,
+        amount: item.1,
+        asset: .init(name: "BTC", type: .crypto)
+    ) }
+}
+
+func formatRate(_ optionalRate: Decimal?, spendType: LedgerEntry.AssetType = .crypto) -> String {
+    guard let rate = optionalRate else {
+        return "unknown"
+    }
+
+    switch spendType {
+    case .crypto: return cryptoRateFormatter.string(from: rate as NSNumber)!
+    case .fiat: return fiatRateFormatter.string(from: rate as NSNumber)!
     }
 }
 
-private let rateFormatterFiat = NumberFormatter()
-rateFormatterFiat.maximumFractionDigits = 4
-rateFormatterFiat.minimumFractionDigits = 0
-
-private let rateFormatterCrypto = NumberFormatter()
-rateFormatterCrypto.maximumFractionDigits = 10
-rateFormatterCrypto.minimumFractionDigits = 0
-
-private func printTrade(entries: [LedgerEntry]) {
-    guard let trade = Trade(fromLedgers: entries) else {
-        return
-    }
-
-    let rateFormatter = trade.from.type == .fiat ? rateFormatterFiat : rateFormatterCrypto
-
-    if trade.from.name != "EUR" || trade.to.name != "BTC" {
-        return
-    }
-    print("Traded", trade.fromAmount, trade.from.name, "for", trade.toAmount, trade.to.name, "@", rateFormatter.string(for: trade.rate)!)
+func formatBtcAmount(_ amount: Decimal) -> String {
+    return btcFormatter.string(from: amount as NSNumber)!
 }
 
-private var ledgers = [LedgerEntry]()
-private var ledgersByRefId = [String: [LedgerEntry]]()
-// "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
-try csv.enumerateAsDict { dict in
-    let entry = LedgerEntry(txId: dict["txid"] ?? "",
-                            refId: dict["refid"] ?? "",
-                            time: dict["time"] ?? "",
-                            type: dict["type"] ?? "",
-                            asset: Asset(fromTicker: dict["asset"] ?? ""),
-                            amount: Decimal(string: dict["amount"] ?? "0") ?? 0)
-    ledgers.append(entry)
-    if !entry.refId.isEmpty {
-        ledgersByRefId[entry.refId, default: []].append(entry)
+func formatFiatAmount(_ amount: Decimal) -> String {
+    return fiatFormatter.string(from: amount as NSNumber)!
+}
+
+private var ledgers = try await readCSVFiles(config: [
+    (CoinbaseCSVReader(), "../data/Coinbase.csv"),
+    (CelsiusCSVReader(), "../data/Celsius.csv"),
+    (KrakenCSVReader(), "../data/Kraken.csv"),
+    (BlockFiCSVReader(), "../data/BlockFi.csv"),
+    (LednCSVReader(), "../data/Ledn.csv"),
+    (CoinifyCSVReader(), "../data/Coinify.csv"),
+
+    // TODO: add proper blockchain support?
+    (EtherscanCSVReader(), "../data/Eth.csv"),
+    (CryptoIdCSVReader(), "../data/Ltc.csv"),
+    (DogeCSVReader(), "../data/Doge.csv"),
+    (RippleCSVReader(), "../data/Ripple.csv"),
+    (DefiCSVReader(), "../data/Defi.csv"),
+    (LiquidCSVReader(), "../data/Liquid.csv"),
+])
+ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
+let ledgersCountBeforeIgnore = ledgers.count
+ledgers = ledgers.filter { ledgersMeta["\($0.wallet)-\($0.id)"].map { !$0.ignored } ?? true }
+guard ledgers.count - ledgersCountBeforeIgnore < ledgersMeta.map({ $1.ignored }).count else {
+    fatalError("Some entries in blocklist where not found in the ledger")
+}
+
+ledgers.sort(by: { a, b in a.date < b.date })
+
+let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
+    assert(index[entry.globalId] == nil, "global id \(entry.globalId) already exist")
+
+    index[entry.globalId] = entry
+}
+
+let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
+let groupedLedgers: [GroupedLedger] = groupLedgers(ledgers: ledgers)
+
+let unmatchedTransfers = groupedLedgers.compactMap {
+    if case .single(let entry) = $0,
+       entry.asset != BTC,
+       entry.asset.name != "DOGE",
+       entry.asset.name != "ETH",
+       entry.asset.name != "LTC",
+       entry.asset.type == .crypto,
+       entry.type == .deposit || entry.type == .withdrawal
+    {
+        return entry
+    }
+    return nil
+}
+
+print("--- UNMATCHED TRANSFERS [\(unmatchedTransfers.count)] ---")
+for entry in unmatchedTransfers {
+    print(abs(entry.amount) > 0.01 ? "‼️" : "", entry)
+}
+
+let balances = buildBalances(groupedLedgers: groupedLedgers)
+if let btcColdStorage = balances["❄️"]?[BTC] {
+    print("-- Cold storage --")
+    print("total", btcColdStorage.sum)
+
+    let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage
+        .compactMap {
+            guard let entry = ledgersIndex[$0.refId] else {
+                print("Entry not found \($0.refId)")
+                return nil
+            }
+
+            return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
+        }
+        .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
+        .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
+    // .sorted { a, b in a.ref.date < b.ref.date }
+
+    for (ref, _, comment) in enrichedRefs {
+        // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
+        let rate = formatFiatAmount(ref.rate ?? 0)
+        let amount = formatBtcAmount(ref.amount)
+        print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
+//        for refId in ref.refIds {
+//            print(ledgersIndex[refId]!)
+//        }
+//        break
     }
 }
 
-private let ledgersGroupedByRefId = ledgersByRefId.values.filter { $0.count > 1 }
-
-print(ledgers.count)
-print(ledgersByRefId.count)
-for trade in ledgersGroupedByRefId {
-    printTrade(entries: trade)
-}
-
-// if let firstTrade = ledgersGroupedByRefId.first {
-//
-// }
+// TODO: some ledger ids are not unique, need to find and correct them since we now use them as global references

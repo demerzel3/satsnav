@@ -10,6 +10,24 @@
       }
     },
     {
+      "identity" : "easytcp",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/EasyTCP",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a97d7918b623a05b5e244b85d010904f8f21609c"
+      }
+    },
+    {
+      "identity" : "electrumkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/ElectrumKit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "45c73b44dbc712ad128b3933bd1feec61efdb2b4"
+      }
+    },
+    {
       "identity" : "krakenapi",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/lukepistrol/KrakenAPI.git",
@@ -19,12 +37,75 @@
       }
     },
     {
+      "identity" : "libwally",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/LibWally",
+      "state" : {
+        "branch" : "main",
+        "revision" : "20044689f8806f272bf3e838a87b74506b2bce85"
+      }
+    },
+    {
+      "identity" : "mempoolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/MempoolKit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "b04fb5a8f7dec0cb8dd6864237e5631207827081"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "a902f1823a7ff3c9ab2fba0f992396b948eda307",
+        "version" : "1.0.5"
+      }
+    },
+    {
+      "identity" : "swift-grammar",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tayloraswift/swift-grammar",
+      "state" : {
+        "revision" : "163ce5d4d88db7d94f2f4ca1cabcb2ae65af8af7",
+        "version" : "0.3.3"
+      }
+    },
+    {
+      "identity" : "swift-json",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tayloraswift/swift-json",
+      "state" : {
+        "revision" : "08553b050558495d71c732e9d4b6f0cf1ab6e442",
+        "version" : "0.6.0"
+      }
+    },
+    {
       "identity" : "swiftcsv",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftcsv/SwiftCSV.git",
       "state" : {
         "revision" : "b61dcd1b2b1120e751cee4cd64a16ff10364885d",
         "version" : "0.9.1"
+      }
+    },
+    {
+      "identity" : "swifttor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FlorianHubl/SwiftTor",
+      "state" : {
+        "branch" : "main",
+        "revision" : "ad6a859a55050fa5b74c4227b1965bedbd46be55"
       }
     }
   ],

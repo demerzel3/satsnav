@@ -22,19 +22,24 @@ fn main() {
 
     let secp = Secp256k1::new();
 
-    (0..100).for_each(|i| {
-        let rcv_desc = get_multisig_descriptor(i, &xpubs, &secp, false);
-        let change_desc = get_multisig_descriptor(i, &xpubs, &secp, true);
-
-        println!("rcv address       {}", get_address(&rcv_desc).unwrap());
+    println!("// Spend");
+    (0..45).for_each(|i| {
+        let desc = get_multisig_descriptor(i, &xpubs, &secp, false);
         println!(
-            "rcv scripthash    {}",
-            get_script_hash_for_electrum(&rcv_desc)
+            "Address(id: \"{}\", scriptHash: \"{}\"),",
+            get_address(&desc).unwrap(),
+            get_script_hash_for_electrum(&desc)
         );
-        println!("change address    {}", get_address(&change_desc).unwrap());
+    });
+
+    println!("");
+    println!("// Change");
+    (0..45).for_each(|i| {
+        let desc = get_multisig_descriptor(i, &xpubs, &secp, true);
         println!(
-            "change scripthash {}",
-            get_script_hash_for_electrum(&change_desc)
+            "Address(id: \"{}\", scriptHash: \"{}\"),",
+            get_address(&desc).unwrap(),
+            get_script_hash_for_electrum(&desc)
         );
     });
 }
