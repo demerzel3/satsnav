@@ -4,9 +4,7 @@ import Foundation
  Removes refs from asset balance using FIFO strategy
  */
 func subtract(refs: inout RefsDeque, amount: Decimal) -> RefsArray {
-    guard amount >= 0 else {
-        fatalError("amount must be positive")
-    }
+    assert(amount >= 0, "amount must be positive")
     let balanceBefore = refs.sum
 
     // Remove refs from asset balance using FIFO strategy

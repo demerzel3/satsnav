@@ -271,6 +271,7 @@ private var ledgers = try await readCSVFiles(config: [
     (DogeCSVReader(), "../data/Doge.csv"),
     (RippleCSVReader(), "../data/Ripple.csv"),
     (DefiCSVReader(), "../data/Defi.csv"),
+    (LiquidCSVReader(), "../data/Liquid.csv"),
 ])
 ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
 let ledgersCountBeforeIgnore = ledgers.count

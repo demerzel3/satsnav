@@ -53,9 +53,9 @@ func groupLedgers(ledgers: [LedgerEntry]) -> [GroupedLedger] {
                 continue
             }
 
-            // a transfer with same amount already exists, move that to single entry and replace
+            // A transfer with same amount already exists, move that to single entry and replace.
             if let transferWithSameAmount = transferByAmount[key] {
-                print("⚠️ Found another non-matching transfer with the same amount", transferWithSameAmount)
+                // print("⚠️ Found another non-matching transfer with the same amount", transferWithSameAmount)
                 groups.append(.single(entry: transferWithSameAmount))
             }
 
