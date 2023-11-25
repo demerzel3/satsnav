@@ -4,6 +4,9 @@ func createNumberFormatter(minimumFractionDigits: Int, maximumFranctionDigits: I
     let formatter = NumberFormatter()
     formatter.minimumFractionDigits = minimumFractionDigits
     formatter.maximumFractionDigits = maximumFranctionDigits
+    formatter.usesGroupingSeparator = true
+    formatter.groupingSeparator = ","
+    formatter.groupingSize = 3
 
     return formatter
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-enum GroupedLedger {
+enum GroupedLedger: CustomStringConvertible {
     // Single transaction within a wallet (e.g. Fee, Interest, Bonus) or ungrouped ledger entry
     case single(entry: LedgerEntry)
     // Trade within a single wallet
@@ -16,6 +16,17 @@ enum GroupedLedger {
             return spend.date < receive.date ? spend.date : receive.date
         case .transfer(let from, let to):
             return from.date < to.date ? from.date : to.date
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .single(let entry):
+            return entry.description
+        case .trade(let spend, let receive):
+            return "trade \(spend) for \(receive)"
+        case .transfer(let from, let to):
+            return "transfer from \(from) to \(to)"
         }
     }
 }

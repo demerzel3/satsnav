@@ -209,8 +209,8 @@ func electrumTransactionToLedgerEntries(_ transaction: ElectrumTransaction) asyn
         knownVin.count == transaction.vin.count,
         knownVout.count == transaction.vout.count
     {
-        // vin and vout are all known, it's consolidation or internal transaction, we only track the fees
-        [(.fee, -fees)]
+        // vin and vout are all known, it's consolidation or internal transaction, we track each output separately
+        transactionVout.flatMap { [(.withdrawal, $0.amount), (.deposit, $0.amount)] } + [(.fee, -fees)]
     } else if knownVin.count == transaction.vin.count {
         // All vin known, it must be a transfer out of some kind
         [
@@ -247,6 +247,14 @@ func formatRate(_ optionalRate: Decimal?, spendType: LedgerEntry.AssetType = .cr
     case .crypto: return cryptoRateFormatter.string(from: rate as NSNumber)!
     case .fiat: return fiatRateFormatter.string(from: rate as NSNumber)!
     }
+}
+
+func formatBtcAmount(_ amount: Decimal) -> String {
+    return btcFormatter.string(from: amount as NSNumber)!
+}
+
+func formatFiatAmount(_ amount: Decimal) -> String {
+    return fiatFormatter.string(from: amount as NSNumber)!
 }
 
 private var ledgers = try await readCSVFiles(config: [
@@ -301,31 +309,32 @@ for entry in unmatchedTransfers {
 
 let balances = buildBalances(groupedLedgers: groupedLedgers)
 if let btcColdStorage = balances["❄️"]?[BTC] {
-    let interestAndBonuses = btcColdStorage.filter {
-        if let entry = ledgersIndex[$0.globalId] {
-            return entry.type == .interest || entry.type == .bonus
-        }
-        return false
-    }.reduce(0) { $0 + $1.amount }
     print("-- Cold storage --")
     print("total", btcColdStorage.sum)
-    print("total without rate", btcColdStorage.unknownSum - interestAndBonuses, "+", btcFormatter.string(from: interestAndBonuses as NSNumber)!, "in interest and bonuses")
-    print("refs without rate, sorted:")
 
-    let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage.compactMap {
-        guard let entry = ledgersIndex[$0.globalId] else {
-            print("Entry not found \($0.globalId)")
-            return nil
+    let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage
+        .compactMap {
+            guard let entry = ledgersIndex[$0.refId] else {
+                print("Entry not found \($0.refId)")
+                return nil
+            }
+
+            return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
         }
+        .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
+        .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
+    // .sorted { a, b in a.ref.date < b.ref.date }
 
-        return ($0, entry, ledgersMeta[$0.globalId].flatMap { $0.comment })
-    }.filter { $0.ref.rate == nil && $0.entry.type != .bonus && $0.entry.type != .interest }
-
-    print(enrichedRefs
-        .sorted(by: { a, b in
-            a.ref.amount < b.ref.amount
-        })
-        .map { "\($0.ref.amount) \($0.ref.wallet)-\($0.ref.id)\($0.comment != nil ? " 💬 \($0.comment!)" : "")" }
-        .joined(separator: "\n")
-    )
+    for (ref, _, comment) in enrichedRefs {
+        // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
+        let rate = formatFiatAmount(ref.rate ?? 0)
+        let amount = formatBtcAmount(ref.amount)
+        print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
+//        for refId in ref.refIds {
+//            print(ledgersIndex[refId]!)
+//        }
+//        break
+    }
 }
+
+// TODO: some ledger ids are not unique, need to find and correct them since we now use them as global references

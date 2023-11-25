@@ -15,6 +15,6 @@ extension Deque where Element == Ref {
     }
 
     var description: String {
-        map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat)) \($0.wallet)" }.joined(separator: "\n")
+        map { "\($0.amount)@\(formatRate($0.rate, spendType: .fiat)) \($0.refId)" }.joined(separator: "\n")
     }
 }
