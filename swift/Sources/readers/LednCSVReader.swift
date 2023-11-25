@@ -62,7 +62,7 @@ class LednCSVReader: CSVReader {
             if fee > 0 {
                 ledgers["\(id)-2"] = LedgerEntry(
                     wallet: "Ledn",
-                    id: id,
+                    id: "\(id)-2",
                     groupId: id,
                     date: date,
                     type: .fee,

@@ -18,11 +18,13 @@ class CoinbaseCSVReader: CSVReader {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
 
         var ledgers = [LedgerEntry]()
+        var ids = [String: Int]()
         // Asset,Type,Time,Amount,Balance,ID
         try csv.enumerateAsDict { dict in
             let date = self.dateFormatter.date(from: dict["Time"] ?? "") ?? Date.now
-            let id = dict["ID"] ?? ""
-            let groupId = "\(id)-\(date.ISO8601Format())"
+            let cbId = dict["ID"] ?? ""
+            // Coinbase IDs are not unique so we need to add date and an index to keep track of them
+            let groupId = "\(cbId)-\(date.ISO8601Format())"
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
             let assetName = dict["Asset"] ?? ""
 
@@ -37,7 +39,7 @@ class CoinbaseCSVReader: CSVReader {
 
             let entry = LedgerEntry(
                 wallet: "Coinbase",
-                id: id,
+                id: "\(groupId)-\(ids[groupId, default: 0])",
                 groupId: groupId,
                 // Add 1 second to the fee entry so that it's always after the trade
                 date: type == .fee ? date.addingTimeInterval(1) : date,
@@ -46,6 +48,7 @@ class CoinbaseCSVReader: CSVReader {
                 asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)
+            ids[groupId, default: 0] += 1
         }
 
         return ledgers

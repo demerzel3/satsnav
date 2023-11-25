@@ -19,6 +19,7 @@ class BlockFiCSVReader: CSVReader {
         let csv: CSV = try CSV<Named>(url: URL(fileURLWithPath: filePath))
 
         var ledgers = [LedgerEntry]()
+        var ids = [String: Int]()
         // Cryptocurrency,Amount,Transaction Type,Exchange Rate Per Coin (USD),Confirmed At
         try csv.enumerateAsDict { dict in
             let transactionType = dict["Transaction Type"] ?? ""
@@ -40,17 +41,20 @@ class BlockFiCSVReader: CSVReader {
                 fatalError("Unexpected BlockFi transaction type: \(dict["Transaction Type"] ?? "undefined")")
             }
 
-            let dateString = dict["Confirmed At"] ?? ""
+            let ticker = dict["Cryptocurrency"] ?? ""
+            let date = self.dateFormatter.date(from: dict["Confirmed At"] ?? "") ?? Date.now
+            let groupId = "\(date.ISO8601Format())-\(ticker)"
             let entry = LedgerEntry(
                 wallet: "BlockFi",
-                id: "\(dateString)",
-                groupId: "\(dateString)",
-                date: self.dateFormatter.date(from: dateString) ?? Date.now,
+                id: "\(groupId)-\(ids[groupId, default: 0])",
+                groupId: "\(groupId)",
+                date: date,
                 type: type,
                 amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
-                asset: LedgerEntry.Asset(name: dict["Cryptocurrency"] ?? "", type: .crypto)
+                asset: LedgerEntry.Asset(name: ticker, type: .crypto)
             )
             ledgers.append(entry)
+            ids[groupId, default: 0] += 1
         }
 
         return ledgers

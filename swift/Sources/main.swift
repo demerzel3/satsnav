@@ -282,6 +282,8 @@ guard ledgers.count - ledgersCountBeforeIgnore < ledgersMeta.map({ $1.ignored })
 ledgers.sort(by: { a, b in a.date < b.date })
 
 let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
+    assert(index[entry.globalId] == nil, "global id \(entry.globalId) already exist")
+
     index[entry.globalId] = entry
 }
 
