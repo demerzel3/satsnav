@@ -1,0 +1,807 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942462B13A7DE0053DB47 /* SatsNavApp.swift */; };
+		E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942482B13A7DE0053DB47 /* ContentView.swift */; };
+		E079424B2B13A7DE0053DB47 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079424A2B13A7DE0053DB47 /* Item.swift */; };
+		E079424D2B13A7DF0053DB47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E079424C2B13A7DF0053DB47 /* Assets.xcassets */; };
+		E07942502B13A7DF0053DB47 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E079424F2B13A7DF0053DB47 /* Preview Assets.xcassets */; };
+		E079425A2B13A7DF0053DB47 /* SatsNavTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942592B13A7DF0053DB47 /* SatsNavTests.swift */; };
+		E07942642B13A7DF0053DB47 /* SatsNavUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942632B13A7DF0053DB47 /* SatsNavUITests.swift */; };
+		E07942662B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942652B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift */; };
+		E07942962B13E4A60053DB47 /* Address.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942912B13E4A60053DB47 /* Address.swift */; };
+		E07942972B13E4A60053DB47 /* Addresses.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428D2B13E4A60053DB47 /* Addresses.swift */; };
+		E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942842B13E4A60053DB47 /* OnchainTransaction.swift */; };
+		E07942992B13E4A60053DB47 /* Decimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942892B13E4A60053DB47 /* Decimal.swift */; };
+		E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */; };
+		E079429B2B13E4A60053DB47 /* Deque.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942832B13E4A60053DB47 /* Deque.swift */; };
+		E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428B2B13E4A60053DB47 /* TransactionStorage.swift */; };
+		E079429D2B13E4A60053DB47 /* _main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942932B13E4A60053DB47 /* _main.swift */; };
+		E079429E2B13E4A60053DB47 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428C2B13E4A60053DB47 /* Array.swift */; };
+		E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428F2B13E4A60053DB47 /* KrakenApi.swift */; };
+		E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* GroupedLedger.swift */; };
+		E07942A12B13E4A60053DB47 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942952B13E4A60053DB47 /* Balance.swift */; };
+		E07942A22B13E4A60053DB47 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942942B13E4A60053DB47 /* Models.swift */; };
+		E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */; };
+		E07942A62B13E72E0053DB47 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A52B13E72E0053DB47 /* Collections */; };
+		E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A72B13E72E0053DB47 /* DequeModule */; };
+		E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A92B13E72E0053DB47 /* OrderedCollections */; };
+		E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */ = {isa = PBXBuildFile; productRef = E07942B32B13E7FF0053DB47 /* SwiftCSV */; };
+		E07942B52B13F7A60053DB47 /* DogeCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */; };
+		E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */; };
+		E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */; };
+		E07942B82B13F7A60053DB47 /* CelsiusCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */; };
+		E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427F2B13E4A60053DB47 /* CSVReader.swift */; };
+		E07942BA2B13F7A60053DB47 /* LiquidCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */; };
+		E07942BB2B13F7A60053DB47 /* DefiCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942812B13E4A60053DB47 /* DefiCSVReader.swift */; };
+		E07942BC2B13F7A60053DB47 /* RippleCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942792B13E4A60053DB47 /* RippleCSVReader.swift */; };
+		E07942BD2B13F7A60053DB47 /* CoinifyCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */; };
+		E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */; };
+		E07942BF2B13F7A60053DB47 /* LednCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942822B13E4A60053DB47 /* LednCSVReader.swift */; };
+		E07942C02B13F7A60053DB47 /* CryptoIdCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */; };
+		E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */; };
+		E07942C32B13F7B90053DB47 /* subtract.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942872B13E4A60053DB47 /* subtract.swift */; };
+		E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */; };
+		E07942C72B13FA840053DB47 /* round.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C62B13FA840053DB47 /* round.swift */; };
+		E07942CA2B13FB720053DB47 /* format.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C92B13FB720053DB47 /* format.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E07942562B13A7DF0053DB47 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E079423B2B13A7DD0053DB47 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E07942422B13A7DE0053DB47;
+			remoteInfo = SatsNav;
+		};
+		E07942602B13A7DF0053DB47 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E079423B2B13A7DD0053DB47 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E07942422B13A7DE0053DB47;
+			remoteInfo = SatsNav;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		E07942432B13A7DE0053DB47 /* SatsNav.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SatsNav.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E07942462B13A7DE0053DB47 /* SatsNavApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavApp.swift; sourceTree = "<group>"; };
+		E07942482B13A7DE0053DB47 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E079424A2B13A7DE0053DB47 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		E079424C2B13A7DF0053DB47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E079424F2B13A7DF0053DB47 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		E07942552B13A7DF0053DB47 /* SatsNavTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SatsNavTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E07942592B13A7DF0053DB47 /* SatsNavTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavTests.swift; sourceTree = "<group>"; };
+		E079425F2B13A7DF0053DB47 /* SatsNavUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SatsNavUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E07942632B13A7DF0053DB47 /* SatsNavUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavUITests.swift; sourceTree = "<group>"; };
+		E07942652B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinifyCSVReader.swift; sourceTree = "<group>"; };
+		E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtherscanCSVReader.swift; sourceTree = "<group>"; };
+		E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrakenCSVReader.swift; sourceTree = "<group>"; };
+		E07942792B13E4A60053DB47 /* RippleCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RippleCSVReader.swift; sourceTree = "<group>"; };
+		E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelsiusCSVReader.swift; sourceTree = "<group>"; };
+		E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseCSVReader.swift; sourceTree = "<group>"; };
+		E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoIdCSVReader.swift; sourceTree = "<group>"; };
+		E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DogeCSVReader.swift; sourceTree = "<group>"; };
+		E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCSVReader.swift; sourceTree = "<group>"; };
+		E079427F2B13E4A60053DB47 /* CSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVReader.swift; sourceTree = "<group>"; };
+		E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockFiCSVReader.swift; sourceTree = "<group>"; };
+		E07942812B13E4A60053DB47 /* DefiCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefiCSVReader.swift; sourceTree = "<group>"; };
+		E07942822B13E4A60053DB47 /* LednCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LednCSVReader.swift; sourceTree = "<group>"; };
+		E07942832B13E4A60053DB47 /* Deque.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deque.swift; sourceTree = "<group>"; };
+		E07942842B13E4A60053DB47 /* OnchainTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransaction.swift; sourceTree = "<group>"; };
+		E07942872B13E4A60053DB47 /* subtract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = subtract.swift; sourceTree = "<group>"; };
+		E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = getScriptHashForElectrum.swift; sourceTree = "<group>"; };
+		E07942892B13E4A60053DB47 /* Decimal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Decimal.swift; sourceTree = "<group>"; };
+		E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONRPCClient.swift; sourceTree = "<group>"; };
+		E079428B2B13E4A60053DB47 /* TransactionStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionStorage.swift; sourceTree = "<group>"; };
+		E079428C2B13E4A60053DB47 /* Array.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Array.swift; sourceTree = "<group>"; };
+		E079428D2B13E4A60053DB47 /* Addresses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Addresses.swift; sourceTree = "<group>"; };
+		E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElectrumJSONRPCRequest.swift; sourceTree = "<group>"; };
+		E079428F2B13E4A60053DB47 /* KrakenApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrakenApi.swift; sourceTree = "<group>"; };
+		E07942902B13E4A60053DB47 /* Addresses.swift.sample */ = {isa = PBXFileReference; lastKnownFileType = text; path = Addresses.swift.sample; sourceTree = "<group>"; };
+		E07942912B13E4A60053DB47 /* Address.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Address.swift; sourceTree = "<group>"; };
+		E07942922B13E4A60053DB47 /* GroupedLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupedLedger.swift; sourceTree = "<group>"; };
+		E07942932B13E4A60053DB47 /* _main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _main.swift; sourceTree = "<group>"; };
+		E07942942B13E4A60053DB47 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		E07942952B13E4A60053DB47 /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
+		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
+		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E07942402B13A7DE0053DB47 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E07942A62B13E72E0053DB47 /* Collections in Frameworks */,
+				E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */,
+				E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */,
+				E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E07942522B13A7DF0053DB47 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E079425C2B13A7DF0053DB47 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E079423A2B13A7DD0053DB47 = {
+			isa = PBXGroup;
+			children = (
+				E07942452B13A7DE0053DB47 /* SatsNav */,
+				E07942582B13A7DF0053DB47 /* SatsNavTests */,
+				E07942622B13A7DF0053DB47 /* SatsNavUITests */,
+				E07942442B13A7DE0053DB47 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E07942442B13A7DE0053DB47 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E07942432B13A7DE0053DB47 /* SatsNav.app */,
+				E07942552B13A7DF0053DB47 /* SatsNavTests.xctest */,
+				E079425F2B13A7DF0053DB47 /* SatsNavUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E07942452B13A7DE0053DB47 /* SatsNav */ = {
+			isa = PBXGroup;
+			children = (
+				E07942902B13E4A60053DB47 /* Addresses.swift.sample */,
+				E07942932B13E4A60053DB47 /* _main.swift */,
+				E07942912B13E4A60053DB47 /* Address.swift */,
+				E079428D2B13E4A60053DB47 /* Addresses.swift */,
+				E079428C2B13E4A60053DB47 /* Array.swift */,
+				E07942952B13E4A60053DB47 /* Balance.swift */,
+				E07942482B13A7DE0053DB47 /* ContentView.swift */,
+				E07942892B13E4A60053DB47 /* Decimal.swift */,
+				E07942832B13E4A60053DB47 /* Deque.swift */,
+				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
+				E07942922B13E4A60053DB47 /* GroupedLedger.swift */,
+				E079424A2B13A7DE0053DB47 /* Item.swift */,
+				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
+				E079428F2B13E4A60053DB47 /* KrakenApi.swift */,
+				E07942942B13E4A60053DB47 /* Models.swift */,
+				E07942842B13E4A60053DB47 /* OnchainTransaction.swift */,
+				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
+				E079428B2B13E4A60053DB47 /* TransactionStorage.swift */,
+				E079424C2B13A7DF0053DB47 /* Assets.xcassets */,
+				E07942C82B13FB020053DB47 /* CSVReader */,
+				E07942C52B13FA750053DB47 /* Helpers */,
+				E079424E2B13A7DF0053DB47 /* Preview Content */,
+			);
+			path = SatsNav;
+			sourceTree = "<group>";
+		};
+		E079424E2B13A7DF0053DB47 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				E079424F2B13A7DF0053DB47 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		E07942582B13A7DF0053DB47 /* SatsNavTests */ = {
+			isa = PBXGroup;
+			children = (
+				E07942592B13A7DF0053DB47 /* SatsNavTests.swift */,
+			);
+			path = SatsNavTests;
+			sourceTree = "<group>";
+		};
+		E07942622B13A7DF0053DB47 /* SatsNavUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E07942632B13A7DF0053DB47 /* SatsNavUITests.swift */,
+				E07942652B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift */,
+			);
+			path = SatsNavUITests;
+			sourceTree = "<group>";
+		};
+		E07942C52B13FA750053DB47 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				E07942872B13E4A60053DB47 /* subtract.swift */,
+				E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */,
+				E07942C62B13FA840053DB47 /* round.swift */,
+				E07942C92B13FB720053DB47 /* format.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		E07942C82B13FB020053DB47 /* CSVReader */ = {
+			isa = PBXGroup;
+			children = (
+				E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */,
+				E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */,
+				E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */,
+				E07942792B13E4A60053DB47 /* RippleCSVReader.swift */,
+				E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */,
+				E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */,
+				E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */,
+				E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */,
+				E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */,
+				E079427F2B13E4A60053DB47 /* CSVReader.swift */,
+				E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */,
+				E07942812B13E4A60053DB47 /* DefiCSVReader.swift */,
+				E07942822B13E4A60053DB47 /* LednCSVReader.swift */,
+			);
+			path = CSVReader;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E07942422B13A7DE0053DB47 /* SatsNav */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E07942692B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNav" */;
+			buildPhases = (
+				E079423F2B13A7DE0053DB47 /* Sources */,
+				E07942402B13A7DE0053DB47 /* Frameworks */,
+				E07942412B13A7DE0053DB47 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SatsNav;
+			packageProductDependencies = (
+				E07942A52B13E72E0053DB47 /* Collections */,
+				E07942A72B13E72E0053DB47 /* DequeModule */,
+				E07942A92B13E72E0053DB47 /* OrderedCollections */,
+				E07942B32B13E7FF0053DB47 /* SwiftCSV */,
+			);
+			productName = SatsNav;
+			productReference = E07942432B13A7DE0053DB47 /* SatsNav.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E07942542B13A7DF0053DB47 /* SatsNavTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E079426C2B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNavTests" */;
+			buildPhases = (
+				E07942512B13A7DF0053DB47 /* Sources */,
+				E07942522B13A7DF0053DB47 /* Frameworks */,
+				E07942532B13A7DF0053DB47 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E07942572B13A7DF0053DB47 /* PBXTargetDependency */,
+			);
+			name = SatsNavTests;
+			productName = SatsNavTests;
+			productReference = E07942552B13A7DF0053DB47 /* SatsNavTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E079425E2B13A7DF0053DB47 /* SatsNavUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E079426F2B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNavUITests" */;
+			buildPhases = (
+				E079425B2B13A7DF0053DB47 /* Sources */,
+				E079425C2B13A7DF0053DB47 /* Frameworks */,
+				E079425D2B13A7DF0053DB47 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E07942612B13A7DF0053DB47 /* PBXTargetDependency */,
+			);
+			name = SatsNavUITests;
+			productName = SatsNavUITests;
+			productReference = E079425F2B13A7DF0053DB47 /* SatsNavUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E079423B2B13A7DD0053DB47 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					E07942422B13A7DE0053DB47 = {
+						CreatedOnToolsVersion = 15.0.1;
+					};
+					E07942542B13A7DF0053DB47 = {
+						CreatedOnToolsVersion = 15.0.1;
+						TestTargetID = E07942422B13A7DE0053DB47;
+					};
+					E079425E2B13A7DF0053DB47 = {
+						CreatedOnToolsVersion = 15.0.1;
+						TestTargetID = E07942422B13A7DE0053DB47;
+					};
+				};
+			};
+			buildConfigurationList = E079423E2B13A7DD0053DB47 /* Build configuration list for PBXProject "SatsNav" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E079423A2B13A7DD0053DB47;
+			packageReferences = (
+				E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */,
+				E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */,
+			);
+			productRefGroup = E07942442B13A7DE0053DB47 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E07942422B13A7DE0053DB47 /* SatsNav */,
+				E07942542B13A7DF0053DB47 /* SatsNavTests */,
+				E079425E2B13A7DF0053DB47 /* SatsNavUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E07942412B13A7DE0053DB47 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E07942502B13A7DF0053DB47 /* Preview Assets.xcassets in Resources */,
+				E079424D2B13A7DF0053DB47 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E07942532B13A7DF0053DB47 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E079425D2B13A7DF0053DB47 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E079423F2B13A7DE0053DB47 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E07942BF2B13F7A60053DB47 /* LednCSVReader.swift in Sources */,
+				E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */,
+				E07942A12B13E4A60053DB47 /* Balance.swift in Sources */,
+				E07942CA2B13FB720053DB47 /* format.swift in Sources */,
+				E07942B82B13F7A60053DB47 /* CelsiusCSVReader.swift in Sources */,
+				E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */,
+				E07942972B13E4A60053DB47 /* Addresses.swift in Sources */,
+				E07942BB2B13F7A60053DB47 /* DefiCSVReader.swift in Sources */,
+				E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */,
+				E07942C02B13F7A60053DB47 /* CryptoIdCSVReader.swift in Sources */,
+				E07942BA2B13F7A60053DB47 /* LiquidCSVReader.swift in Sources */,
+				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
+				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
+				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
+				E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */,
+				E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */,
+				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
+				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
+				E079429B2B13E4A60053DB47 /* Deque.swift in Sources */,
+				E07942BC2B13F7A60053DB47 /* RippleCSVReader.swift in Sources */,
+				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
+				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
+				E079424B2B13A7DE0053DB47 /* Item.swift in Sources */,
+				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
+				E079429D2B13E4A60053DB47 /* _main.swift in Sources */,
+				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
+				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
+				E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */,
+				E07942B52B13F7A60053DB47 /* DogeCSVReader.swift in Sources */,
+				E079429E2B13E4A60053DB47 /* Array.swift in Sources */,
+				E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */,
+				E07942992B13E4A60053DB47 /* Decimal.swift in Sources */,
+				E07942C72B13FA840053DB47 /* round.swift in Sources */,
+				E07942BD2B13F7A60053DB47 /* CoinifyCSVReader.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E07942512B13A7DF0053DB47 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E079425A2B13A7DF0053DB47 /* SatsNavTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E079425B2B13A7DF0053DB47 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E07942642B13A7DF0053DB47 /* SatsNavUITests.swift in Sources */,
+				E07942662B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E07942572B13A7DF0053DB47 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E07942422B13A7DE0053DB47 /* SatsNav */;
+			targetProxy = E07942562B13A7DF0053DB47 /* PBXContainerItemProxy */;
+		};
+		E07942612B13A7DF0053DB47 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E07942422B13A7DE0053DB47 /* SatsNav */;
+			targetProxy = E07942602B13A7DF0053DB47 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		E07942672B13A7DF0053DB47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E07942682B13A7DF0053DB47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E079426A2B13A7DF0053DB47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"SatsNav/Preview Content\"";
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNav;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E079426B2B13A7DF0053DB47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"SatsNav/Preview Content\"";
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNav;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		E079426D2B13A7DF0053DB47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNavTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SatsNav.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SatsNav";
+			};
+			name = Debug;
+		};
+		E079426E2B13A7DF0053DB47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNavTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SatsNav.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SatsNav";
+			};
+			name = Release;
+		};
+		E07942702B13A7DF0053DB47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNavUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = SatsNav;
+			};
+			name = Debug;
+		};
+		E07942712B13A7DF0053DB47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QJY32RZ65J;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNavUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = SatsNav;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E079423E2B13A7DD0053DB47 /* Build configuration list for PBXProject "SatsNav" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E07942672B13A7DF0053DB47 /* Debug */,
+				E07942682B13A7DF0053DB47 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E07942692B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNav" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E079426A2B13A7DF0053DB47 /* Debug */,
+				E079426B2B13A7DF0053DB47 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E079426C2B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNavTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E079426D2B13A7DF0053DB47 /* Debug */,
+				E079426E2B13A7DF0053DB47 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E079426F2B13A7DF0053DB47 /* Build configuration list for PBXNativeTarget "SatsNavUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E07942702B13A7DF0053DB47 /* Debug */,
+				E07942712B13A7DF0053DB47 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.5;
+			};
+		};
+		E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftcsv/SwiftCSV.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.9.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E07942A52B13E72E0053DB47 /* Collections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = Collections;
+		};
+		E07942A72B13E72E0053DB47 /* DequeModule */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = DequeModule;
+		};
+		E07942A92B13E72E0053DB47 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
+		};
+		E07942B32B13E7FF0053DB47 /* SwiftCSV */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */;
+			productName = SwiftCSV;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E079423B2B13A7DD0053DB47 /* Project object */;
+}
