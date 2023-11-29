@@ -1,1 +1,11 @@
-data/*.csv
+.DS_Store
+.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm
+.netrc
+Addresses.swift
+*.csv
+transactions.plist
+rootTransactionIds.plist
