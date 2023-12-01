@@ -43,7 +43,7 @@ class BlockFiCSVReader: CSVReader {
 
             let ticker = dict["Cryptocurrency"] ?? ""
             let date = self.dateFormatter.date(from: dict["Confirmed At"] ?? "") ?? Date.now
-            let groupId = "\(date.ISO8601Format())-\(ticker)"
+            let groupId = date.ISO8601Format()
             let entry = LedgerEntry(
                 wallet: "BlockFi",
                 id: "\(groupId)-\(ids[groupId, default: 0])",
