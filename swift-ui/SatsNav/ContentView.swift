@@ -26,13 +26,15 @@ var stackedBarData: [ToyShape] = [
 
 struct ContentView: View {
     @Binding var balances: [String: Balance]
+    @Binding var btcPrice: Decimal
+    @State var coldStorage: RefsArray?
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
-    var coldStorage: RefsDeque? {
-        return balances["❄️"]?[BTC]
-    }
+//    var coldStorage: RefsDeque? {
+//        return balances["❄️"]?[BTC]
+//    }
 
     var potfolioTotal: Decimal {
         return balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
@@ -42,6 +44,7 @@ struct ContentView: View {
         NavigationView {
             VStack {
                 (Text("BTC ") + Text(potfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
+                (Text("€ ") + Text((potfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3)
 
                 Chart {
                     ForEach(stackedBarData) { shape in
@@ -63,6 +66,12 @@ struct ContentView: View {
                                     Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .omitted))
                                     Text("BTC ") + Text(ref.amount as NSNumber, formatter: btcFormatter)
                                         + Text(" (\(ref.refIds.count))")
+                                    Text(ref.refId)
+                                    if let rate = ref.rate {
+                                        Text("€ ") + Text((ref.amount * rate) as NSNumber, formatter: fiatFormatter)
+                                    } else {
+                                        Text("€ -")
+                                    }
                                 }
 
 //                                Text(verbatim: "\(ref)")
@@ -74,10 +83,16 @@ struct ContentView: View {
                             }
                             // .onDelete(perform: deleteItems)
                         } else {
-                            Text("Loading...")
+                            HStack {
+                                Spacer()
+                                Text("Loading...")
+                                Spacer()
+                            }.listRowSeparator(.hidden)
                         }
                     }
-                }.toolbar {
+                }
+                .listStyle(.plain)
+                .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         EditButton()
                     }
@@ -90,6 +105,16 @@ struct ContentView: View {
             }
             .navigationTitle("Portfolio")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .onAppear { prepareBalances() }
+        .onChange(of: balances) { prepareBalances() }
+    }
+
+    private func prepareBalances() {
+        if let cs = balances["❄️"]?[BTC] {
+            coldStorage = cs
+                .filter { $0.rate == nil }
+                .sorted { a, b in a.date > b.date }
         }
     }
 
@@ -112,6 +137,6 @@ struct ContentView: View {
 #Preview {
     let mockBalances = [String: Balance]()
 
-    return ContentView(balances: .constant(mockBalances))
+    return ContentView(balances: .constant(mockBalances), btcPrice: .constant(35000))
         .modelContainer(for: Item.self, inMemory: true)
 }
