@@ -50,6 +50,8 @@
 		E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */; };
 		E07942C72B13FA840053DB47 /* round.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C62B13FA840053DB47 /* round.swift */; };
 		E07942CA2B13FB720053DB47 /* format.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C92B13FB720053DB47 /* format.swift */; };
+		E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = E07942CC2B1A8DDB0053DB47 /* Starscream */; };
+		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -113,6 +115,7 @@
 		E07942952B13E4A60053DB47 /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
 		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
 		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
+		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,6 +126,7 @@
 				E07942A62B13E72E0053DB47 /* Collections in Frameworks */,
 				E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */,
 				E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */,
+				E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */,
 				E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -185,6 +189,7 @@
 				E07942842B13E4A60053DB47 /* OnchainTransaction.swift */,
 				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
 				E079428B2B13E4A60053DB47 /* TransactionStorage.swift */,
+				E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */,
 				E079424C2B13A7DF0053DB47 /* Assets.xcassets */,
 				E07942C82B13FB020053DB47 /* CSVReader */,
 				E07942C52B13FA750053DB47 /* Helpers */,
@@ -270,6 +275,7 @@
 				E07942A72B13E72E0053DB47 /* DequeModule */,
 				E07942A92B13E72E0053DB47 /* OrderedCollections */,
 				E07942B32B13E7FF0053DB47 /* SwiftCSV */,
+				E07942CC2B1A8DDB0053DB47 /* Starscream */,
 			);
 			productName = SatsNav;
 			productReference = E07942432B13A7DE0053DB47 /* SatsNav.app */;
@@ -346,6 +352,7 @@
 			packageReferences = (
 				E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */,
+				E07942CB2B1A8DDB0053DB47 /* XCRemoteSwiftPackageReference "Starscream" */,
 			);
 			productRefGroup = E07942442B13A7DE0053DB47 /* Products */;
 			projectDirPath = "";
@@ -409,6 +416,7 @@
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
 				E079429B2B13E4A60053DB47 /* Deque.swift in Sources */,
 				E07942BC2B13F7A60053DB47 /* RippleCSVReader.swift in Sources */,
+				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
 				E079424B2B13A7DE0053DB47 /* Item.swift in Sources */,
@@ -778,6 +786,14 @@
 				minimumVersion = 0.9.1;
 			};
 		};
+		E07942CB2B1A8DDB0053DB47 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.6;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -800,6 +816,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */;
 			productName = SwiftCSV;
+		};
+		E07942CC2B1A8DDB0053DB47 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E07942CB2B1A8DDB0053DB47 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

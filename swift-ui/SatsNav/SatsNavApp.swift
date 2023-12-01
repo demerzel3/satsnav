@@ -1,3 +1,4 @@
+import Starscream
 import SwiftData
 import SwiftUI
 
@@ -5,6 +6,7 @@ let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 
 @main
 struct SatsNavApp: App {
+    @StateObject private var webSocketManager = WebSocketManager()
     @State private var balances: [String: Balance] = .init()
 
     var sharedModelContainer: ModelContainer = {
@@ -219,7 +221,8 @@ struct SatsNavApp: App {
     }
 
     private func fetchBalances() async -> [String: Balance] {
-        client.start()
+        // TODO: only start the JSONRPCClient when we actually need it
+        // client.start()
         await storage.read()
 
         // TODO: add proper error handling
@@ -262,8 +265,10 @@ struct SatsNavApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(balances: $balances).task {
+            ContentView(balances: $balances, btcPrice: $webSocketManager.btcPrice).task {
                 balances = await fetchBalances()
+            }.onAppear {
+                webSocketManager.connect()
             }
         }
         .modelContainer(sharedModelContainer)

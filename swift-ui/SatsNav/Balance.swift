@@ -3,10 +3,9 @@ import Foundation
 
 private let BASE_ASSET = LedgerEntry.Asset(name: "EUR", type: .fiat)
 
-struct Ref: Identifiable {
+struct Ref: Identifiable, Equatable {
     var id: String {
-        // TODO: refId is definitely not the right one
-        refId
+        refIds.joined()
     }
 
     let refIds: [String]
