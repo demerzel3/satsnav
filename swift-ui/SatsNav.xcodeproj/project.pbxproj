@@ -22,7 +22,6 @@
 		E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */; };
 		E079429B2B13E4A60053DB47 /* Deque.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942832B13E4A60053DB47 /* Deque.swift */; };
 		E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428B2B13E4A60053DB47 /* TransactionStorage.swift */; };
-		E079429D2B13E4A60053DB47 /* _main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942932B13E4A60053DB47 /* _main.swift */; };
 		E079429E2B13E4A60053DB47 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428C2B13E4A60053DB47 /* Array.swift */; };
 		E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428F2B13E4A60053DB47 /* KrakenApi.swift */; };
 		E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* GroupedLedger.swift */; };
@@ -110,7 +109,6 @@
 		E07942902B13E4A60053DB47 /* Addresses.swift.sample */ = {isa = PBXFileReference; lastKnownFileType = text; path = Addresses.swift.sample; sourceTree = "<group>"; };
 		E07942912B13E4A60053DB47 /* Address.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Address.swift; sourceTree = "<group>"; };
 		E07942922B13E4A60053DB47 /* GroupedLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupedLedger.swift; sourceTree = "<group>"; };
-		E07942932B13E4A60053DB47 /* _main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _main.swift; sourceTree = "<group>"; };
 		E07942942B13E4A60053DB47 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E07942952B13E4A60053DB47 /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
 		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
@@ -172,7 +170,6 @@
 			isa = PBXGroup;
 			children = (
 				E07942902B13E4A60053DB47 /* Addresses.swift.sample */,
-				E07942932B13E4A60053DB47 /* _main.swift */,
 				E07942912B13E4A60053DB47 /* Address.swift */,
 				E079428D2B13E4A60053DB47 /* Addresses.swift */,
 				E079428C2B13E4A60053DB47 /* Array.swift */,
@@ -421,7 +418,6 @@
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
 				E079424B2B13A7DE0053DB47 /* Item.swift in Sources */,
 				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
-				E079429D2B13E4A60053DB47 /* _main.swift in Sources */,
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
 				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
 				E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */,

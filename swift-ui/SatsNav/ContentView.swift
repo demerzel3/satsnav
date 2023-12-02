@@ -27,48 +27,61 @@ var stackedBarData: [ToyShape] = [
 struct ContentView: View {
     @Binding var balances: [String: Balance]
     @Binding var btcPrice: Decimal
-    @State var coldStorage: RefsArray?
+    @State var coldStorage: RefsArray = []
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
-//    var coldStorage: RefsDeque? {
-//        return balances["❄️"]?[BTC]
-//    }
-
-    var potfolioTotal: Decimal {
+    var portfolioTotal: Decimal {
         return balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
+    }
+
+    var totalAcquisitionCost: Decimal {
+        return balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
+    }
+
+    var header: some View {
+        VStack {
+            (Text("BTC ") + Text(portfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
+            (Text("€ ") + Text((portfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("BTC 1 = € ") + Text(btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+            (Text("cost basis € ") + Text((totalAcquisitionCost / portfolioTotal) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+        }
+    }
+
+    var chart: some View {
+        Chart {
+            ForEach(coldStorage) { ref in
+                BarMark(
+                    x: .value("Date", ref.date),
+                    y: .value("Rate", ref.rate ?? 0),
+                    stacking: .unstacked
+                )
+                // .foregroundStyle(by: .value("Amount", ref.amount * (ref.rate ?? 0) > 0 ? "Green" : "Red"))
+            }
+        }
+        .chartScrollableAxes(.horizontal)
+        .frame(width: nil, height: 200)
+        .padding()
     }
 
     var body: some View {
         NavigationView {
             VStack {
-                (Text("BTC ") + Text(potfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
-                (Text("€ ") + Text((potfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3)
-
-                Chart {
-                    ForEach(stackedBarData) { shape in
-                        LineMark(
-                            x: .value("Shape Type", shape.type),
-                            y: .value("Total Count", shape.count)
-                        )
-                        .foregroundStyle(by: .value("Shape Color", shape.color))
-                    }
-                }
-                .frame(width: nil, height: 200)
-                .padding(.horizontal, 32)
+                self.header
+                self.chart
 
                 List {
                     Group {
-                        if let refs = coldStorage {
-                            ForEach(refs) { ref in
+                        if coldStorage.count > 0 {
+                            ForEach(coldStorage) { ref in
                                 VStack(alignment: .leading) {
-                                    Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .omitted))
+                                    Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .standard))
                                     Text("BTC ") + Text(ref.amount as NSNumber, formatter: btcFormatter)
                                         + Text(" (\(ref.refIds.count))")
                                     Text(ref.refId)
                                     if let rate = ref.rate {
-                                        Text("€ ") + Text((ref.amount * rate) as NSNumber, formatter: fiatFormatter)
+                                        Text("€ ") + Text(rate as NSNumber, formatter: fiatFormatter)
                                     } else {
                                         Text("€ -")
                                     }
@@ -113,8 +126,8 @@ struct ContentView: View {
     private func prepareBalances() {
         if let cs = balances["❄️"]?[BTC] {
             coldStorage = cs
-                .filter { $0.rate == nil }
-                .sorted { a, b in a.date > b.date }
+                .sorted { a, b in a.rate ?? 0 < b.rate ?? 0 }
+            // .sorted { a, b in a.date > b.date }
         }
     }
 
