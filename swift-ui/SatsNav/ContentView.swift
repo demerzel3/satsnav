@@ -9,58 +9,59 @@ struct ToyShape: Identifiable {
     var id = UUID()
 }
 
-var stackedBarData: [ToyShape] = [
-    .init(color: "Green", type: "Cube", count: 2),
-    .init(color: "Green", type: "Sphere", count: 0),
-    .init(color: "Green", type: "Pyramid", count: 1),
-    .init(color: "Purple", type: "Cube", count: 1),
-    .init(color: "Purple", type: "Sphere", count: 1),
-    .init(color: "Purple", type: "Pyramid", count: 1),
-    .init(color: "Pink", type: "Cube", count: 1),
-    .init(color: "Pink", type: "Sphere", count: 2),
-    .init(color: "Pink", type: "Pyramid", count: 0),
-    .init(color: "Yellow", type: "Cube", count: 1),
-    .init(color: "Yellow", type: "Sphere", count: 1),
-    .init(color: "Yellow", type: "Pyramid", count: 2)
-]
+struct ChartDataItem: Identifiable {
+    let source: String
+    let date: Date
+    let amount: Decimal
+
+    var id: String {
+        return "\(source)-\(date)"
+    }
+}
 
 struct ContentView: View {
-    @Binding var balances: [String: Balance]
+    @StateObject private var balances = BalancesManager()
     @Binding var btcPrice: Decimal
     @State var coldStorage: RefsArray = []
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
-    var portfolioTotal: Decimal {
-        return balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
-    }
-
-    var totalAcquisitionCost: Decimal {
-        return balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
-    }
-
     var header: some View {
         VStack {
-            (Text("BTC ") + Text(portfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
-            (Text("€ ") + Text((portfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("BTC ") + Text(balances.portfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
+            (Text("€ ") + Text((balances.portfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
             (Text("BTC 1 = € ") + Text(btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
-            (Text("cost basis € ") + Text((totalAcquisitionCost / portfolioTotal) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+            (Text("cost basis € ") + Text((balances.totalAcquisitionCost / balances.portfolioTotal) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
         }
+    }
+
+    var chartData: [ChartDataItem] {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date.now)!
+        let now = Date.now
+
+        return balances.portfolioHistory.flatMap {
+            [
+                ChartDataItem(source: "capital", date: $0.date, amount: $0.spent),
+                ChartDataItem(source: "appreciation", date: $0.date, amount: ($0.total - $0.bonus) * btcPrice - $0.spent),
+                ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus * btcPrice),
+            ]
+        } + [
+            ChartDataItem(source: "capital", date: now, amount: balances.totalAcquisitionCost),
+            ChartDataItem(source: "appreciation", date: now, amount: (balances.portfolioTotal * btcPrice) - balances.totalAcquisitionCost),
+        ]
     }
 
     var chart: some View {
         Chart {
-            ForEach(coldStorage) { ref in
-                BarMark(
-                    x: .value("Date", ref.date),
-                    y: .value("Rate", ref.rate ?? 0),
-                    stacking: .unstacked
+            ForEach(chartData) { item in
+                AreaMark(
+                    x: .value("Date", item.date),
+                    y: .value("Amount", item.amount)
                 )
-                // .foregroundStyle(by: .value("Amount", ref.amount * (ref.rate ?? 0) > 0 ? "Green" : "Red"))
+                .foregroundStyle(by: .value("Source", item.source))
             }
         }
-        .chartScrollableAxes(.horizontal)
         .frame(width: nil, height: 200)
         .padding()
     }
@@ -119,15 +120,8 @@ struct ContentView: View {
             .navigationTitle("Portfolio")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onAppear { prepareBalances() }
-        .onChange(of: balances) { prepareBalances() }
-    }
-
-    private func prepareBalances() {
-        if let cs = balances["❄️"]?[BTC] {
-            coldStorage = cs
-                .sorted { a, b in a.rate ?? 0 < b.rate ?? 0 }
-            // .sorted { a, b in a.date > b.date }
+        .task {
+            await balances.update()
         }
     }
 
@@ -150,6 +144,6 @@ struct ContentView: View {
 #Preview {
     let mockBalances = [String: Balance]()
 
-    return ContentView(balances: .constant(mockBalances), btcPrice: .constant(35000))
+    return ContentView(btcPrice: .constant(35000))
         .modelContainer(for: Item.self, inMemory: true)
 }
