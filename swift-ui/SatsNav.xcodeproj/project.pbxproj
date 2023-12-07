@@ -10,6 +10,8 @@
 		E065EDF32B1BD2F80007CE2E /* HistoricPriceProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E065EDF22B1BD2F80007CE2E /* HistoricPriceProvider.swift */; };
 		E065EDF52B1FC6EB0007CE2E /* BalancesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */; };
 		E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E065EDF62B1FD0320007CE2E /* buildBtcHistory.swift */; };
+		E065EDFA2B21C6D80007CE2E /* KrakenAPI in Frameworks */ = {isa = PBXBuildFile; productRef = E065EDF92B21C6D80007CE2E /* KrakenAPI */; };
+		E065EDFC2B2275820007CE2E /* XBTEUR_1440.csv in Resources */ = {isa = PBXBuildFile; fileRef = E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */; };
 		E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942462B13A7DE0053DB47 /* SatsNavApp.swift */; };
 		E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942482B13A7DE0053DB47 /* ContentView.swift */; };
 		E079424B2B13A7DE0053DB47 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079424A2B13A7DE0053DB47 /* Item.swift */; };
@@ -77,6 +79,7 @@
 		E065EDF22B1BD2F80007CE2E /* HistoricPriceProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricPriceProvider.swift; sourceTree = "<group>"; };
 		E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalancesManager.swift; sourceTree = "<group>"; };
 		E065EDF62B1FD0320007CE2E /* buildBtcHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = buildBtcHistory.swift; sourceTree = "<group>"; };
+		E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = XBTEUR_1440.csv; sourceTree = "<group>"; };
 		E07942432B13A7DE0053DB47 /* SatsNav.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SatsNav.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07942462B13A7DE0053DB47 /* SatsNavApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavApp.swift; sourceTree = "<group>"; };
 		E07942482B13A7DE0053DB47 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -132,6 +135,7 @@
 				E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */,
 				E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */,
 				E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */,
+				E065EDFA2B21C6D80007CE2E /* KrakenAPI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -152,6 +156,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E065EDFD2B22758F0007CE2E /* HistoricData */ = {
+			isa = PBXGroup;
+			children = (
+				E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */,
+			);
+			path = HistoricData;
+			sourceTree = "<group>";
+		};
 		E079423A2B13A7DD0053DB47 = {
 			isa = PBXGroup;
 			children = (
@@ -175,6 +187,7 @@
 		E07942452B13A7DE0053DB47 /* SatsNav */ = {
 			isa = PBXGroup;
 			children = (
+				E065EDFD2B22758F0007CE2E /* HistoricData */,
 				E07942902B13E4A60053DB47 /* Addresses.swift.sample */,
 				E07942912B13E4A60053DB47 /* Address.swift */,
 				E079428D2B13E4A60053DB47 /* Addresses.swift */,
@@ -282,6 +295,7 @@
 				E07942A92B13E72E0053DB47 /* OrderedCollections */,
 				E07942B32B13E7FF0053DB47 /* SwiftCSV */,
 				E07942CC2B1A8DDB0053DB47 /* Starscream */,
+				E065EDF92B21C6D80007CE2E /* KrakenAPI */,
 			);
 			productName = SatsNav;
 			productReference = E07942432B13A7DE0053DB47 /* SatsNav.app */;
@@ -359,6 +373,7 @@
 				E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */,
 				E07942CB2B1A8DDB0053DB47 /* XCRemoteSwiftPackageReference "Starscream" */,
+				E065EDF82B21C6D80007CE2E /* XCRemoteSwiftPackageReference "KrakenAPI" */,
 			);
 			productRefGroup = E07942442B13A7DE0053DB47 /* Products */;
 			projectDirPath = "";
@@ -377,6 +392,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E07942502B13A7DF0053DB47 /* Preview Assets.xcassets in Resources */,
+				E065EDFC2B2275820007CE2E /* XBTEUR_1440.csv in Resources */,
 				E079424D2B13A7DF0053DB47 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -778,6 +794,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E065EDF82B21C6D80007CE2E /* XCRemoteSwiftPackageReference "KrakenAPI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lukepistrol/KrakenAPI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.0;
+			};
+		};
 		E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-collections.git";
@@ -805,6 +829,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E065EDF92B21C6D80007CE2E /* KrakenAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E065EDF82B21C6D80007CE2E /* XCRemoteSwiftPackageReference "KrakenAPI" */;
+			productName = KrakenAPI;
+		};
 		E07942A52B13E72E0053DB47 /* Collections */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;

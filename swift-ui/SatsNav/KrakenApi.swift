@@ -1,7 +1,9 @@
 import Foundation
+import KrakenAPI
 
-private let apiKey = ProcessInfo.processInfo.environment["KRAKEN_API_KEY"]!
-private let privateKey = ProcessInfo.processInfo.environment["KRAKEN_API_SECRET"]!
+// private let apiKey = ProcessInfo.processInfo.environment["KRAKEN_API_KEY"]!
+// private let privateKey = ProcessInfo.processInfo.environment["KRAKEN_API_SECRET"]!
+
 
 // private let credentials = Kraken.Credentials(apiKey: apiKey, privateKey: privateKey)
 // private let client = Kraken(credentials: credentials)

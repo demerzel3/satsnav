@@ -1,6 +1,24 @@
 {
   "pins" : [
     {
+      "identity" : "cryptoswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/krzyzanowskim/CryptoSwift.git",
+      "state" : {
+        "revision" : "db51c407d3be4a051484a141bf0bff36c43d3b1e",
+        "version" : "1.8.0"
+      }
+    },
+    {
+      "identity" : "krakenapi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/lukepistrol/KrakenAPI.git",
+      "state" : {
+        "revision" : "94823335ecfa3bf620eccc65b253f9da6b03d8ac",
+        "version" : "2.1.0"
+      }
+    },
+    {
       "identity" : "starscream",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/daltoniam/Starscream",
