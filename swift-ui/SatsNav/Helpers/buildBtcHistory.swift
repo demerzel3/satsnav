@@ -7,6 +7,13 @@ struct PortfolioHistoryItem {
     let spent: Decimal
 }
 
+func utcCalendar() -> Calendar {
+    var calendar = Calendar.current
+    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? calendar.timeZone
+
+    return calendar
+}
+
 func buildBtcHistory(balances: [String: Balance], ledgersIndex: [String: LedgerEntry]) -> [PortfolioHistoryItem] {
     var allBtcRefs = balances.values.compactMap { $0[BTC] }.flatMap { $0 }.sorted { a, b in
         a.date < b.date
@@ -16,7 +23,8 @@ func buildBtcHistory(balances: [String: Balance], ledgersIndex: [String: LedgerE
     var bonus = allBtcRefs.filter { ledgersIndex[$0.refId]?.type == .bonus || ledgersIndex[$0.refId]?.type == .interest }.sum
     var entries = [PortfolioHistoryItem]()
 
-    var date = allBtcRefs.last.map { $0.date }.map { Calendar.current.startOfDay(for: $0) }
+    let calendar = utcCalendar()
+    var date = allBtcRefs.last.map { $0.date }.map { calendar.startOfDay(for: $0) }
     while let d = date {
         while let last = allBtcRefs.popLast(), last.date >= d {
             total -= last.amount
@@ -26,7 +34,7 @@ func buildBtcHistory(balances: [String: Balance], ledgersIndex: [String: LedgerE
             }
         }
         entries.append(PortfolioHistoryItem(date: d, total: total, bonus: bonus, spent: spent))
-        date = allBtcRefs.last.map { $0.date }.map { Calendar.current.startOfDay(for: $0) }
+        date = allBtcRefs.last.map { $0.date }.map { calendar.startOfDay(for: $0) }
     }
 
     return entries.reversed()

@@ -20,35 +20,42 @@ struct ChartDataItem: Identifiable {
 }
 
 struct ContentView: View {
-    @StateObject private var balances = BalancesManager()
-    @Binding var btcPrice: Decimal
+    @StateObject private var balances: BalancesManager
+    // TODO: consolidate live price and historic prices into a single observable object
+    @StateObject private var btc = HistoricPriceProvider()
+    @StateObject private var webSocketManager = WebSocketManager()
     @State var coldStorage: RefsArray = []
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
+    init(shared: SharedData) {
+        self._balances = StateObject(wrappedValue: BalancesManager(shared: shared))
+    }
+
     var header: some View {
         VStack {
             (Text("BTC ") + Text(balances.portfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
-            (Text("€ ") + Text((balances.portfolioTotal * btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
-            (Text("BTC 1 = € ") + Text(btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+            (Text("€ ") + Text((balances.portfolioTotal * webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("BTC 1 = € ") + Text(webSocketManager.btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
             (Text("cost basis € ") + Text((balances.totalAcquisitionCost / balances.portfolioTotal) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
     var chartData: [ChartDataItem] {
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date.now)!
         let now = Date.now
 
         return balances.portfolioHistory.flatMap {
-            [
+            let price = btc.prices[$0.date] ?? 0
+            return [
                 ChartDataItem(source: "capital", date: $0.date, amount: $0.spent),
-                ChartDataItem(source: "appreciation", date: $0.date, amount: ($0.total - $0.bonus) * btcPrice - $0.spent),
-                ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus * btcPrice),
+                ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus * price),
+                ChartDataItem(source: "value", date: $0.date, amount: ($0.total - $0.bonus) * price),
             ]
         } + [
             ChartDataItem(source: "capital", date: now, amount: balances.totalAcquisitionCost),
-            ChartDataItem(source: "appreciation", date: now, amount: (balances.portfolioTotal * btcPrice) - balances.totalAcquisitionCost),
+            ChartDataItem(source: "bonuses", date: now, amount: 0),
+            ChartDataItem(source: "value", date: now, amount: balances.portfolioTotal * webSocketManager.btcPrice),
         ]
     }
 
@@ -57,12 +64,20 @@ struct ContentView: View {
             ForEach(chartData) { item in
                 AreaMark(
                     x: .value("Date", item.date),
-                    y: .value("Amount", item.amount)
+                    // Using this trick with capital so that it is present in the legend.
+                    y: .value("Amount", item.source == "capital" ? 0 : item.amount)
                 )
                 .foregroundStyle(by: .value("Source", item.source))
             }
+
+            ForEach(chartData.filter { $0.source == "capital" }) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("Amount", item.amount)
+                )
+            }
         }
-        .frame(width: nil, height: 200)
+        // .frame(width: nil, height: 200)
         .padding()
     }
 
@@ -123,6 +138,10 @@ struct ContentView: View {
         .task {
             await balances.update()
         }
+        .onAppear {
+            webSocketManager.connect()
+            btc.load()
+        }
     }
 
     private func addItem() {
@@ -144,6 +163,6 @@ struct ContentView: View {
 #Preview {
     let mockBalances = [String: Balance]()
 
-    return ContentView(btcPrice: .constant(35000))
+    return ContentView(shared: SharedData())
         .modelContainer(for: Item.self, inMemory: true)
 }

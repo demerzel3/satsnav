@@ -4,9 +4,13 @@ import SwiftUI
 
 let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
 
+class SharedData: ObservableObject {
+    @Published var startDate = Date.now
+}
+
 @main
 struct SatsNavApp: App {
-    @StateObject private var webSocketManager = WebSocketManager()
+    @StateObject var shared = SharedData()
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -23,9 +27,7 @@ struct SatsNavApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(btcPrice: $webSocketManager.btcPrice).onAppear {
-                webSocketManager.connect()
-            }
+            ContentView(shared: shared)
         }
         .modelContainer(sharedModelContainer)
     }

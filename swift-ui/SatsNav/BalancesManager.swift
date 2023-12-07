@@ -1,6 +1,7 @@
 import Foundation
 
 class BalancesManager: ObservableObject {
+    private var shared: SharedData
     @Published var portfolioTotal: Decimal = 0
     @Published var portfolioHistory = [PortfolioHistoryItem]()
     @Published var totalAcquisitionCost: Decimal = 0
@@ -15,6 +16,10 @@ class BalancesManager: ObservableObject {
 
     // Addresses that are part of the onchain wallet
     private let internalAddresses = Set<Address>(knownAddresses)
+
+    init(shared: SharedData) {
+        self.shared = shared
+    }
 
     private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
         let txIdsSet = Set<String>(txIds)
@@ -296,6 +301,8 @@ class BalancesManager: ObservableObject {
             self.portfolioTotal = self.balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
             self.totalAcquisitionCost = self.balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
             self.portfolioHistory = buildBtcHistory(balances: self.balances, ledgersIndex: self.ledgersIndex)
+
+            self.shared.startDate = self.portfolioHistory[0].date
         }
     }
 }
