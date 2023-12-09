@@ -37,7 +37,7 @@ class CryptoIdCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: "LTC", type: .crypto)
+                asset: Asset(name: "LTC", type: .crypto)
             )
             ledgers.append(entry)
         }

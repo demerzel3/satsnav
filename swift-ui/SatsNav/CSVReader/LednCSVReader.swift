@@ -53,7 +53,7 @@ class LednCSVReader: CSVReader {
             let fee = Decimal(string: dict["Ledn Fee Amount"] ?? "0") ?? 0
             let isSending = dict["Direction of funds"] == "Sending"
             let amount = (Decimal(string: dict["Amount"] ?? "0") ?? 0) - fee
-            let asset = LedgerEntry.Asset(name: dict["Currency"] ?? "", type: .crypto)
+            let asset = Asset(name: dict["Currency"] ?? "", type: .crypto)
 
             ledgers[id] = LedgerEntry(
                 wallet: "Ledn",

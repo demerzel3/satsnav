@@ -47,7 +47,7 @@ class CelsiusCSVReader: CSVReader {
                 date: self.dateFormatter.date(from: dict["Date and time"] ?? "") ?? Date.now,
                 type: type,
                 amount: Decimal(string: dict["Coin amount"] ?? "0") ?? 0,
-                asset: LedgerEntry.Asset(name: assetName == "USDT ERC20" ? "USDT" : assetName, type: .crypto)
+                asset: Asset(name: assetName == "USDT ERC20" ? "USDT" : assetName, type: .crypto)
             )
             ledgers.append(entry)
         }

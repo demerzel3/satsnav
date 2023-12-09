@@ -38,7 +38,7 @@ class CoinifyCSVReader: CSVReader {
                 date: self.dateFormatter.date(from: dict["Posted Date"] ?? "") ?? Date.now,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: currency, type: currency == "EUR" ? .fiat : .crypto)
+                asset: Asset(name: currency, type: currency == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)
         }

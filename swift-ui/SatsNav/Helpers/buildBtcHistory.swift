@@ -14,14 +14,17 @@ func utcCalendar() -> Calendar {
     return calendar
 }
 
-func buildBtcHistory(balances: [String: Balance], ledgersIndex: [String: LedgerEntry]) -> [PortfolioHistoryItem] {
+func buildBtcHistory(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) -> [PortfolioHistoryItem] {
     var allBtcRefs = balances.values.compactMap { $0[BTC] }.flatMap { $0 }.sorted { a, b in
         a.date < b.date
     }
     var total = allBtcRefs.sum
     var spent = allBtcRefs.compactMap { ref in ref.rate.map { $0 * ref.amount } }.reduce(0) { $0 + $1 }
-    var bonus = allBtcRefs.filter { ledgersIndex[$0.refId]?.type == .bonus || ledgersIndex[$0.refId]?.type == .interest }.sum
-    var entries = [PortfolioHistoryItem]()
+    var bonus = allBtcRefs.filter {
+        let entry = getLedgerById($0.refId)
+        return entry?.type == .bonus || entry?.type == .interest
+    }.sum
+    var entries = [PortfolioHistoryItem(date: Date.now, total: total, bonus: bonus, spent: spent)]
 
     let calendar = utcCalendar()
     var date = allBtcRefs.last.map { $0.date }.map { calendar.startOfDay(for: $0) }
@@ -29,7 +32,7 @@ func buildBtcHistory(balances: [String: Balance], ledgersIndex: [String: LedgerE
         while let last = allBtcRefs.popLast(), last.date >= d {
             total -= last.amount
             spent -= last.rate.map { $0 * last.amount } ?? 0
-            if let entry = ledgersIndex[last.refId], entry.type == .bonus || entry.type == .interest {
+            if let entry = getLedgerById(last.refId), entry.type == .bonus || entry.type == .interest {
                 bonus -= last.amount
             }
         }

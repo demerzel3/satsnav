@@ -1,7 +1,7 @@
 import Collections
 import Foundation
 
-private let BASE_ASSET = LedgerEntry.Asset(name: "EUR", type: .fiat)
+private let BASE_ASSET = Asset(name: "EUR", type: .fiat)
 
 struct Ref: Identifiable, Equatable {
     var id: String {
@@ -33,7 +33,7 @@ struct Ref: Identifiable, Equatable {
 
 typealias RefsDeque = Deque<Ref>
 typealias RefsArray = [Ref]
-typealias Balance = [LedgerEntry.Asset: RefsDeque]
+typealias Balance = [Asset: RefsDeque]
 
 /**
  TODO: consolidate Refs without rate if they come from interests/bonus or other kinds of presents

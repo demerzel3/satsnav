@@ -2,16 +2,10 @@ import Starscream
 import SwiftData
 import SwiftUI
 
-let BTC = LedgerEntry.Asset(name: "BTC", type: .crypto)
-
-class SharedData: ObservableObject {
-    @Published var startDate = Date.now
-}
+let BTC = Asset(name: "BTC", type: .crypto)
 
 @main
 struct SatsNavApp: App {
-    @StateObject var shared = SharedData()
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -27,7 +21,7 @@ struct SatsNavApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(shared: shared)
+            ContentView()
         }
         .modelContainer(sharedModelContainer)
     }

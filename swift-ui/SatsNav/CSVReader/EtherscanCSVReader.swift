@@ -23,7 +23,7 @@ class EtherscanCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: "ETH", type: .crypto)
+                asset: Asset(name: "ETH", type: .crypto)
             )
             ledgers.append(entry)
             ids[txHash, default: 0] += 1

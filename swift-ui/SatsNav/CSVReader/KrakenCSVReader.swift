@@ -11,7 +11,7 @@ private func createDateFormatter() -> DateFormatter {
     return formatter
 }
 
-extension LedgerEntry.Asset {
+extension Asset {
     init(fromKrakenTicker ticker: String) {
         switch ticker {
         case "XXBT":
@@ -80,7 +80,7 @@ class KrakenCSVReader: CSVReader {
             }
 
             let ticker = dict["asset"] ?? ""
-            let asset = LedgerEntry.Asset(fromKrakenTicker: ticker)
+            let asset = Asset(fromKrakenTicker: ticker)
             let balance = Decimal(string: dict["balance"] ?? "0") ?? 0
             let amount = Decimal(string: dict["amount"] ?? "0") ?? 0
             let fee = Decimal(string: dict["fee"] ?? "0") ?? 0
