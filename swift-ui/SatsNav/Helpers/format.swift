@@ -16,7 +16,7 @@ let fiatFormatter = createNumberFormatter(minimumFractionDigits: 2, maximumFranc
 private let cryptoRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 6)
 private let fiatRateFormatter = createNumberFormatter(minimumFractionDigits: 0, maximumFranctionDigits: 2)
 
-func formatRate(_ optionalRate: Decimal?, spendType: LedgerEntry.AssetType = .crypto) -> String {
+func formatRate(_ optionalRate: Decimal?, spendType: AssetType = .crypto) -> String {
     guard let rate = optionalRate else {
         return "unknown"
     }

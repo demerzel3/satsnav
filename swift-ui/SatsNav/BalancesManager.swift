@@ -1,14 +1,14 @@
 import Foundation
+import RealmSwift
 
+@MainActor
 class BalancesManager: ObservableObject {
-    private var shared: SharedData
-    @Published var portfolioTotal: Decimal = 0
-    @Published var portfolioHistory = [PortfolioHistoryItem]()
-    @Published var totalAcquisitionCost: Decimal = 0
-    @Published var chartData = [ChartDataItem]()
+    @Published var history = [PortfolioHistoryItem]()
 
-    private var ledgers = [LedgerEntry]()
-    private var ledgersIndex = [String: LedgerEntry]()
+    var current: PortfolioHistoryItem {
+        history.last ?? PortfolioHistoryItem(date: Date.now, total: 0, bonus: 0, spent: 0)
+    }
+
     private var balances = [String: Balance]()
 
     private var storage = TransactionStorage()
@@ -16,10 +16,6 @@ class BalancesManager: ObservableObject {
 
     // Addresses that are part of the onchain wallet
     private let internalAddresses = Set<Address>(knownAddresses)
-
-    init(shared: SharedData) {
-        self.shared = shared
-    }
 
     private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
         let txIdsSet = Set<String>(txIds)
@@ -247,16 +243,37 @@ class BalancesManager: ObservableObject {
         return ledgers
     }
 
+    func load() async {
+        let start = Date.now
+        let realm = try! await Realm()
+        let ledgers = realm.objects(LedgerEntry.self)
+        print("Loaded after \(Date.now.timeIntervalSince(start))s")
+        let groupedLedgers = groupLedgers(ledgers: ledgers)
+        print("Grouped after \(Date.now.timeIntervalSince(start))s")
+        balances = buildBalances(groupedLedgers: groupedLedgers)
+        print("Built balances after \(Date.now.timeIntervalSince(start))s")
+
+        history = buildBtcHistory(balances: balances, getLedgerById: { id in
+            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
+        })
+        print("Ready after \(Date.now.timeIntervalSince(start))s")
+    }
+
     func update() async {
-        ledgers = await buildLedger()
-        ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
-            assert(index[entry.globalId] == nil, "global id \(entry.globalId) already exist")
+        let start = Date.now
+        let ledgers = await buildLedger()
+        print("Built ledgers after \(Date.now.timeIntervalSince(start))s")
+        let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
+            assert(index[entry.globalId] == nil, "duplicated global id \(entry.globalId)")
 
             index[entry.globalId] = entry
         }
+        print("Built index after \(Date.now.timeIntervalSince(start))s")
 
         let groupedLedgers = groupLedgers(ledgers: ledgers)
+        print("Grouped after \(Date.now.timeIntervalSince(start))s")
         balances = buildBalances(groupedLedgers: groupedLedgers)
+        print("Built balances after \(Date.now.timeIntervalSince(start))s")
 
         if let btcColdStorage = balances["❄️"]?[BTC] {
             print("-- Cold storage --")
@@ -297,12 +314,17 @@ class BalancesManager: ObservableObject {
             }
         }
 
-        DispatchQueue.main.async {
-            self.portfolioTotal = self.balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
-            self.totalAcquisitionCost = self.balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
-            self.portfolioHistory = buildBtcHistory(balances: self.balances, ledgersIndex: self.ledgersIndex)
-
-            self.shared.startDate = self.portfolioHistory[0].date
+        // Persist all ledger entries
+        let realm = try! await Realm()
+        try! realm.write {
+            for entry in ledgers {
+                realm.add(entry)
+            }
         }
+        print("Persisted after \(Date.now.timeIntervalSince(start))s")
+
+        // portfolioTotal = balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
+        // totalAcquisitionCost = balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
+        // portfolioHistory = buildBtcHistory(balances: balances, ledgersIndex: self.ledgersIndex)
     }
 }

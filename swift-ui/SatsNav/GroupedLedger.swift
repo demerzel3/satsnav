@@ -31,7 +31,7 @@ enum GroupedLedger: CustomStringConvertible {
     }
 }
 
-func groupLedgers(ledgers: [LedgerEntry]) -> [GroupedLedger] {
+func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
     var transferByAmount = [String: LedgerEntry]()
     var tradesByGroupId = [String: LedgerEntry]()
     var groups = [GroupedLedger]()

@@ -37,7 +37,7 @@ class RippleCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: "XRP", type: .crypto)
+                asset: Asset(name: "XRP", type: .crypto)
             )
             ledgers.append(entry)
         }

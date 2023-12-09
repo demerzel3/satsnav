@@ -51,7 +51,7 @@ class BlockFiCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: Decimal(string: dict["Amount"] ?? "0") ?? 0,
-                asset: LedgerEntry.Asset(name: ticker, type: .crypto)
+                asset: Asset(name: ticker, type: .crypto)
             )
             ledgers.append(entry)
             ids[groupId, default: 0] += 1

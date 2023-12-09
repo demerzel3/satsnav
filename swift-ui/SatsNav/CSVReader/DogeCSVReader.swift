@@ -37,7 +37,7 @@ class DogeCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: "DOGE", type: .crypto)
+                asset: Asset(name: "DOGE", type: .crypto)
             )
             ledgers.append(entry)
         }

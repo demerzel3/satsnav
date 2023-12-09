@@ -35,7 +35,7 @@ class DefiCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: dict["Asset"] ?? "", type: .crypto)
+                asset: Asset(name: dict["Asset"] ?? "", type: .crypto)
             )
             ledgers.append(entry)
         }

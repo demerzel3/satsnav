@@ -45,7 +45,7 @@ class CoinbaseCSVReader: CSVReader {
                 date: type == .fee ? date.addingTimeInterval(1) : date,
                 type: type,
                 amount: amount,
-                asset: LedgerEntry.Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
+                asset: Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)
             ids[groupId, default: 0] += 1

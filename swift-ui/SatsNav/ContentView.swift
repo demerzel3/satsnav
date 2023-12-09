@@ -1,4 +1,5 @@
 import Charts
+import RealmSwift
 import SwiftData
 import SwiftUI
 
@@ -20,7 +21,7 @@ struct ChartDataItem: Identifiable {
 }
 
 struct ContentView: View {
-    @StateObject private var balances: BalancesManager
+    @StateObject private var balances = BalancesManager()
     // TODO: consolidate live price and historic prices into a single observable object
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
@@ -29,34 +30,24 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
-    init(shared: SharedData) {
-        self._balances = StateObject(wrappedValue: BalancesManager(shared: shared))
-    }
-
     var header: some View {
         VStack {
-            (Text("BTC ") + Text(balances.portfolioTotal as NSNumber, formatter: btcFormatter)).font(.title)
-            (Text("€ ") + Text((balances.portfolioTotal * webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("BTC ") + Text(balances.current.total as NSNumber, formatter: btcFormatter)).font(.title)
+            (Text("€ ") + Text((balances.current.total * webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
             (Text("BTC 1 = € ") + Text(webSocketManager.btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
-            (Text("cost basis € ") + Text((balances.totalAcquisitionCost / balances.portfolioTotal) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+            (Text("cost basis € ") + Text((balances.current.spent / balances.current.total) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
     var chartData: [ChartDataItem] {
-        let now = Date.now
-
-        return balances.portfolioHistory.flatMap {
-            let price = btc.prices[$0.date] ?? 0
+        balances.history.flatMap {
+            let price = btc.prices[$0.date] ?? webSocketManager.btcPrice
             return [
                 ChartDataItem(source: "capital", date: $0.date, amount: $0.spent),
                 ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus * price),
                 ChartDataItem(source: "value", date: $0.date, amount: ($0.total - $0.bonus) * price),
             ]
-        } + [
-            ChartDataItem(source: "capital", date: now, amount: balances.totalAcquisitionCost),
-            ChartDataItem(source: "bonuses", date: now, amount: 0),
-            ChartDataItem(source: "value", date: now, amount: balances.portfolioTotal * webSocketManager.btcPrice),
-        ]
+        }
     }
 
     var chart: some View {
@@ -136,7 +127,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task {
-            await balances.update()
+            await balances.load()
         }
         .onAppear {
             webSocketManager.connect()
@@ -163,6 +154,6 @@ struct ContentView: View {
 #Preview {
     let mockBalances = [String: Balance]()
 
-    return ContentView(shared: SharedData())
+    return ContentView()
         .modelContainer(for: Item.self, inMemory: true)
 }
