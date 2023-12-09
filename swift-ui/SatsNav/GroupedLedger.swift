@@ -40,7 +40,7 @@ func groupLedgers(ledgers: [LedgerEntry]) -> [GroupedLedger] {
         switch entry.type {
         case .deposit where entry.asset.type == .crypto,
              .withdrawal where entry.asset.type == .crypto:
-            let key = entry.abs().formattedAmount
+            let key = entry.formattedAbsAmount
 
             // pair with existing transfer
             if let transfer = transferByAmount[key], transfer.type != entry.type {

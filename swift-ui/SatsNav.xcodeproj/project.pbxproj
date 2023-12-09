@@ -12,6 +12,7 @@
 		E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E065EDF62B1FD0320007CE2E /* buildBtcHistory.swift */; };
 		E065EDFA2B21C6D80007CE2E /* KrakenAPI in Frameworks */ = {isa = PBXBuildFile; productRef = E065EDF92B21C6D80007CE2E /* KrakenAPI */; };
 		E065EDFC2B2275820007CE2E /* XBTEUR_1440.csv in Resources */ = {isa = PBXBuildFile; fileRef = E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */; };
+		E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06A2C832B249B6000ACC723 /* LedgerEntry.swift */; };
 		E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942462B13A7DE0053DB47 /* SatsNavApp.swift */; };
 		E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942482B13A7DE0053DB47 /* ContentView.swift */; };
 		E079424B2B13A7DE0053DB47 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079424A2B13A7DE0053DB47 /* Item.swift */; };
@@ -80,6 +81,7 @@
 		E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalancesManager.swift; sourceTree = "<group>"; };
 		E065EDF62B1FD0320007CE2E /* buildBtcHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = buildBtcHistory.swift; sourceTree = "<group>"; };
 		E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = XBTEUR_1440.csv; sourceTree = "<group>"; };
+		E06A2C832B249B6000ACC723 /* LedgerEntry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LedgerEntry.swift; sourceTree = "<group>"; };
 		E07942432B13A7DE0053DB47 /* SatsNav.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SatsNav.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07942462B13A7DE0053DB47 /* SatsNavApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavApp.swift; sourceTree = "<group>"; };
 		E07942482B13A7DE0053DB47 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
 				E079428B2B13E4A60053DB47 /* TransactionStorage.swift */,
 				E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */,
+				E06A2C832B249B6000ACC723 /* LedgerEntry.swift */,
 				E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */,
 				E079424C2B13A7DF0053DB47 /* Assets.xcassets */,
 				E07942C82B13FB020053DB47 /* CSVReader */,
@@ -433,6 +436,7 @@
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
 				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
+				E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */,
 				E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */,
 				E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */,
 				E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */,
