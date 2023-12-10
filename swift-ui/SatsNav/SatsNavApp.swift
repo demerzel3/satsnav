@@ -19,6 +19,8 @@ struct SatsNavApp: App {
         }
     }()
 
+    var credentials = try! Keychain.loadOrCreate()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
