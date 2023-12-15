@@ -3,12 +3,25 @@ import RealmSwift
 import SwiftData
 import SwiftUI
 
-struct ToyShape: Identifiable {
-    var color: String
-    var type: String
-    var count: Double
-    var id = UUID()
+struct WalletProvider {
+    let name: String
 }
+
+let walletProviders = [
+    WalletProvider(name: "Coinbase"),
+    WalletProvider(name: "Kraken"),
+    WalletProvider(name: "Ledn"),
+    WalletProvider(name: "BlockFi"),
+    WalletProvider(name: "Celsius"),
+    WalletProvider(name: "Coinify"),
+    WalletProvider(name: "BTC (on-chain)"),
+    WalletProvider(name: "Liquid BTC (on-chain)"),
+    WalletProvider(name: "LTC (on-chain)"),
+    WalletProvider(name: "ETH (on-chain)"),
+    WalletProvider(name: "XRP (on-chain)"),
+    WalletProvider(name: "DOGE (on-chain)"),
+    WalletProvider(name: "Custom data"),
+]
 
 struct ChartDataItem: Identifiable {
     let source: String
@@ -26,6 +39,7 @@ struct ContentView: View {
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
     @State var coldStorage: RefsArray = []
+    @State private var addWalletSheetPresented = false
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
@@ -112,19 +126,18 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.plain)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button(action: addItem) {
-                            Label("Add Item", systemImage: "plus")
-                        }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { addWalletSheetPresented = true }) {
+                        Text("Add wallet")
                     }
                 }
             }
-            .navigationTitle("Portfolio")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitle("Portfolio", displayMode: .inline)
+        }
+        .actionSheet(isPresented: $addWalletSheetPresented) {
+            ActionSheet(title: Text("Which provider/source?"), buttons: addWalletButtons())
         }
         .task {
             await balances.load()
@@ -133,6 +146,16 @@ struct ContentView: View {
             webSocketManager.connect()
             btc.load()
         }
+    }
+
+    private func addWalletButtons() -> [ActionSheet.Button] {
+        var buttons: [ActionSheet.Button] = walletProviders.map { provider in
+            .default(Text(provider.name)) {
+                // TODO: do something when provider is selected
+            }
+        }
+        buttons.append(.cancel())
+        return buttons
     }
 
     private func addItem() {
