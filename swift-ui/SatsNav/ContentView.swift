@@ -3,8 +3,12 @@ import RealmSwift
 import SwiftData
 import SwiftUI
 
-struct WalletProvider {
+struct WalletProvider: Identifiable, Hashable {
     let name: String
+
+    var id: String {
+        return name
+    }
 }
 
 let walletProviders = [
@@ -39,7 +43,7 @@ struct ContentView: View {
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
     @State var coldStorage: RefsArray = []
-    @State private var addWalletSheetPresented = false
+    @State private var addWalletWizardPresented = false
 
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
@@ -129,15 +133,15 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { addWalletSheetPresented = true }) {
+                    Button(action: { addWalletWizardPresented = true }) {
                         Text("Add wallet")
                     }
                 }
             }
             .navigationBarTitle("Portfolio", displayMode: .inline)
         }
-        .actionSheet(isPresented: $addWalletSheetPresented) {
-            ActionSheet(title: Text("Which provider/source?"), buttons: addWalletButtons())
+        .fullScreenCover(isPresented: $addWalletWizardPresented) {
+            AddWalletView()
         }
         .task {
             await balances.load()
@@ -146,16 +150,6 @@ struct ContentView: View {
             webSocketManager.connect()
             btc.load()
         }
-    }
-
-    private func addWalletButtons() -> [ActionSheet.Button] {
-        var buttons: [ActionSheet.Button] = walletProviders.map { provider in
-            .default(Text(provider.name)) {
-                // TODO: do something when provider is selected
-            }
-        }
-        buttons.append(.cancel())
-        return buttons
     }
 
     private func addItem() {

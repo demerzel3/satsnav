@@ -60,6 +60,7 @@
 		E07942CA2B13FB720053DB47 /* format.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C92B13FB720053DB47 /* format.swift */; };
 		E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = E07942CC2B1A8DDB0053DB47 /* Starscream */; };
 		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
+		E0DBFC9B2B2CF5160042D319 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -129,6 +130,7 @@
 		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
 		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
 		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
+		E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -202,6 +204,7 @@
 				E079428C2B13E4A60053DB47 /* Array.swift */,
 				E07942952B13E4A60053DB47 /* Balance.swift */,
 				E07942482B13A7DE0053DB47 /* ContentView.swift */,
+				E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E07942832B13E4A60053DB47 /* Deque.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
@@ -458,6 +461,7 @@
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
+				E0DBFC9B2B2CF5160042D319 /* AddWalletView.swift in Sources */,
 				E079424B2B13A7DE0053DB47 /* Item.swift in Sources */,
 				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
