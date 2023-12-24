@@ -5,6 +5,7 @@ import SwiftUI
 
 struct WalletProvider: Identifiable, Hashable {
     let name: String
+    let defaultWalletName: String
 
     var id: String {
         return name
@@ -12,19 +13,19 @@ struct WalletProvider: Identifiable, Hashable {
 }
 
 let walletProviders = [
-    WalletProvider(name: "Coinbase"),
-    WalletProvider(name: "Kraken"),
-    WalletProvider(name: "Ledn"),
-    WalletProvider(name: "BlockFi"),
-    WalletProvider(name: "Celsius"),
-    WalletProvider(name: "Coinify"),
-    WalletProvider(name: "BTC (on-chain)"),
-    WalletProvider(name: "Liquid BTC (on-chain)"),
-    WalletProvider(name: "LTC (on-chain)"),
-    WalletProvider(name: "ETH (on-chain)"),
-    WalletProvider(name: "XRP (on-chain)"),
-    WalletProvider(name: "DOGE (on-chain)"),
-    WalletProvider(name: "Custom data"),
+    WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase"),
+    WalletProvider(name: "Kraken", defaultWalletName: "Kraken"),
+    WalletProvider(name: "Ledn", defaultWalletName: "Ledn"),
+    WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi"),
+    WalletProvider(name: "Celsius", defaultWalletName: "Celsius"),
+    WalletProvider(name: "Coinify", defaultWalletName: "Coinify"),
+    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC"),
+    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid"),
+    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC"),
+    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH"),
+    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP"),
+    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE"),
+    WalletProvider(name: "Custom data", defaultWalletName: "Custom"),
 ]
 
 struct ChartDataItem: Identifiable {
@@ -133,7 +134,7 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { addWalletWizardPresented = true }) {
+                    Button(action: { addWalletWizardPresented.toggle() }) {
                         Text("Add wallet")
                     }
                 }
@@ -141,7 +142,7 @@ struct ContentView: View {
             .navigationBarTitle("Portfolio", displayMode: .inline)
         }
         .fullScreenCover(isPresented: $addWalletWizardPresented) {
-            AddWalletView()
+            AddWalletView(onDone: { addWalletWizardPresented.toggle() })
         }
         .task {
             await balances.load()

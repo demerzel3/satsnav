@@ -2,14 +2,26 @@ import Foundation
 import SwiftUI
 
 class NewWallet: ObservableObject {
-    @Published var provider: WalletProvider = walletProviders[0]
-    @Published var name: String = "Kraken"
+    let onDone: () -> Void
+
+    @Published var provider: WalletProvider
+    @Published var name: String
     @Published var apiKey: String?
     @Published var apiSecret: String?
+
+    init(onDone: @escaping () -> Void) {
+        self.onDone = onDone
+        self.provider = walletProviders[0]
+        self.name = walletProviders[0].defaultWalletName
+    }
 }
 
 struct AddWalletView: View {
-    @ObservedObject var newWallet = NewWallet()
+    @StateObject var newWallet: NewWallet
+
+    init(onDone: @escaping () -> Void) {
+        _newWallet = StateObject(wrappedValue: NewWallet(onDone: onDone))
+    }
 
     var body: some View {
         NavigationStack {
@@ -41,6 +53,9 @@ struct WalletProviderView: View {
                 }
             }
         }
+        .onChange(of: newWallet.provider) { _, newValue in
+            newWallet.name = newValue.defaultWalletName
+        }
     }
 }
 
@@ -49,17 +64,12 @@ struct WalletNameView: View {
 
     var body: some View {
         Form {
-            TextField("Kraken", text: $newWallet.name)
-//                Section {
-//                    Button("Choose CSV file") {
-//                        // Implement file upload logic
-//                    }
-//                }
+            TextField(newWallet.provider.defaultWalletName, text: $newWallet.name)
         }
         .navigationBarTitle("Wallet name", displayMode: .inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {}) {
+                NavigationLink(destination: WalletCSVView()) {
                     Text("Next")
                 }
             }
@@ -67,6 +77,43 @@ struct WalletNameView: View {
     }
 }
 
+struct WalletCSVView: View {
+    @State private var pickingFile = false
+    @State private var selectedFiles = [URL]()
+    @EnvironmentObject private var newWallet: NewWallet
+
+    var body: some View {
+        Form {
+            List {
+                ForEach(selectedFiles, id: \.self) { item in
+                    Text(item.lastPathComponent)
+                }
+                .onDelete(perform: { indexSet in
+                    selectedFiles.remove(atOffsets: indexSet)
+                })
+            }
+            Button(selectedFiles.isEmpty ? "Choose CSV file" : "Choose additional CSV file") {
+                pickingFile = true
+            }
+        }
+        .navigationBarTitle("Import data", displayMode: .inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { newWallet.onDone() }) {
+                    Text(selectedFiles.isEmpty ? "Skip" : "Next")
+                }
+            }
+        }
+        .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.commaSeparatedText]) { result in
+            guard let url = try? result.get() else {
+                return
+            }
+
+            selectedFiles.append(url)
+        }
+    }
+}
+
 #Preview {
-    AddWalletView()
+    AddWalletView {}
 }
