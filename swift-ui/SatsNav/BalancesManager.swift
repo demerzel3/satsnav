@@ -247,16 +247,41 @@ class BalancesManager: ObservableObject {
         let start = Date.now
         let realm = try! await Realm()
         let ledgers = realm.objects(LedgerEntry.self)
-        print("Loaded after \(Date.now.timeIntervalSince(start))s")
+        print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let groupedLedgers = groupLedgers(ledgers: ledgers)
-        print("Grouped after \(Date.now.timeIntervalSince(start))s")
+        print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")
         balances = buildBalances(groupedLedgers: groupedLedgers)
-        print("Built balances after \(Date.now.timeIntervalSince(start))s")
+        print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
+
+        verify(balances: balances, getLedgerById: { id in
+            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
+        })
 
         history = buildBtcHistory(balances: balances, getLedgerById: { id in
             realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
         })
         print("Ready after \(Date.now.timeIntervalSince(start))s")
+    }
+
+    func merge(_ newEntries: [LedgerEntry]) async {
+        let realm = try! await Realm()
+        let ids = newEntries.map { $0.globalId }
+        try! realm.write {
+            let entriesToDelete = realm.objects(LedgerEntry.self).where {
+                $0.globalId.in(ids)
+            }
+
+            print("-- Deleting \(entriesToDelete.count) entries")
+            realm.delete(entriesToDelete)
+            print("-- Deleted \(entriesToDelete.count) entries")
+
+            for entry in newEntries {
+                realm.add(entry)
+            }
+            print("-- Added \(newEntries.count) entries")
+        }
+
+        await load()
     }
 
     func update() async {
@@ -275,13 +300,30 @@ class BalancesManager: ObservableObject {
         balances = buildBalances(groupedLedgers: groupedLedgers)
         print("Built balances after \(Date.now.timeIntervalSince(start))s")
 
+        verify(balances: balances, getLedgerById: { ledgersIndex[$0] })
+
+        // Persist all ledger entries
+        let realm = try! await Realm()
+        try! realm.write {
+            for entry in ledgers {
+                realm.add(entry)
+            }
+        }
+        print("Persisted after \(Date.now.timeIntervalSince(start))s")
+
+        // portfolioTotal = balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
+        // totalAcquisitionCost = balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
+        // portfolioHistory = buildBtcHistory(balances: balances, ledgersIndex: self.ledgersIndex)
+    }
+
+    private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
         if let btcColdStorage = balances["❄️"]?[BTC] {
             print("-- Cold storage --")
             print("total", btcColdStorage.sum)
 
             let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage
                 .compactMap {
-                    guard let entry = ledgersIndex[$0.refId] else {
+                    guard let entry = getLedgerById($0.refId) else {
                         print("Entry not found \($0.refId)")
                         return nil
                     }
@@ -302,29 +344,16 @@ class BalancesManager: ObservableObject {
 
             let oneSat = Decimal(string: "0.00000001")!
             print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
-            for (ref, _, comment) in enrichedRefs where ref.amount < oneSat {
-                // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
-                let rate = formatFiatAmount(ref.rate ?? 0)
-                let amount = formatBtcAmount(ref.amount)
-                print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
-//                for refId in ref.refIds {
-//                    print(ledgersIndex[refId]!)
-//                }
-//                break
-            }
+//            for (ref, _, comment) in enrichedRefs where ref.amount < oneSat {
+//                // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
+//                let rate = formatFiatAmount(ref.rate ?? 0)
+//                let amount = formatBtcAmount(ref.amount)
+//                print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
+            ////                for refId in ref.refIds {
+            ////                    print(ledgersIndex[refId]!)
+            ////                }
+            ////                break
+//            }
         }
-
-        // Persist all ledger entries
-        let realm = try! await Realm()
-        try! realm.write {
-            for entry in ledgers {
-                realm.add(entry)
-            }
-        }
-        print("Persisted after \(Date.now.timeIntervalSince(start))s")
-
-        // portfolioTotal = balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
-        // totalAcquisitionCost = balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
-        // portfolioHistory = buildBtcHistory(balances: balances, ledgersIndex: self.ledgersIndex)
     }
 }

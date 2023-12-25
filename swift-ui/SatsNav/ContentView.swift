@@ -6,26 +6,34 @@ import SwiftUI
 struct WalletProvider: Identifiable, Hashable {
     let name: String
     let defaultWalletName: String
+    let createCSVReader: (() -> CSVReader)?
 
     var id: String {
         return name
     }
+
+    static func == (lhs: WalletProvider, rhs: WalletProvider) -> Bool {
+        return lhs.name == rhs.name
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+    }
 }
 
 let walletProviders = [
-    WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase"),
-    WalletProvider(name: "Kraken", defaultWalletName: "Kraken"),
-    WalletProvider(name: "Ledn", defaultWalletName: "Ledn"),
-    WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi"),
-    WalletProvider(name: "Celsius", defaultWalletName: "Celsius"),
-    WalletProvider(name: "Coinify", defaultWalletName: "Coinify"),
-    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC"),
-    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid"),
-    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC"),
-    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH"),
-    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP"),
-    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE"),
-    WalletProvider(name: "Custom data", defaultWalletName: "Custom"),
+    WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase", createCSVReader: CoinbaseCSVReader.init),
+    WalletProvider(name: "Kraken", defaultWalletName: "Kraken", createCSVReader: KrakenCSVReader.init),
+    WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
+    WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
+    WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
+    WalletProvider(name: "Coinify", defaultWalletName: "Coinify", createCSVReader: CoinifyCSVReader.init),
+    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC", createCSVReader: nil),
+    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid", createCSVReader: LiquidCSVReader.init),
+    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC", createCSVReader: CryptoIdCSVReader.init),
+    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH", createCSVReader: EtherscanCSVReader.init),
+    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP", createCSVReader: RippleCSVReader.init),
+    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE", createCSVReader: DogeCSVReader.init),
 ]
 
 struct ChartDataItem: Identifiable {
@@ -142,7 +150,19 @@ struct ContentView: View {
             .navigationBarTitle("Portfolio", displayMode: .inline)
         }
         .fullScreenCover(isPresented: $addWalletWizardPresented) {
-            AddWalletView(onDone: { addWalletWizardPresented.toggle() })
+            AddWalletView(onDone: { newEntries in
+                addWalletWizardPresented.toggle()
+
+                guard let entries = newEntries else {
+                    return
+                }
+
+                // TODO: does this make sense at all?
+                Task {
+                    await balances.merge(entries)
+                    print("Saved some new ledgers? maybe?")
+                }
+            })
         }
         .task {
             await balances.load()
