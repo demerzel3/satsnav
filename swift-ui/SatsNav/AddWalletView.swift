@@ -1,15 +1,18 @@
 import Foundation
 import SwiftUI
 
+typealias OnDone = ([LedgerEntry]?) -> Void
+
 class NewWallet: ObservableObject {
-    let onDone: () -> Void
+    let onDone: OnDone
 
     @Published var provider: WalletProvider
     @Published var name: String
+    @Published var csvFiles = [URL]()
     @Published var apiKey: String?
     @Published var apiSecret: String?
 
-    init(onDone: @escaping () -> Void) {
+    init(onDone: @escaping OnDone) {
         self.onDone = onDone
         self.provider = walletProviders[0]
         self.name = walletProviders[0].defaultWalletName
@@ -19,7 +22,7 @@ class NewWallet: ObservableObject {
 struct AddWalletView: View {
     @StateObject var newWallet: NewWallet
 
-    init(onDone: @escaping () -> Void) {
+    init(onDone: @escaping OnDone) {
         _newWallet = StateObject(wrappedValue: NewWallet(onDone: onDone))
     }
 
@@ -47,6 +50,12 @@ struct WalletProviderView: View {
         }
         .navigationBarTitle("Provider", displayMode: .inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: { newWallet.onDone(nil) }) {
+                    Text("Cancel")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(destination: WalletNameView()) {
                     Text("Next")
@@ -72,6 +81,7 @@ struct WalletNameView: View {
                 NavigationLink(destination: WalletCSVView()) {
                     Text("Next")
                 }
+                .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
     }
@@ -79,29 +89,29 @@ struct WalletNameView: View {
 
 struct WalletCSVView: View {
     @State private var pickingFile = false
-    @State private var selectedFiles = [URL]()
     @EnvironmentObject private var newWallet: NewWallet
 
     var body: some View {
         Form {
             List {
-                ForEach(selectedFiles, id: \.self) { item in
+                ForEach(newWallet.csvFiles, id: \.self) { item in
                     Text(item.lastPathComponent)
                 }
                 .onDelete(perform: { indexSet in
-                    selectedFiles.remove(atOffsets: indexSet)
+                    newWallet.csvFiles.remove(atOffsets: indexSet)
                 })
             }
-            Button(selectedFiles.isEmpty ? "Choose CSV file" : "Choose additional CSV file") {
+            Button(newWallet.csvFiles.isEmpty ? "Choose CSV file" : "Choose additional CSV file") {
                 pickingFile = true
             }
         }
         .navigationBarTitle("Import data", displayMode: .inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { newWallet.onDone() }) {
-                    Text(selectedFiles.isEmpty ? "Skip" : "Next")
+                NavigationLink(destination: AddWalletLoadingView()) {
+                    Text("Create")
                 }
+                .disabled(newWallet.csvFiles.isEmpty)
             }
         }
         .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.commaSeparatedText]) { result in
@@ -109,11 +119,47 @@ struct WalletCSVView: View {
                 return
             }
 
-            selectedFiles.append(url)
+            newWallet.csvFiles.append(url)
         }
     }
 }
 
+struct AddWalletLoadingView: View {
+    @EnvironmentObject private var newWallet: NewWallet
+
+    var body: some View {
+        VStack {
+            Text("Creating wallet")
+            ProgressView()
+        }
+        .navigationBarBackButtonHidden()
+        .task {
+            await createWallet()
+        }
+    }
+
+    private func createWallet() async {
+        guard let createReader = newWallet.provider.createCSVReader else {
+            print("No CSV reader constructor, skipping...")
+            newWallet.onDone(nil)
+            return
+        }
+
+        var allLedgers = [LedgerEntry]()
+        for url in newWallet.csvFiles {
+            do {
+                let ledgers = try await createReader().read(fileUrl: url)
+                print("Ledgers for \(url): \(ledgers.count)")
+                allLedgers.append(contentsOf: ledgers)
+            } catch {
+                print("Error while reading \(url): \(error)")
+            }
+        }
+
+        newWallet.onDone(allLedgers)
+    }
+}
+
 #Preview {
-    AddWalletView {}
+    AddWalletLoadingView()
 }
