@@ -265,21 +265,20 @@ class BalancesManager: ObservableObject {
 
     func merge(_ newEntries: [LedgerEntry]) async {
         let realm = try! await Realm()
-        let ids = newEntries.map { $0.globalId }
+        print("-- MERGING")
         try! realm.write {
-            let entriesToDelete = realm.objects(LedgerEntry.self).where {
-                $0.globalId.in(ids)
-            }
-
-            print("-- Deleting \(entriesToDelete.count) entries")
-            realm.delete(entriesToDelete)
-            print("-- Deleted \(entriesToDelete.count) entries")
-
+            var deletedCount = 0
             for entry in newEntries {
+                if let oldEntry = realm.object(ofType: LedgerEntry.self, forPrimaryKey: entry.globalId) {
+                    realm.delete(oldEntry)
+                    deletedCount += 1
+                }
                 realm.add(entry)
             }
+            print("-- Deleted \(deletedCount) entries")
             print("-- Added \(newEntries.count) entries")
         }
+        print("-- MERGING ENDED")
 
         await load()
     }

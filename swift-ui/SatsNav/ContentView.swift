@@ -157,10 +157,9 @@ struct ContentView: View {
                     return
                 }
 
-                // TODO: does this make sense at all?
+                // TODO: loading closes before this is done, should probably keep it open while merging
                 Task {
                     await balances.merge(entries)
-                    print("Saved some new ledgers? maybe?")
                 }
             })
         }
