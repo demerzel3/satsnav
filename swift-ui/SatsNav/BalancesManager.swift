@@ -250,7 +250,7 @@ class BalancesManager: ObservableObject {
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let groupedLedgers = groupLedgers(ledgers: ledgers)
         print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")
-        balances = buildBalances(groupedLedgers: groupedLedgers)
+        balances = buildBalances(groupedLedgers: groupedLedgers, debug: false)
         print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
 
         verify(balances: balances, getLedgerById: { id in
@@ -283,36 +283,35 @@ class BalancesManager: ObservableObject {
         await load()
     }
 
-    func update() async {
+    func startOver() async {
         let start = Date.now
         let ledgers = await buildLedger()
         print("Built ledgers after \(Date.now.timeIntervalSince(start))s")
-        let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
-            assert(index[entry.globalId] == nil, "duplicated global id \(entry.globalId)")
-
-            index[entry.globalId] = entry
-        }
-        print("Built index after \(Date.now.timeIntervalSince(start))s")
-
-        let groupedLedgers = groupLedgers(ledgers: ledgers)
-        print("Grouped after \(Date.now.timeIntervalSince(start))s")
-        balances = buildBalances(groupedLedgers: groupedLedgers)
-        print("Built balances after \(Date.now.timeIntervalSince(start))s")
-
-        verify(balances: balances, getLedgerById: { ledgersIndex[$0] })
+//        let ledgersIndex = ledgers.reduce(into: [String: LedgerEntry]()) { index, entry in
+//            assert(index[entry.globalId] == nil, "duplicated global id \(entry.globalId)")
+//
+//            index[entry.globalId] = entry
+//        }
+//        print("Built index after \(Date.now.timeIntervalSince(start))s")
+//
+//        let groupedLedgers = groupLedgers(ledgers: ledgers)
+//        print("Grouped after \(Date.now.timeIntervalSince(start))s")
+//        balances = buildBalances(groupedLedgers: groupedLedgers)
+//        print("Built balances after \(Date.now.timeIntervalSince(start))s")
+//
+//        verify(balances: balances, getLedgerById: { ledgersIndex[$0] })
 
         // Persist all ledger entries
         let realm = try! await Realm()
         try! realm.write {
+            realm.deleteAll()
             for entry in ledgers {
                 realm.add(entry)
             }
         }
         print("Persisted after \(Date.now.timeIntervalSince(start))s")
 
-        // portfolioTotal = balances.values.reduce(0) { $0 + ($1[BTC]?.sum ?? 0) }
-        // totalAcquisitionCost = balances.values.reduce(0) { $0 + ($1[BTC]?.reduce(0) { tot, ref in tot + ref.amount * (ref.rate ?? 0) } ?? 0) }
-        // portfolioHistory = buildBtcHistory(balances: balances, ledgersIndex: self.ledgersIndex)
+        await load()
     }
 
     private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {

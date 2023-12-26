@@ -147,9 +147,43 @@ struct AddWalletLoadingView: View {
 
         var allLedgers = [LedgerEntry]()
         for url in newWallet.csvFiles {
+            guard url.startAccessingSecurityScopedResource() else {
+                // Handle the failure here.
+                break
+            }
+
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            // Ensure file is downloaded locally from the cloud
+            var coordinateError: NSError?
+            var coordinatedUrl: URL?
+            NSFileCoordinator().coordinate(
+                readingItemAt: url,
+                options: .forUploading,
+                error: &coordinateError
+            ) { resultUrl in
+                coordinatedUrl = resultUrl
+//                print("coordinated URL", coordinatedUrl)
+//                do {
+//                    let ledgers = try await createReader().read(fileUrl: coordinatedUrl)
+//                    print("Ledgers for \(coordinatedUrl): \(ledgers.count)")
+//
+//                    let resources = try coordinatedUrl.resourceValues(forKeys: [.fileSizeKey])
+//                    let fileSize = resources.fileSize!
+//                    print("File Size is \(fileSize)")
+//                } catch {
+//                    print("Error while reading \(coordinatedUrl): \(error)")
+//                }
+            }
+
+            guard let realUrl = coordinatedUrl else {
+                continue
+            }
+
             do {
                 let ledgers = try await createReader().read(fileUrl: url)
                 print("Ledgers for \(url): \(ledgers.count)")
+
                 allLedgers.append(contentsOf: ledgers)
             } catch {
                 print("Error while reading \(url): \(error)")

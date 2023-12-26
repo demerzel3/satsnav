@@ -52,6 +52,7 @@ class KrakenCSVReader: CSVReader {
     func read(fileUrl: URL) async throws -> [LedgerEntry] {
         let csv: CSV = try CSV<Named>(url: fileUrl)
 
+        var lastDepositWithdrawalDate: Date?
         var balances = [String: Decimal]()
         var sanitizedCount = 0
         var ledgers = [LedgerEntry]()
@@ -59,6 +60,7 @@ class KrakenCSVReader: CSVReader {
         try csv.enumerateAsDict { dict in
             let id = dict["txid"] ?? ""
             let subtype = dict["subtype"] ?? ""
+            let date = self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now
             let type: LedgerEntry.LedgerEntryType = switch dict["type"] ?? "" {
             case "deposit": .deposit
             case "withdrawal": .withdrawal
@@ -76,6 +78,7 @@ class KrakenCSVReader: CSVReader {
 
             // Duplicated Deposit/Withdrawal, skip
             if (type == .withdrawal || type == .deposit) && id == "" {
+                lastDepositWithdrawalDate = date
                 return
             }
 
@@ -88,7 +91,8 @@ class KrakenCSVReader: CSVReader {
                 wallet: "Kraken",
                 id: balance < 0 ? "sanitized-\(id)" : id,
                 groupId: dict["refid"] ?? "",
-                date: self.dateFormatter.date(from: dict["time"] ?? "") ?? Date.now,
+                // Use date of entry with no ID that generally precedes the one with ID
+                date: type == .withdrawal ? lastDepositWithdrawalDate ?? date : date,
                 // Failed withdrwals get reaccredited, we want to track those as deposits
                 type: type == .withdrawal && amount > 0 ? .deposit : type,
                 amount: balance < 0 ? amount - balance : amount,
