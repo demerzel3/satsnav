@@ -43,8 +43,15 @@ func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
             let key = entry.formattedAbsAmount
 
             // pair with existing transfer
-            if let transfer = transferByAmount[key], transfer.type != entry.type {
+            if let transfer = transferByAmount[key],
+               transfer.type != entry.type,
+               // Consider 24h the maximum discrepancy to match transfers
+               entry.amount > 0 || entry.date.timeIntervalSince(transfer.date) < 86400
+            {
                 if entry.amount > 0 {
+                    if transfer.date > entry.date {
+                        fatalError("Ledgers should be ordered by date")
+                    }
                     groups.append(.transfer(from: transfer, to: entry))
                 } else {
                     groups.append(.transfer(from: entry, to: transfer))
