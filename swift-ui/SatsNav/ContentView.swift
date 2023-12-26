@@ -3,39 +3,6 @@ import RealmSwift
 import SwiftData
 import SwiftUI
 
-struct WalletProvider: Identifiable, Hashable {
-    let name: String
-    let defaultWalletName: String
-    let createCSVReader: (() -> CSVReader)?
-
-    var id: String {
-        return name
-    }
-
-    static func == (lhs: WalletProvider, rhs: WalletProvider) -> Bool {
-        return lhs.name == rhs.name
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(name)
-    }
-}
-
-let walletProviders = [
-    WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase", createCSVReader: CoinbaseCSVReader.init),
-    WalletProvider(name: "Kraken", defaultWalletName: "Kraken", createCSVReader: KrakenCSVReader.init),
-    WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
-    WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
-    WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
-    WalletProvider(name: "Coinify", defaultWalletName: "Coinify", createCSVReader: CoinifyCSVReader.init),
-    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC", createCSVReader: nil),
-    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid", createCSVReader: LiquidCSVReader.init),
-    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC", createCSVReader: CryptoIdCSVReader.init),
-    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH", createCSVReader: EtherscanCSVReader.init),
-    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP", createCSVReader: RippleCSVReader.init),
-    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE", createCSVReader: DogeCSVReader.init),
-]
-
 struct ChartDataItem: Identifiable {
     let source: String
     let date: Date

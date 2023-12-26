@@ -1,6 +1,39 @@
 import Foundation
 import SwiftUI
 
+struct WalletProvider: Identifiable, Hashable {
+    let name: String
+    let defaultWalletName: String
+    let createCSVReader: (() -> CSVReader)?
+
+    var id: String {
+        return name
+    }
+
+    static func == (lhs: WalletProvider, rhs: WalletProvider) -> Bool {
+        return lhs.name == rhs.name
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+    }
+}
+
+let walletProviders = [
+    WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase", createCSVReader: CoinbaseCSVReader.init),
+    WalletProvider(name: "Kraken", defaultWalletName: "Kraken", createCSVReader: KrakenCSVReader.init),
+    WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
+    WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
+    WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
+    WalletProvider(name: "Coinify", defaultWalletName: "Coinify", createCSVReader: CoinifyCSVReader.init),
+    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC", createCSVReader: nil),
+    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid", createCSVReader: LiquidCSVReader.init),
+    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC", createCSVReader: CryptoIdCSVReader.init),
+    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH", createCSVReader: EtherscanCSVReader.init),
+    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP", createCSVReader: RippleCSVReader.init),
+    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE", createCSVReader: DogeCSVReader.init),
+]
+
 typealias OnDone = ([LedgerEntry]?) -> Void
 
 class NewWallet: ObservableObject {
@@ -9,6 +42,7 @@ class NewWallet: ObservableObject {
     @Published var provider: WalletProvider
     @Published var name: String
     @Published var csvFiles = [URL]()
+    @Published var addresses = [String]()
     @Published var apiKey: String?
     @Published var apiSecret: String?
 
@@ -77,11 +111,18 @@ struct WalletNameView: View {
         }
         .navigationBarTitle("Wallet name", displayMode: .inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(destination: WalletCSVView()) {
-                    Text("Next")
+            if newWallet.provider.createCSVReader == nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: WalletAddressesView()) { Text("Next") }
+                        .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if newWallet.provider.createCSVReader != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: WalletCSVView()) { Text("Next") }
+                        .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
             }
         }
     }
@@ -124,6 +165,60 @@ struct WalletCSVView: View {
     }
 }
 
+struct WalletAddressesView: View {
+    @EnvironmentObject private var newWallet: NewWallet
+
+    var body: some View {
+        Form {
+            Section {
+                Text("\(newWallet.addresses.count) addresses")
+                Button(newWallet.addresses.count == 0 ?
+                    "Paste addresses" : "Paste more addresses", action: handlePaste)
+                Button("Clear") {
+                    newWallet.addresses.removeAll()
+                }.foregroundStyle(.red)
+            }
+
+            if newWallet.addresses.count > 0 {
+                Section {
+                    List {
+                        ForEach(newWallet.addresses, id: \.self) { item in
+                            Text(item).lineLimit(1).truncationMode(.middle)
+                        }
+                        .onDelete(perform: { indexSet in
+                            newWallet.addresses.remove(atOffsets: indexSet)
+                        })
+                    }
+                }
+            }
+        }
+        .navigationBarTitle("Import data", displayMode: .inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(destination: AddWalletLoadingView()) {
+                    Text("Create")
+                }
+                .disabled(newWallet.addresses.isEmpty)
+            }
+        }
+    }
+
+    private func handlePaste() {
+        guard let pastedString = UIPasteboard.general.string else {
+            return
+        }
+
+        let newAddresses = pastedString.split(separator: "\n").map { String($0) }.filter(isValidBitcoinAddress)
+        newWallet.addresses.append(contentsOf: newAddresses)
+    }
+}
+
+// TODO: used only to filter input, but to be replaced with proper validation
+func isValidBitcoinAddress(_ address: String) -> Bool {
+    let regex = "^(1|3|bc1)[a-zA-Z0-9]{25,59}$"
+    return address.range(of: regex, options: .regularExpression) != nil
+}
+
 struct AddWalletLoadingView: View {
     @EnvironmentObject private var newWallet: NewWallet
 
@@ -134,11 +229,19 @@ struct AddWalletLoadingView: View {
         }
         .navigationBarBackButtonHidden()
         .task {
-            await createWallet()
+            if newWallet.provider.createCSVReader == nil {
+                await importFromBlockchain()
+            } else {
+                await importFromCSV()
+            }
         }
     }
 
-    private func createWallet() async {
+    private func importFromBlockchain() async {
+        fatalError("Not implemented")
+    }
+
+    private func importFromCSV() async {
         guard let createReader = newWallet.provider.createCSVReader else {
             print("No CSV reader constructor, skipping...")
             newWallet.onDone(nil)
@@ -148,37 +251,11 @@ struct AddWalletLoadingView: View {
         var allLedgers = [LedgerEntry]()
         for url in newWallet.csvFiles {
             guard url.startAccessingSecurityScopedResource() else {
-                // Handle the failure here.
+                print("Unable to access \(url) securely")
                 break
             }
 
             defer { url.stopAccessingSecurityScopedResource() }
-
-            // Ensure file is downloaded locally from the cloud
-            var coordinateError: NSError?
-            var coordinatedUrl: URL?
-            NSFileCoordinator().coordinate(
-                readingItemAt: url,
-                options: .forUploading,
-                error: &coordinateError
-            ) { resultUrl in
-                coordinatedUrl = resultUrl
-//                print("coordinated URL", coordinatedUrl)
-//                do {
-//                    let ledgers = try await createReader().read(fileUrl: coordinatedUrl)
-//                    print("Ledgers for \(coordinatedUrl): \(ledgers.count)")
-//
-//                    let resources = try coordinatedUrl.resourceValues(forKeys: [.fileSizeKey])
-//                    let fileSize = resources.fileSize!
-//                    print("File Size is \(fileSize)")
-//                } catch {
-//                    print("Error while reading \(coordinatedUrl): \(error)")
-//                }
-            }
-
-            guard let realUrl = coordinatedUrl else {
-                continue
-            }
 
             do {
                 let ledgers = try await createReader().read(fileUrl: url)
