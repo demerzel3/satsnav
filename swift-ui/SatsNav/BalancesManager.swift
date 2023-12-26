@@ -246,7 +246,7 @@ class BalancesManager: ObservableObject {
     func load() async {
         let start = Date.now
         let realm = try! await Realm()
-        let ledgers = realm.objects(LedgerEntry.self)
+        let ledgers = realm.objects(LedgerEntry.self).sorted { a, b in a.date < b.date }
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let groupedLedgers = groupLedgers(ledgers: ledgers)
         print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")

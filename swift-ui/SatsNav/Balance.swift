@@ -42,10 +42,14 @@ typealias Balance = [Asset: RefsDeque]
  TODO: alert if dust is significantly bigger than a rounding error, doesn't seem the case by inspecting the logs though
  */
 
-func buildBalances(groupedLedgers: [GroupedLedger]) -> [String: Balance] {
+func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [String: Balance] {
     //             [Wallet: Balance]
     var balances = [String: Balance]()
     for group in groupedLedgers {
+        if debug {
+            print(group)
+        }
+
         switch group {
         case .single(let entry):
             // Not keeping track of base asset
