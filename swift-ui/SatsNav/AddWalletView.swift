@@ -25,6 +25,7 @@ let walletProviders = [
     WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
     WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
     WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
+    WalletProvider(name: "Etherscan", defaultWalletName: "Etherscan", createCSVReader: EtherscanCSVReader.init),
     WalletProvider(name: "Custom Data", defaultWalletName: "-", createCSVReader: CustomCSVReader.init),
     WalletProvider(name: "BTC (on-chain)", defaultWalletName: "❄️", createCSVReader: nil),
 ]
