@@ -41,18 +41,13 @@
 		E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A72B13E72E0053DB47 /* DequeModule */; };
 		E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A92B13E72E0053DB47 /* OrderedCollections */; };
 		E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */ = {isa = PBXBuildFile; productRef = E07942B32B13E7FF0053DB47 /* SwiftCSV */; };
-		E07942B52B13F7A60053DB47 /* DogeCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */; };
 		E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */; };
 		E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */; };
 		E07942B82B13F7A60053DB47 /* CelsiusCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */; };
 		E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427F2B13E4A60053DB47 /* CSVReader.swift */; };
-		E07942BA2B13F7A60053DB47 /* LiquidCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */; };
-		E07942BB2B13F7A60053DB47 /* DefiCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942812B13E4A60053DB47 /* DefiCSVReader.swift */; };
-		E07942BC2B13F7A60053DB47 /* RippleCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942792B13E4A60053DB47 /* RippleCSVReader.swift */; };
-		E07942BD2B13F7A60053DB47 /* CoinifyCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */; };
+		E07942BA2B13F7A60053DB47 /* CustomCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427E2B13E4A60053DB47 /* CustomCSVReader.swift */; };
 		E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */; };
 		E07942BF2B13F7A60053DB47 /* LednCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942822B13E4A60053DB47 /* LednCSVReader.swift */; };
-		E07942C02B13F7A60053DB47 /* CryptoIdCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */; };
 		E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */; };
 		E07942C32B13F7B90053DB47 /* subtract.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942872B13E4A60053DB47 /* subtract.swift */; };
 		E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */; };
@@ -61,6 +56,7 @@
 		E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = E07942CC2B1A8DDB0053DB47 /* Starscream */; };
 		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
 		E0DBFC9B2B2CF5160042D319 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */; };
+		E0DBFCA62B40219B0042D319 /* OnChainWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,18 +94,13 @@
 		E079425F2B13A7DF0053DB47 /* SatsNavUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SatsNavUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07942632B13A7DF0053DB47 /* SatsNavUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavUITests.swift; sourceTree = "<group>"; };
 		E07942652B13A7DF0053DB47 /* SatsNavUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavUITestsLaunchTests.swift; sourceTree = "<group>"; };
-		E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinifyCSVReader.swift; sourceTree = "<group>"; };
 		E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtherscanCSVReader.swift; sourceTree = "<group>"; };
 		E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrakenCSVReader.swift; sourceTree = "<group>"; };
-		E07942792B13E4A60053DB47 /* RippleCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RippleCSVReader.swift; sourceTree = "<group>"; };
 		E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelsiusCSVReader.swift; sourceTree = "<group>"; };
 		E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinbaseCSVReader.swift; sourceTree = "<group>"; };
-		E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoIdCSVReader.swift; sourceTree = "<group>"; };
-		E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DogeCSVReader.swift; sourceTree = "<group>"; };
-		E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCSVReader.swift; sourceTree = "<group>"; };
+		E079427E2B13E4A60053DB47 /* CustomCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCSVReader.swift; sourceTree = "<group>"; };
 		E079427F2B13E4A60053DB47 /* CSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVReader.swift; sourceTree = "<group>"; };
 		E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockFiCSVReader.swift; sourceTree = "<group>"; };
-		E07942812B13E4A60053DB47 /* DefiCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefiCSVReader.swift; sourceTree = "<group>"; };
 		E07942822B13E4A60053DB47 /* LednCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LednCSVReader.swift; sourceTree = "<group>"; };
 		E07942832B13E4A60053DB47 /* Deque.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deque.swift; sourceTree = "<group>"; };
 		E07942842B13E4A60053DB47 /* OnchainTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransaction.swift; sourceTree = "<group>"; };
@@ -131,6 +122,7 @@
 		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
 		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
+		E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnChainWallet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -225,6 +217,7 @@
 				E07942C52B13FA750053DB47 /* Helpers */,
 				E079424E2B13A7DF0053DB47 /* Preview Content */,
 				E05A11FC2B265C290062D67C /* Keychain.swift */,
+				E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */,
 			);
 			path = SatsNav;
 			sourceTree = "<group>";
@@ -269,18 +262,13 @@
 		E07942C82B13FB020053DB47 /* CSVReader */ = {
 			isa = PBXGroup;
 			children = (
-				E07942762B13E4A60053DB47 /* CoinifyCSVReader.swift */,
 				E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */,
 				E07942782B13E4A60053DB47 /* KrakenCSVReader.swift */,
-				E07942792B13E4A60053DB47 /* RippleCSVReader.swift */,
 				E079427A2B13E4A60053DB47 /* CelsiusCSVReader.swift */,
 				E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */,
-				E079427C2B13E4A60053DB47 /* CryptoIdCSVReader.swift */,
-				E079427D2B13E4A60053DB47 /* DogeCSVReader.swift */,
-				E079427E2B13E4A60053DB47 /* LiquidCSVReader.swift */,
+				E079427E2B13E4A60053DB47 /* CustomCSVReader.swift */,
 				E079427F2B13E4A60053DB47 /* CSVReader.swift */,
 				E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */,
-				E07942812B13E4A60053DB47 /* DefiCSVReader.swift */,
 				E07942822B13E4A60053DB47 /* LednCSVReader.swift */,
 			);
 			path = CSVReader;
@@ -441,12 +429,11 @@
 				E07942CA2B13FB720053DB47 /* format.swift in Sources */,
 				E07942B82B13F7A60053DB47 /* CelsiusCSVReader.swift in Sources */,
 				E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */,
+				E0DBFCA62B40219B0042D319 /* OnChainWallet.swift in Sources */,
 				E07942972B13E4A60053DB47 /* Addresses.swift in Sources */,
-				E07942BB2B13F7A60053DB47 /* DefiCSVReader.swift in Sources */,
 				E065EDF52B1FC6EB0007CE2E /* BalancesManager.swift in Sources */,
 				E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */,
-				E07942C02B13F7A60053DB47 /* CryptoIdCSVReader.swift in Sources */,
-				E07942BA2B13F7A60053DB47 /* LiquidCSVReader.swift in Sources */,
+				E07942BA2B13F7A60053DB47 /* CustomCSVReader.swift in Sources */,
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
 				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
@@ -457,7 +444,6 @@
 				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
 				E079429B2B13E4A60053DB47 /* Deque.swift in Sources */,
-				E07942BC2B13F7A60053DB47 /* RippleCSVReader.swift in Sources */,
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
@@ -467,13 +453,11 @@
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
 				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
 				E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */,
-				E07942B52B13F7A60053DB47 /* DogeCSVReader.swift in Sources */,
 				E079429E2B13E4A60053DB47 /* Array.swift in Sources */,
 				E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */,
 				E07942992B13E4A60053DB47 /* Decimal.swift in Sources */,
 				E07942C72B13FA840053DB47 /* round.swift in Sources */,
 				E065EDF32B1BD2F80007CE2E /* HistoricPriceProvider.swift in Sources */,
-				E07942BD2B13F7A60053DB47 /* CoinifyCSVReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

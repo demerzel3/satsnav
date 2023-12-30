@@ -32,11 +32,23 @@ enum GroupedLedger: CustomStringConvertible {
 }
 
 func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
+    var ignoredLedgers = 0
     var transferByAmount = [String: LedgerEntry]()
     var tradesByGroupId = [String: LedgerEntry]()
     var groups = [GroupedLedger]()
 
+//    let ledgersCountBeforeIgnore = ledgers.count
+//    ledgers = ledgers.filter { ledgersMeta["\($0.wallet)-\($0.id)"].map { !$0.ignored } ?? true }
+//    guard ledgers.count - ledgersCountBeforeIgnore < ledgersMeta.map({ $1.ignored }).count else {
+//        fatalError("Some entries in blocklist were not found in the ledger")
+//    }
+
     for entry in ledgers {
+        if ledgersMeta[entry.globalId]?.ignored ?? false {
+            ignoredLedgers += 1
+            continue
+        }
+
         switch entry.type {
         case .deposit where entry.asset.type == .crypto,
              .withdrawal where entry.asset.type == .crypto:
@@ -89,6 +101,11 @@ func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
         default:
             groups.append(.single(entry: entry))
         }
+    }
+
+    if ignoredLedgers != ledgersMeta.filter({ $1.ignored }).count {
+        // fatalError("Some entries in blocklist were not found in the ledger")
+        print("Some entries in blocklist \(ledgersMeta.filter { $1.ignored }.count) were not found in the ledger \(ignoredLedgers)")
     }
 
     // TODO: try some more fuzzy matching with these bois
