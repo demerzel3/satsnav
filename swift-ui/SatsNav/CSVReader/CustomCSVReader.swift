@@ -31,7 +31,8 @@ class CustomCSVReader: CSVReader {
             }
 
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
-            let date = self.dateFormatter.date(from: dict["Date"] ?? "") ?? Date.now
+            let date = self.dateFormatter.date(from: dict["Date/Time"] ?? "") ?? Date.now
+            let assetName = dict["Asset"] ?? ""
             let entry = LedgerEntry(
                 wallet: dict["Wallet"] ?? "",
                 id: dict["Transaction ID"] ?? "",
@@ -39,7 +40,7 @@ class CustomCSVReader: CSVReader {
                 date: date,
                 type: type,
                 amount: amount,
-                asset: Asset(name: dict["Asset"] ?? "", type: .crypto)
+                asset: Asset(name: assetName, type: assetName == "EUR" ? .fiat : .crypto)
             )
             ledgers.append(entry)
         }
