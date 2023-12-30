@@ -11,9 +11,15 @@ public struct JSONRPCRequest {
     let params: [String: JSONRPCParam]
 }
 
-public struct JSONRPCError: Error {
+public struct JSONRPCError: Error, Decodable {
     let code: Int
     let message: String
+}
+
+struct JSONRPCResponse<ResultT: Decodable>: Decodable {
+    let id: Int
+    let result: ResultT?
+    let error: JSONRPCError?
 }
 
 @available(iOS 13.0, macOS 10.15, *)
@@ -25,7 +31,7 @@ public class JSONRPCClient: ObservableObject {
         self.connection = NWConnection(host: host, port: port, using: .tcp)
     }
 
-    public typealias Completion = (Any) -> ()
+    public typealias Completion = (Data) -> ()
     public let connection: NWConnection
     private var lastId: Int = 0
     private let debug: Bool
@@ -88,16 +94,12 @@ public class JSONRPCClient: ObservableObject {
             return
         }
 
-        guard let result = try? JSONSerialization.jsonObject(with: self.resultData) else {
-            fatalError("Cannot parse JSON \(self.resultData)")
-        }
-
-        self.resultData.removeAll(keepingCapacity: true)
         if let completion = self.completion {
-            completion(result)
+            completion(self.resultData)
             self.completion = nil
+            self.resultData.removeAll(keepingCapacity: true)
         } else {
-            fatalError("ERROR: completion is not defined for result \(result)")
+            fatalError("ERROR: completion is not defined")
         }
     }
 
@@ -133,10 +135,13 @@ public class JSONRPCClient: ObservableObject {
 
             // let encodedRequest = JSON.array(JSON.Array(encodedRequests))
             self.send(request: encodedRequests) { response in
-                guard var responseArray = response as? [Any] else {
-                    continuation.resume(returning: nil)
-                    return
-                }
+                let decoder = JSONDecoder()
+                var responseArray = try! decoder.decode([JSONRPCResponse<R>].self, from: response)
+//                guard var responseArray = try? decoder.decode([JSONRPCResponse<R>].self, from: response) else {
+//                    print("Invalid JSON response")
+//                    continuation.resume(returning: nil)
+//                    return
+//                }
 
                 guard responseArray.count == requests.count else {
                     print("Invalid number of responses, expected \(requests.count), received \(responseArray.count)")
@@ -145,33 +150,19 @@ public class JSONRPCClient: ObservableObject {
                 }
 
                 // Sort responses by ID
-                responseArray.sort { (a: Any, b: Any) in
-                    guard let aDict = a as? [String: Any],
-                          let bDict = b as? [String: Any],
-                          let aId = aDict["id"] as? Double,
-                          let bId = bDict["id"] as? Double
-                    else {
-                        fatalError("Invalid response type")
-                    }
-
-                    return aId < bId
-                }
+                responseArray.sort { a, b in a.id < b.id }
 
                 var results = [Result<R, JSONRPCError>]()
                 for (index, element) in responseArray.enumerated() {
-                    let maybeResult = extractResult(response: element, expectedId: expectedIds[index])
-                    guard let result = maybeResult else {
-                        results.append(.failure(extractError(response: element, expectedId: expectedIds[index])))
+                    guard
+                        element.id == expectedIds[index],
+                        let result = element.result
+                    else {
+                        results.append(.failure(element.error!))
                         continue
                     }
 
-//                    do {
-//                        try results.append(.success(R(from: result)))
-//                    } catch (let e) {
-//                        print("Unable to decode JSON", e)
-//                        continuation.resume(returning: nil)
-//                    }
-                    fatalError("Not implemented")
+                    results.append(.success(result))
                 }
                 continuation.resume(returning: results)
             }
@@ -214,42 +205,4 @@ public class JSONRPCClient: ObservableObject {
             }
         ])
     }
-}
-
-private func extractResult(response: Any, expectedId: Int) -> Any? {
-    guard let obj = response as? [String: Any],
-          let id = obj["id"] as? Int,
-          id == expectedId
-    else {
-        print("Invalid response id, expected \(expectedId), response \(response)")
-        return nil
-    }
-
-    return obj["result"]
-}
-
-private func extractError(response: Any, expectedId: Int) -> JSONRPCError {
-    guard let obj = response as? [String: Any] else {
-        return JSONRPCError(code: -1, message: "Invalid JSON response, expected object, received \(response)")
-    }
-
-    guard let id = obj["id"] as? Int else {
-        return JSONRPCError(code: -3, message: "Invalid response id, expected a number, received \(obj["id"] ?? "undefined")")
-    }
-
-    guard id == expectedId else {
-        return JSONRPCError(code: -4, message: "Invalid response id, expected \(expectedId), received \(id)")
-    }
-
-    guard let errorJson = obj["error"] as? [String: Any] else {
-        return JSONRPCError(code: -5, message: "Missing or unexpected error in \(response)")
-    }
-
-    guard let code = errorJson["code"] as? Int,
-          let message = errorJson["message"] as? String
-    else {
-        return JSONRPCError(code: -6, message: "Invalid error \(errorJson)")
-    }
-
-    return JSONRPCError(code: code, message: message)
 }

@@ -11,27 +11,31 @@ private func createDateFormatter() -> DateFormatter {
     return formatter
 }
 
-class DefiCSVReader: CSVReader {
+class CustomCSVReader: CSVReader {
     private let dateFormatter = createDateFormatter()
     func read(fileUrl: URL) async throws -> [LedgerEntry] {
         let csv: CSV = try CSV<Named>(url: fileUrl)
 
         var ledgers = [LedgerEntry]()
-        // Transaction,Date/Time,Type,Amount,Asset
+        // Wallet,Transaction ID,Group ID,Date/Time,Type,Amount,Asset
         try csv.enumerateAsDict { (dict: [String: String]) in
             let type: LedgerEntry.LedgerEntryType = switch dict["Type"] ?? "" {
+            case "Deposit": .deposit
             case "Receive": .deposit
+            case "Withdrawal": .withdrawal
             case "Send": .withdrawal
+            case "Trade": .trade
+            case "Fee": .fee
             default:
-                fatalError("Unexpected Defi transaction type: \(dict["Type"] ?? "undefined")")
+                fatalError("Unexpected Custom transaction type: \(dict["Type"] ?? "undefined")")
             }
 
             let amount = Decimal(string: dict["Amount"] ?? "0") ?? 0
-            let date = self.dateFormatter.date(from: dict["Date/Time"] ?? "") ?? Date.now
+            let date = self.dateFormatter.date(from: dict["Date"] ?? "") ?? Date.now
             let entry = LedgerEntry(
-                wallet: "Defi",
-                id: dict["Transaction"] ?? "",
-                groupId: dict["Transaction"] ?? "",
+                wallet: dict["Wallet"] ?? "",
+                id: dict["Transaction ID"] ?? "",
+                groupId: dict["Group ID"] ?? "",
                 date: date,
                 type: type,
                 amount: amount,

@@ -1,29 +1,8 @@
 import Foundation
-import RealmSwift
 
-struct WalletRecap: Identifiable {
-    let wallet: String
-    let count: Int
-
-    var id: String { wallet }
-}
-
-@MainActor
-class BalancesManager: ObservableObject {
-    @Published var history = [PortfolioHistoryItem]()
-    @Published var recap = [WalletRecap]()
-
-    var current: PortfolioHistoryItem {
-        history.last ?? PortfolioHistoryItem(date: Date.now, total: 0, bonus: 0, spent: 0)
-    }
-
-    private var balances = [String: Balance]()
-
+actor OnChainWallet {
     private var storage = TransactionStorage()
     private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
-
-    // Addresses that are part of the onchain wallet
-    private let internalAddresses = Set<Address>(knownAddresses)
 
     private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
         let txIdsSet = Set<String>(txIds)
@@ -56,7 +35,11 @@ class BalancesManager: ObservableObject {
         return transaction.vout.count <= 2
     }
 
-    private func fetchOnchainTransactions(cacheOnly: Bool = false) async -> [LedgerEntry] {
+    func fetchOnchainTransactions(addresses: [Address], cacheOnly: Bool = false) async -> [LedgerEntry] {
+        await storage.read();
+        client.start();
+        let internalAddresses = Set<Address>(addresses)
+
         func writeCache(txIds: [String]) {
             let filePath = FileManager.default.temporaryDirectory.appendingPathComponent("rootTransactionIds.plist")
             print(filePath)
@@ -215,135 +198,5 @@ class BalancesManager: ObservableObject {
         }
 
         return entries
-    }
-
-    private func buildLedger() async -> [LedgerEntry] {
-        // TODO: only start the JSONRPCClient when we actually need it
-        // client.start()
-        await storage.read()
-
-        // TODO: add proper error handling
-        var ledgers = try! await readCSVFiles(config: [
-            (CoinbaseCSVReader(), "Coinbase.csv"),
-            (CelsiusCSVReader(), "Celsius.csv"),
-            (KrakenCSVReader(), "Kraken.csv"),
-            (BlockFiCSVReader(), "BlockFi.csv"),
-            (LednCSVReader(), "Ledn.csv"),
-            (CustomCSVReader(), "Others.csv"),
-            // TODO: add proper blockchain support?
-            (EtherscanCSVReader(), "Eth.csv"),
-        ])
-        ledgers.append(contentsOf: await fetchOnchainTransactions(cacheOnly: true))
-        ledgers.sort(by: { a, b in a.date < b.date })
-
-        return ledgers
-    }
-
-    func load() async {
-        let start = Date.now
-        let realm = try! await Realm()
-        let ledgers = realm.objects(LedgerEntry.self).sorted { a, b in a.date < b.date }
-        print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
-        let groupedLedgers = groupLedgers(ledgers: ledgers)
-        print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")
-        balances = buildBalances(groupedLedgers: groupedLedgers, debug: false)
-        print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
-
-        verify(balances: balances, getLedgerById: { id in
-            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
-        })
-
-        history = buildBtcHistory(balances: balances, getLedgerById: { id in
-            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
-        })
-        print("Ready after \(Date.now.timeIntervalSince(start))s")
-
-        recap = ledgers.reduce(into: [String: Int]()) { dict, entry in
-            dict[entry.wallet, default: 0] += 1
-        }.map { (key: String, value: Int) in
-            WalletRecap(wallet: key, count: value)
-        }.sorted(by: { a, b in
-            a.wallet < b.wallet
-        })
-    }
-
-    func merge(_ newEntries: [LedgerEntry]) async {
-        let realm = try! await Realm()
-        print("-- MERGING")
-        try! realm.write {
-            var deletedCount = 0
-            for entry in newEntries {
-                if let oldEntry = realm.object(ofType: LedgerEntry.self, forPrimaryKey: entry.globalId) {
-                    realm.delete(oldEntry)
-                    deletedCount += 1
-                }
-                realm.add(entry)
-            }
-            print("-- Deleted \(deletedCount) entries")
-            print("-- Added \(newEntries.count) entries")
-        }
-        print("-- MERGING ENDED")
-
-        await load()
-    }
-
-    func startOver() async {
-        let start = Date.now
-        let ledgers = await buildLedger()
-        print("Built ledgers after \(Date.now.timeIntervalSince(start))s")
-
-        // Persist all ledger entries
-        let realm = try! await Realm()
-        try! realm.write {
-            realm.deleteAll()
-            for entry in ledgers {
-                realm.add(entry)
-            }
-        }
-        print("Persisted after \(Date.now.timeIntervalSince(start))s")
-
-        await load()
-    }
-
-    private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
-        if let btcColdStorage = balances["❄️"]?[BTC] {
-            print("-- Cold storage --")
-            print("total", btcColdStorage.sum)
-
-            let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage
-                .compactMap {
-                    guard let entry = getLedgerById($0.refId) else {
-                        print("Entry not found \($0.refId)")
-                        return nil
-                    }
-
-                    return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
-                }
-            // .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
-            // .filter { $0.ref.rate == nil }
-            // .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
-            // .sorted { a, b in a.ref.date < b.ref.date }
-            // .sorted { a, b in a.ref.rate ?? 0 < b.ref.rate ?? 0 }
-
-            let withoutRate = enrichedRefs
-                .filter { $0.entry.type != .bonus && $0.entry.type != .interest && $0.ref.rate == nil }
-                .map { $0.ref }
-                .sum
-            print("Without rate \(withoutRate)")
-            // assert(withoutRate < 0.032, "Something broke in the grouping")
-
-            let oneSat = Decimal(string: "0.00000001")!
-            print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
-//            for (ref, _, comment) in enrichedRefs where ref.amount < oneSat {
-//                // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
-//                let rate = formatFiatAmount(ref.rate ?? 0)
-//                let amount = formatBtcAmount(ref.amount)
-//                print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
-            ////                for refId in ref.refIds {
-            ////                    print(ledgersIndex[refId]!)
-            ////                }
-            ////                break
-//            }
-        }
     }
 }

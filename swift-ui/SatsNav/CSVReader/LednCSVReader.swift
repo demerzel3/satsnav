@@ -16,34 +16,20 @@ class LednCSVReader: CSVReader {
     private let dateFormatter = createDateFormatter()
 
     func read(fileUrl: URL) async throws -> [LedgerEntry] {
-        // Breaking down the components
-        let directoryUrl = fileUrl.deletingLastPathComponent()
-        let fileNameWithoutExtension = fileUrl.deletingPathExtension().lastPathComponent
-        let patchFileName = "\(fileNameWithoutExtension).patch.csv"
-        let patchFileUrl = directoryUrl.appendingPathComponent(patchFileName)
-
         let csv: CSV = try CSV<Named>(url: fileUrl)
-        let patchCsv: CSV = try CSV<Named>(url: patchFileUrl)
 
         // Posted Date,Source,Amount,Type,Currency,Ledn Fee Amount,Fee Currency,Status,Blockchain,Txn ID,Txn Hash,Direction of funds
         func readRow(_ dict: [String: String]) {
             let id = dict["Txn ID"] ?? ""
             let groupId = id.split(separator: "-", maxSplits: 2).first.map { String($0) } ?? id
             let source = dict["Source"] ?? ""
-            // This is a made up entry to make sense of the rows related to B2X, only used in patch
-            // TODO: allocate these funds to a "Ledn-Loan" wallet or something in case they don't cancel out
-            if source == "Collateral" {
-                ledgers.removeValue(forKey: id)
-                return
-            }
-
             let type: LedgerEntry.LedgerEntryType = switch dict["Source"] ?? "" {
             case "Interest": .interest
             case "Withdrawal": .withdrawal
             case "Deposit": .deposit
             case "Trade": .trade
             case "Fee": .fee
-            // This gets overridden by the patch anyways
+            // This is ignored in metadata
             case "B2X": .transfer
             default:
                 fatalError("Unexpected Ledn transaction type: \(dict["Source"] ?? "undefined")")
@@ -80,7 +66,6 @@ class LednCSVReader: CSVReader {
 
         var ledgers = [String: LedgerEntry]()
         try csv.enumerateAsDict(readRow)
-        try patchCsv.enumerateAsDict(readRow)
 
         return ledgers.values.map { $0 }
     }

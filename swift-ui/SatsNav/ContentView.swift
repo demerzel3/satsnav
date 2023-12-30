@@ -74,19 +74,27 @@ struct ContentView: View {
 
                 List {
                     Group {
-                        if coldStorage.count > 0 {
-                            ForEach(coldStorage) { ref in
-                                VStack(alignment: .leading) {
-                                    Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .standard))
-                                    Text("BTC ") + Text(ref.amount as NSNumber, formatter: btcFormatter)
-                                        + Text(" (\(ref.refIds.count))")
-                                    Text(ref.refId)
-                                    if let rate = ref.rate {
-                                        Text("€ ") + Text(rate as NSNumber, formatter: fiatFormatter)
-                                    } else {
-                                        Text("€ -")
-                                    }
+                        if balances.recap.count > 0 {
+                            ForEach(balances.recap) { item in
+                                HStack {
+                                    Text(item.wallet)
+                                    Spacer()
+                                    Text("\(item.count)")
                                 }
+                            }
+
+//                            ForEach(coldStorage) { ref in
+//                                VStack(alignment: .leading) {
+//                                    Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .standard))
+//                                    Text("BTC ") + Text(ref.amount as NSNumber, formatter: btcFormatter)
+//                                        + Text(" (\(ref.refIds.count))")
+//                                    Text(ref.refId)
+//                                    if let rate = ref.rate {
+//                                        Text("€ ") + Text(rate as NSNumber, formatter: fiatFormatter)
+//                                    } else {
+//                                        Text("€ -")
+//                                    }
+//                                }
 
 //                                Text(verbatim: "\(ref)")
 //                                NavigationLink {
@@ -94,7 +102,7 @@ struct ContentView: View {
 //                                } label: {
 //                                    Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
 //                                }
-                            }
+//                            }
                             // .onDelete(perform: deleteItems)
                         } else {
                             HStack {

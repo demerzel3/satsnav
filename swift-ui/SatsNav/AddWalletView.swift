@@ -25,13 +25,8 @@ let walletProviders = [
     WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
     WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
     WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
-    WalletProvider(name: "Coinify", defaultWalletName: "Coinify", createCSVReader: CoinifyCSVReader.init),
-    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "BTC", createCSVReader: nil),
-    WalletProvider(name: "Liquid BTC (on-chain)", defaultWalletName: "Liquid", createCSVReader: LiquidCSVReader.init),
-    WalletProvider(name: "LTC (on-chain)", defaultWalletName: "LTC", createCSVReader: CryptoIdCSVReader.init),
-    WalletProvider(name: "ETH (on-chain)", defaultWalletName: "ETH", createCSVReader: EtherscanCSVReader.init),
-    WalletProvider(name: "XRP (on-chain)", defaultWalletName: "XRP", createCSVReader: RippleCSVReader.init),
-    WalletProvider(name: "DOGE (on-chain)", defaultWalletName: "DOGE", createCSVReader: DogeCSVReader.init),
+    WalletProvider(name: "Custom Data", defaultWalletName: "-", createCSVReader: CustomCSVReader.init),
+    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "❄️", createCSVReader: nil),
 ]
 
 typealias OnDone = ([LedgerEntry]?) -> Void
@@ -42,7 +37,7 @@ class NewWallet: ObservableObject {
     @Published var provider: WalletProvider
     @Published var name: String
     @Published var csvFiles = [URL]()
-    @Published var addresses = [String]()
+    @Published var addresses = [Address]()
     @Published var apiKey: String?
     @Published var apiSecret: String?
 
@@ -183,7 +178,7 @@ struct WalletAddressesView: View {
                 Section {
                     List {
                         ForEach(newWallet.addresses, id: \.self) { item in
-                            Text(item).lineLimit(1).truncationMode(.middle)
+                            Text(item.id).lineLimit(1).truncationMode(.middle)
                         }
                         .onDelete(perform: { indexSet in
                             newWallet.addresses.remove(atOffsets: indexSet)
@@ -208,15 +203,37 @@ struct WalletAddressesView: View {
             return
         }
 
-        let newAddresses = pastedString.split(separator: "\n").map { String($0) }.filter(isValidBitcoinAddress)
+        let newAddresses = pastedString
+            .split(separator: "\n")
+            .compactMap(parseAddressAndScriptHash)
         newWallet.addresses.append(contentsOf: newAddresses)
     }
+}
+
+func parseAddressAndScriptHash(row: ArraySlice<Character>) -> Address? {
+    let chunks = row.split(separator: ",", maxSplits: 2)
+    guard
+        let address = chunks.first,
+        let scriptHash = chunks.dropFirst().first,
+        isValidBitcoinAddress(String(address)),
+        isValidScriptHash(String(scriptHash))
+    else {
+        return nil
+    }
+
+    return Address(id: String(address), scriptHash: String(scriptHash))
 }
 
 // TODO: used only to filter input, but to be replaced with proper validation
 func isValidBitcoinAddress(_ address: String) -> Bool {
     let regex = "^(1|3|bc1)[a-zA-Z0-9]{25,59}$"
     return address.range(of: regex, options: .regularExpression) != nil
+}
+
+// TODO: eventually generate this from the address instead of relying on user input
+func isValidScriptHash(_ scriptHash: String) -> Bool {
+    let regex = "^[a-f0-9]{64}$"
+    return scriptHash.range(of: regex, options: .regularExpression) != nil
 }
 
 struct AddWalletLoadingView: View {
@@ -238,7 +255,8 @@ struct AddWalletLoadingView: View {
     }
 
     private func importFromBlockchain() async {
-        fatalError("Not implemented")
+        let onChain = OnChainWallet()
+        newWallet.onDone(await onChain.fetchOnchainTransactions(addresses: newWallet.addresses))
     }
 
     private func importFromCSV() async {
