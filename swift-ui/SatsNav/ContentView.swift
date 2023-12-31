@@ -14,15 +14,17 @@ struct ChartDataItem: Identifiable {
 }
 
 struct ContentView: View {
-    @StateObject private var balances = BalancesManager()
-    // TODO: consolidate live price and historic prices into a single observable object
+    var credentials: Credentials
+    @StateObject private var balances: BalancesManager
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
     @State var coldStorage: RefsArray = []
     @State private var addWalletWizardPresented = false
 
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    init(credentials: Credentials) {
+        self.credentials = credentials
+        _balances = StateObject(wrappedValue: BalancesManager(credentials: credentials))
+    }
 
     var header: some View {
         VStack {
@@ -146,26 +148,8 @@ struct ContentView: View {
             btc.load()
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
 }
 
 #Preview {
-    let mockBalances = [String: Balance]()
-
-    return ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+    ContentView(credentials: try! Credentials())
 }

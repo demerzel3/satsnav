@@ -12,6 +12,7 @@ struct WalletRecap: Identifiable {
 class BalancesManager: ObservableObject {
     @Published var history = [PortfolioHistoryItem]()
     @Published var recap = [WalletRecap]()
+    private let credentials: Credentials
 
     var current: PortfolioHistoryItem {
         history.last ?? PortfolioHistoryItem(date: Date.now, total: 0, bonus: 0, spent: 0)
@@ -24,6 +25,10 @@ class BalancesManager: ObservableObject {
 
     // Addresses that are part of the onchain wallet
     private let internalAddresses = Set<Address>(knownAddresses)
+
+    init(credentials: Credentials) {
+        self.credentials = credentials
+    }
 
     private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
         let txIdsSet = Set<String>(txIds)
@@ -241,7 +246,7 @@ class BalancesManager: ObservableObject {
 
     func load() async {
         let start = Date.now
-        let realm = try! await Realm()
+        let realm = try! await getRealm()
         let ledgers = realm.objects(LedgerEntry.self).sorted { a, b in a.date < b.date }
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let groupedLedgers = groupLedgers(ledgers: ledgers)
@@ -268,7 +273,7 @@ class BalancesManager: ObservableObject {
     }
 
     func merge(_ newEntries: [LedgerEntry]) async {
-        let realm = try! await Realm()
+        let realm = try! await getRealm()
         print("-- MERGING")
         try! realm.write {
             var deletedCount = 0
@@ -293,7 +298,7 @@ class BalancesManager: ObservableObject {
         print("Built ledgers after \(Date.now.timeIntervalSince(start))s")
 
         // Persist all ledger entries
-        let realm = try! await Realm()
+        let realm = try! await getRealm()
         try! realm.write {
             realm.deleteAll()
             for entry in ledgers {
@@ -345,5 +350,11 @@ class BalancesManager: ObservableObject {
             ////                break
 //            }
         }
+    }
+
+    private func getRealm() async throws -> Realm {
+        let configuration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
+
+        return try await Realm(configuration: configuration)
     }
 }

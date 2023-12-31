@@ -6,25 +6,12 @@ let BTC = Asset(name: "BTC", type: .crypto)
 
 @main
 struct SatsNavApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
-    var credentials = try! Keychain.loadOrCreate()
+    @StateObject var credentialsStore = CredentialsStore()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(credentials: credentialsStore.credentials)
+                .environmentObject(credentialsStore)
         }
-        .modelContainer(sharedModelContainer)
     }
 }
