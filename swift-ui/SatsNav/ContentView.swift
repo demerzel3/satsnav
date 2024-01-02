@@ -119,15 +119,29 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { addWalletWizardPresented.toggle() }) {
-                        Text("Add wallet")
+                    Menu {
+                        Button("Import from CSV") {
+                            addWalletWizardPresented.toggle()
+                        }
+                        Button("Onchain wallet") {
+                            // Handle new onchain wallet
+                        }
+                        Button("Exchange account") {
+                            // Handle new exchange account
+                        }
                     }
+                    label: {
+                        Label("Add", systemImage: "plus")
+                    }
+//                    Button(action: { addWalletWizardPresented.toggle() }) {
+//                        Text("Add wallet")
+//                    }
                 }
             }
             .navigationBarTitle("Portfolio", displayMode: .inline)
         }
         .fullScreenCover(isPresented: $addWalletWizardPresented) {
-            AddWalletView(onDone: { newEntries in
+            CSVImportView(onDone: { newEntries in
                 addWalletWizardPresented.toggle()
 
                 guard let entries = newEntries else {

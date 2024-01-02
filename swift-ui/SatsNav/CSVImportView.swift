@@ -3,8 +3,8 @@ import SwiftUI
 
 struct WalletProvider: Identifiable, Hashable {
     let name: String
-    let defaultWalletName: String
-    let createCSVReader: (() -> CSVReader)?
+    let defaultWalletName: String?
+    let createCSVReader: () -> CSVReader
 
     var id: String {
         return name
@@ -19,17 +19,20 @@ struct WalletProvider: Identifiable, Hashable {
     }
 }
 
-let walletProviders = [
+private let walletProviders = [
     WalletProvider(name: "Coinbase", defaultWalletName: "Coinbase", createCSVReader: CoinbaseCSVReader.init),
     WalletProvider(name: "Kraken", defaultWalletName: "Kraken", createCSVReader: KrakenCSVReader.init),
     WalletProvider(name: "Ledn", defaultWalletName: "Ledn", createCSVReader: LednCSVReader.init),
     WalletProvider(name: "BlockFi", defaultWalletName: "BlockFi", createCSVReader: BlockFiCSVReader.init),
     WalletProvider(name: "Celsius", defaultWalletName: "Celsius", createCSVReader: CelsiusCSVReader.init),
     WalletProvider(name: "Etherscan", defaultWalletName: "Etherscan", createCSVReader: EtherscanCSVReader.init),
-    WalletProvider(name: "Custom Data", defaultWalletName: "-", createCSVReader: CustomCSVReader.init),
-    WalletProvider(name: "BTC (on-chain)", defaultWalletName: "❄️", createCSVReader: nil),
+//     WalletProvider(name: "Custom Data", defaultWalletName: nil, createCSVReader: CustomCSVReader.init),
+//     WalletProvider(name: "BTC (on-chain)", defaultWalletName: "❄️", createCSVReader: nil),
 ]
 
+private let customWalletProvider = WalletProvider(name: "Custom Data", defaultWalletName: nil, createCSVReader: CustomCSVReader.init)
+
+// TODO: allow to return OnchainWallet from here? or best just to move on chain to a different flow
 typealias OnDone = ([LedgerEntry]?) -> Void
 
 class NewWallet: ObservableObject {
@@ -45,11 +48,11 @@ class NewWallet: ObservableObject {
     init(onDone: @escaping OnDone) {
         self.onDone = onDone
         self.provider = walletProviders[0]
-        self.name = walletProviders[0].defaultWalletName
+        self.name = walletProviders[0].defaultWalletName ?? "-"
     }
 }
 
-struct AddWalletView: View {
+struct CSVImportView: View {
     @StateObject var newWallet: NewWallet
 
     init(onDone: @escaping OnDone) {
@@ -72,9 +75,16 @@ struct WalletProviderView: View {
 
     var body: some View {
         Form {
-            Picker("Provider", selection: $newWallet.provider) {
-                ForEach(walletProviders) { provider in
-                    Text(provider.name).tag(provider)
+            List {
+                ForEach(walletProviders.filter { $0.defaultWalletName != nil }) { provider in
+                    NavigationLink(destination: { WalletCSVView(provider: provider) }) {
+                        Text(provider.name)
+                    }
+                }
+            }
+            Section {
+                NavigationLink(destination: { WalletCSVView(provider: customWalletProvider) }) {
+                    Text(customWalletProvider.name)
                 }
             }
         }
@@ -86,48 +96,47 @@ struct WalletProviderView: View {
                 }
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(destination: WalletNameView()) {
-                    Text("Next")
-                }
-            }
+//            ToolbarItem(placement: .topBarTrailing) {
+//                NavigationLink(destination: WalletNameView()) {
+//                    Text("Next")
+//                }
+//            }
         }
         .onChange(of: newWallet.provider) { _, newValue in
-            newWallet.name = newValue.defaultWalletName
+            newWallet.name = newValue.defaultWalletName ?? "-"
         }
     }
 }
 
-struct WalletNameView: View {
-    @EnvironmentObject private var newWallet: NewWallet
-
-    var body: some View {
-        Form {
-            TextField(newWallet.provider.defaultWalletName, text: $newWallet.name)
-        }
-        .navigationBarTitle("Wallet name", displayMode: .inline)
-        .toolbar {
-            if newWallet.provider.createCSVReader == nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: WalletAddressesView()) { Text("Next") }
-                        .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-
-            if newWallet.provider.createCSVReader != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: WalletCSVView()) { Text("Next") }
-                        .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-    }
-}
+// struct WalletNameView: View {
+//    @EnvironmentObject private var newWallet: NewWallet
+//
+//    var body: some View {
+//        Form {
+//            TextField(newWallet.provider.defaultWalletName ?? "-", text: $newWallet.name)
+//        }
+//        .navigationBarTitle("Wallet name", displayMode: .inline)
+//        .toolbar {
+////            if newWallet.provider.createCSVReader == nil {
+////                ToolbarItem(placement: .topBarTrailing) {
+////                    NavigationLink(destination: WalletAddressesView()) { Text("Next") }
+////                        .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+////                }
+////            }
+//
+//            ToolbarItem(placement: .topBarTrailing) {
+//                NavigationLink(destination: WalletCSVView()) { Text("Next") }
+//                    .disabled(newWallet.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+//            }
+//        }
+//    }
+// }
 
 struct WalletCSVView: View {
     @State private var pickingFile = false
     @EnvironmentObject private var newWallet: NewWallet
 
+    let provider: WalletProvider
     var body: some View {
         Form {
             List {
@@ -146,7 +155,7 @@ struct WalletCSVView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(destination: AddWalletLoadingView()) {
-                    Text("Create")
+                    Text("Import")
                 }
                 .disabled(newWallet.csvFiles.isEmpty)
             }
@@ -157,6 +166,9 @@ struct WalletCSVView: View {
             }
 
             newWallet.csvFiles.append(url)
+        }
+        .onAppear {
+            newWallet.provider = self.provider
         }
     }
 }
@@ -242,31 +254,21 @@ struct AddWalletLoadingView: View {
 
     var body: some View {
         VStack {
-            Text("Creating wallet")
+            Text("Importing data")
             ProgressView()
         }
         .navigationBarBackButtonHidden()
         .task {
-            if newWallet.provider.createCSVReader == nil {
-                await importFromBlockchain()
-            } else {
-                await importFromCSV()
-            }
+            await importFromCSV()
         }
     }
 
     private func importFromBlockchain() async {
-        let onChain = OnChainWallet()
-        newWallet.onDone(await onChain.fetchOnchainTransactions(addresses: newWallet.addresses))
+        let fetcher = OnchainTransactionsFetcher()
+        newWallet.onDone(await fetcher.fetchOnchainTransactions(addresses: newWallet.addresses))
     }
 
     private func importFromCSV() async {
-        guard let createReader = newWallet.provider.createCSVReader else {
-            print("No CSV reader constructor, skipping...")
-            newWallet.onDone(nil)
-            return
-        }
-
         var allLedgers = [LedgerEntry]()
         for url in newWallet.csvFiles {
             guard url.startAccessingSecurityScopedResource() else {
@@ -277,7 +279,7 @@ struct AddWalletLoadingView: View {
             defer { url.stopAccessingSecurityScopedResource() }
 
             do {
-                let ledgers = try await createReader().read(fileUrl: url)
+                let ledgers = try await newWallet.provider.createCSVReader().read(fileUrl: url)
                 print("Ledgers for \(url): \(ledgers.count)")
 
                 allLedgers.append(contentsOf: ledgers)

@@ -54,8 +54,9 @@
 		E07942CA2B13FB720053DB47 /* format.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942C92B13FB720053DB47 /* format.swift */; };
 		E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = E07942CC2B1A8DDB0053DB47 /* Starscream */; };
 		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
-		E0DBFC9B2B2CF5160042D319 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */; };
-		E0DBFCA62B40219B0042D319 /* OnChainWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */; };
+		E094B5EB2B423D7A00E8F41C /* OnchainWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */; };
+		E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */; };
+		E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,8 +120,9 @@
 		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
 		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
 		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
-		E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
-		E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnChainWallet.swift; sourceTree = "<group>"; };
+		E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainWallet.swift; sourceTree = "<group>"; };
+		E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportView.swift; sourceTree = "<group>"; };
+		E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransactionsFetcher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,7 +196,7 @@
 				E079428C2B13E4A60053DB47 /* Array.swift */,
 				E07942952B13E4A60053DB47 /* Balance.swift */,
 				E07942482B13A7DE0053DB47 /* ContentView.swift */,
-				E0DBFC9A2B2CF5160042D319 /* AddWalletView.swift */,
+				E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E07942832B13E4A60053DB47 /* Deque.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
@@ -214,7 +216,8 @@
 				E07942C52B13FA750053DB47 /* Helpers */,
 				E079424E2B13A7DF0053DB47 /* Preview Content */,
 				E05A11FC2B265C290062D67C /* CredentialsStore.swift */,
-				E0DBFCA52B40219B0042D319 /* OnChainWallet.swift */,
+				E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */,
+				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
 			);
 			path = SatsNav;
 			sourceTree = "<group>";
@@ -426,10 +429,11 @@
 				E07942CA2B13FB720053DB47 /* format.swift in Sources */,
 				E07942B82B13F7A60053DB47 /* CelsiusCSVReader.swift in Sources */,
 				E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */,
-				E0DBFCA62B40219B0042D319 /* OnChainWallet.swift in Sources */,
+				E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */,
 				E07942972B13E4A60053DB47 /* Addresses.swift in Sources */,
 				E065EDF52B1FC6EB0007CE2E /* BalancesManager.swift in Sources */,
 				E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */,
+				E094B5EB2B423D7A00E8F41C /* OnchainWallet.swift in Sources */,
 				E07942BA2B13F7A60053DB47 /* CustomCSVReader.swift in Sources */,
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
 				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
@@ -444,7 +448,7 @@
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
-				E0DBFC9B2B2CF5160042D319 /* AddWalletView.swift in Sources */,
+				E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */,
 				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
 				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
