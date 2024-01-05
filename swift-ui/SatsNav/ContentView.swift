@@ -21,6 +21,7 @@ struct ContentView: View {
     @State var coldStorage: RefsArray = []
     @State private var csvImportWizardPresented = false
     @State private var addOnchainWalletWizardPresented = false
+    @State private var addServiceAccountWizardPresented = false
 
     init(credentials: Credentials) {
         self.credentials = credentials
@@ -129,7 +130,7 @@ struct ContentView: View {
                             addOnchainWalletWizardPresented.toggle()
                         }
                         Button("Exchange account") {
-                            // Handle new exchange account
+                            addServiceAccountWizardPresented.toggle()
                         }
                     }
                     label: {
@@ -165,6 +166,19 @@ struct ContentView: View {
                 Task {
                     await balances.addOnchainWallet(wallet)
                 }
+            })
+        }
+        .fullScreenCover(isPresented: $addServiceAccountWizardPresented) {
+            AddServiceAccountView(onDone: { newAccount in
+                addServiceAccountWizardPresented.toggle()
+
+                guard let account = newAccount else {
+                    return
+                }
+
+                // TODO: communicate progress while this is ongoing...
+                print(account)
+                fatalError("Not implemented")
             })
         }
         .task {
