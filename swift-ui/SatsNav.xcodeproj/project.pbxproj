@@ -56,6 +56,8 @@
 		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
 		E094B5EB2B423D7A00E8F41C /* OnchainWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */; };
 		E094B5ED2B47490300E8F41C /* AddOnchainWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */; };
+		E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */; };
+		E094B5F12B48A7F100E8F41C /* ServiceAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */; };
 		E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */; };
 		E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */; };
 /* End PBXBuildFile section */
@@ -123,6 +125,8 @@
 		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainWallet.swift; sourceTree = "<group>"; };
 		E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddOnchainWalletView.swift; sourceTree = "<group>"; };
+		E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddServiceAccountView.swift; sourceTree = "<group>"; };
+		E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceAccount.swift; sourceTree = "<group>"; };
 		E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportView.swift; sourceTree = "<group>"; };
 		E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransactionsFetcher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -200,6 +204,8 @@
 				E07942482B13A7DE0053DB47 /* ContentView.swift */,
 				E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */,
 				E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */,
+				E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */,
+				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E07942832B13E4A60053DB47 /* Deque.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
@@ -443,10 +449,12 @@
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
 				E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */,
 				E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */,
+				E094B5F12B48A7F100E8F41C /* ServiceAccount.swift in Sources */,
 				E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */,
 				E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */,
 				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
+				E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */,
 				E079429B2B13E4A60053DB47 /* Deque.swift in Sources */,
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
