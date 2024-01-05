@@ -11,7 +11,6 @@ struct SatsNavApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(credentials: credentialsStore.credentials)
-                .environmentObject(credentialsStore)
         }
     }
 }
