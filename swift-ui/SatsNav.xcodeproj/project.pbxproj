@@ -55,6 +55,7 @@
 		E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = E07942CC2B1A8DDB0053DB47 /* Starscream */; };
 		E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */; };
 		E094B5EB2B423D7A00E8F41C /* OnchainWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */; };
+		E094B5ED2B47490300E8F41C /* AddOnchainWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */; };
 		E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */; };
 		E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */; };
 /* End PBXBuildFile section */
@@ -121,6 +122,7 @@
 		E07942C92B13FB720053DB47 /* format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = format.swift; sourceTree = "<group>"; };
 		E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainWallet.swift; sourceTree = "<group>"; };
+		E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddOnchainWalletView.swift; sourceTree = "<group>"; };
 		E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportView.swift; sourceTree = "<group>"; };
 		E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransactionsFetcher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -197,6 +199,7 @@
 				E07942952B13E4A60053DB47 /* Balance.swift */,
 				E07942482B13A7DE0053DB47 /* ContentView.swift */,
 				E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */,
+				E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E07942832B13E4A60053DB47 /* Deque.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
@@ -453,6 +456,7 @@
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
 				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
 				E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */,
+				E094B5ED2B47490300E8F41C /* AddOnchainWalletView.swift in Sources */,
 				E079429E2B13E4A60053DB47 /* Array.swift in Sources */,
 				E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */,
 				E07942992B13E4A60053DB47 /* Decimal.swift in Sources */,
