@@ -8,11 +8,15 @@ struct WalletRecap: Identifiable {
     var id: String { wallet }
 }
 
-@MainActor
-class BalancesManager: ObservableObject {
+@globalActor actor RealmActor: GlobalActor {
+    static var shared = RealmActor()
+}
+
+final class BalancesManager: ObservableObject {
     @Published var history = [PortfolioHistoryItem]()
     @Published var recap = [WalletRecap]()
-    private let credentials: Credentials
+    private let realmConfiguration: Realm.Configuration
+    private var realm: Realm?
 
     var current: PortfolioHistoryItem {
         history.last ?? PortfolioHistoryItem(date: Date.now, total: 0, bonus: 0, spent: 0)
@@ -21,9 +25,10 @@ class BalancesManager: ObservableObject {
     private var balances = [String: Balance]()
 
     init(credentials: Credentials) {
-        self.credentials = credentials
+        self.realmConfiguration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
     }
 
+    @RealmActor
     func load() async {
         let start = Date.now
         let realm = try! await getRealm()
@@ -38,20 +43,52 @@ class BalancesManager: ObservableObject {
             realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
         })
 
-        history = buildBtcHistory(balances: balances, getLedgerById: { id in
+        let history = buildBtcHistory(balances: balances, getLedgerById: { id in
             realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
         })
         print("Ready after \(Date.now.timeIntervalSince(start))s")
 
-        recap = ledgers.reduce(into: [String: Int]()) { dict, entry in
+        let recap = ledgers.reduce(into: [String: Int]()) { dict, entry in
             dict[entry.wallet, default: 0] += 1
         }.map { (key: String, value: Int) in
             WalletRecap(wallet: key, count: value)
         }.sorted(by: { a, b in
             a.wallet < b.wallet
         })
+
+        // Update published values
+        DispatchQueue.main.async {
+            self.history = history
+            self.recap = recap
+        }
     }
 
+    @RealmActor
+    func update() async {
+        await updateOnchainWallets()
+        await updateServiceAccounts()
+    }
+
+    @RealmActor
+    private func updateOnchainWallets() async {
+        let realm = try! await getRealm()
+        let wallets = realm.objects(OnchainWallet.self)
+        let fetcher = OnchainTransactionsFetcher()
+
+        // TODO: add support for multiple onchain wallets in OnchainTransactionsFetcher
+        let allAddresses = wallets.reduce(into: [Address]()) { partialResult, wallet in
+            partialResult.append(contentsOf: wallet.addresses.map { $0.toAddress() })
+        }
+        let ledgers = await fetcher.fetchOnchainTransactions(addresses: allAddresses)
+
+        await merge(ledgers)
+    }
+
+    private func updateServiceAccounts() async {
+        // TODO: implement
+    }
+
+    @RealmActor
     func merge(_ newEntries: [LedgerEntry]) async {
         let realm = try! await getRealm()
         print("-- MERGING")
@@ -70,6 +107,16 @@ class BalancesManager: ObservableObject {
         print("-- MERGING ENDED")
 
         await load()
+    }
+
+    @RealmActor
+    func addOnchainWallet(_ wallet: OnchainWallet) async {
+        let realm = try! await getRealm()
+        try! realm.write {
+            realm.add(wallet)
+        }
+
+        await updateOnchainWallets()
     }
 
     private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
@@ -115,8 +162,10 @@ class BalancesManager: ObservableObject {
     }
 
     private func getRealm() async throws -> Realm {
-        let configuration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
+        if realm == nil {
+            realm = try await Realm(configuration: realmConfiguration, actor: RealmActor.shared)
+        }
 
-        return try await Realm(configuration: configuration)
+        return realm!
     }
 }

@@ -19,7 +19,8 @@ struct ContentView: View {
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
     @State var coldStorage: RefsArray = []
-    @State private var addWalletWizardPresented = false
+    @State private var csvImportWizardPresented = false
+    @State private var addOnchainWalletWizardPresented = false
 
     init(credentials: Credentials) {
         self.credentials = credentials
@@ -119,12 +120,13 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    // FIXME: the menu closes on data update from websockets.
                     Menu {
                         Button("Import from CSV") {
-                            addWalletWizardPresented.toggle()
+                            csvImportWizardPresented.toggle()
                         }
                         Button("Onchain wallet") {
-                            // Handle new onchain wallet
+                            addOnchainWalletWizardPresented.toggle()
                         }
                         Button("Exchange account") {
                             // Handle new exchange account
@@ -133,29 +135,40 @@ struct ContentView: View {
                     label: {
                         Label("Add", systemImage: "plus")
                     }
-//                    Button(action: { addWalletWizardPresented.toggle() }) {
-//                        Text("Add wallet")
-//                    }
                 }
             }
             .navigationBarTitle("Portfolio", displayMode: .inline)
         }
-        .fullScreenCover(isPresented: $addWalletWizardPresented) {
+        .fullScreenCover(isPresented: $csvImportWizardPresented) {
             CSVImportView(onDone: { newEntries in
-                addWalletWizardPresented.toggle()
+                csvImportWizardPresented.toggle()
 
                 guard let entries = newEntries else {
                     return
                 }
 
-                // TODO: loading closes before this is done, should probably keep it open while merging
+                // TODO: communicate progress while this is ongoing...
                 Task {
                     await balances.merge(entries)
                 }
             })
         }
+        .fullScreenCover(isPresented: $addOnchainWalletWizardPresented) {
+            AddOnchainWalletView(onDone: { newWallet in
+                addOnchainWalletWizardPresented.toggle()
+
+                guard let wallet = newWallet else {
+                    return
+                }
+
+                // TODO: communicate progress while this is ongoing...
+                Task {
+                    await balances.addOnchainWallet(wallet)
+                }
+            })
+        }
         .task {
-            await balances.load()
+            await balances.update()
         }
         .onAppear {
             webSocketManager.connect()
