@@ -12,23 +12,6 @@ struct AddOnchainWalletView: View {
     }
 }
 
-// struct WalletNameView: View {
-//    @State var name = "❄️"
-//
-//    var body: some View {
-//        Form {
-//            TextField("Wallet name", text: $name)
-//        }
-//        .navigationBarTitle("Wallet name", displayMode: .inline)
-//        .toolbar {
-//            ToolbarItem(placement: .topBarTrailing) {
-//                NavigationLink(destination: WalletAddressesView(walletName: name)) { Text("Next") }
-//                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-//            }
-//        }
-//    }
-// }
-
 private struct WalletAddressesView: View {
     let onDone: (OnchainWallet?) -> Void
     @State var name = "❄️"
