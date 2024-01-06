@@ -177,8 +177,9 @@ struct ContentView: View {
                 }
 
                 // TODO: communicate progress while this is ongoing...
-                print(account)
-                fatalError("Not implemented")
+                Task {
+                    await balances.addServiceAccount(account)
+                }
             })
         }
         .task {
