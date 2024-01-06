@@ -4,6 +4,11 @@ final class OnchainTransactionsFetcher {
     private var storage = TransactionStorage()
     private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 
+    init() async {
+        client.start()
+        await storage.read()
+    }
+
     private func retrieveAndStoreTransactions(txIds: [String]) async -> [ElectrumTransaction] {
         let txIdsSet = Set<String>(txIds)
         print("requesting transaction information for", txIdsSet.count, "transactions")
@@ -36,8 +41,6 @@ final class OnchainTransactionsFetcher {
     }
 
     func fetchOnchainTransactions(addresses: [Address], cacheOnly: Bool = false) async -> [LedgerEntry] {
-        await storage.read()
-        client.start()
         let internalAddresses = Set<Address>(addresses)
 
         func writeCache(txIds: [String]) {
@@ -198,5 +201,9 @@ final class OnchainTransactionsFetcher {
         }
 
         return entries
+    }
+
+    func shutdown() {
+        client.stop()
     }
 }

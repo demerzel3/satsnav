@@ -31,7 +31,6 @@
 		E079429B2B13E4A60053DB47 /* Deque.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942832B13E4A60053DB47 /* Deque.swift */; };
 		E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428B2B13E4A60053DB47 /* TransactionStorage.swift */; };
 		E079429E2B13E4A60053DB47 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428C2B13E4A60053DB47 /* Array.swift */; };
-		E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428F2B13E4A60053DB47 /* KrakenApi.swift */; };
 		E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* GroupedLedger.swift */; };
 		E07942A12B13E4A60053DB47 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942952B13E4A60053DB47 /* Balance.swift */; };
 		E07942A22B13E4A60053DB47 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942942B13E4A60053DB47 /* Models.swift */; };
@@ -58,6 +57,8 @@
 		E094B5ED2B47490300E8F41C /* AddOnchainWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */; };
 		E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */; };
 		E094B5F12B48A7F100E8F41C /* ServiceAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */; };
+		E094B5F32B49C3F000E8F41C /* KrakenClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5F22B49C3F000E8F41C /* KrakenClient.swift */; };
+		E094B5F52B49EF1B00E8F41C /* convertKrakenLedgerToCommonLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E094B5F42B49EF1B00E8F41C /* convertKrakenLedgerToCommonLedger.swift */; };
 		E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */; };
 		E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */; };
 /* End PBXBuildFile section */
@@ -114,7 +115,6 @@
 		E079428C2B13E4A60053DB47 /* Array.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Array.swift; sourceTree = "<group>"; };
 		E079428D2B13E4A60053DB47 /* Addresses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Addresses.swift; sourceTree = "<group>"; };
 		E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElectrumJSONRPCRequest.swift; sourceTree = "<group>"; };
-		E079428F2B13E4A60053DB47 /* KrakenApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrakenApi.swift; sourceTree = "<group>"; };
 		E07942902B13E4A60053DB47 /* Addresses.swift.sample */ = {isa = PBXFileReference; lastKnownFileType = text; path = Addresses.swift.sample; sourceTree = "<group>"; };
 		E07942912B13E4A60053DB47 /* Address.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Address.swift; sourceTree = "<group>"; };
 		E07942922B13E4A60053DB47 /* GroupedLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupedLedger.swift; sourceTree = "<group>"; };
@@ -127,6 +127,8 @@
 		E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddOnchainWalletView.swift; sourceTree = "<group>"; };
 		E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddServiceAccountView.swift; sourceTree = "<group>"; };
 		E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceAccount.swift; sourceTree = "<group>"; };
+		E094B5F22B49C3F000E8F41C /* KrakenClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrakenClient.swift; sourceTree = "<group>"; };
+		E094B5F42B49EF1B00E8F41C /* convertKrakenLedgerToCommonLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = convertKrakenLedgerToCommonLedger.swift; sourceTree = "<group>"; };
 		E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImportView.swift; sourceTree = "<group>"; };
 		E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransactionsFetcher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -204,6 +206,7 @@
 				E07942482B13A7DE0053DB47 /* ContentView.swift */,
 				E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */,
 				E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */,
+				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
 				E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */,
 				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
@@ -211,7 +214,6 @@
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
 				E07942922B13E4A60053DB47 /* GroupedLedger.swift */,
 				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
-				E079428F2B13E4A60053DB47 /* KrakenApi.swift */,
 				E065EDF22B1BD2F80007CE2E /* HistoricPriceProvider.swift */,
 				E07942942B13E4A60053DB47 /* Models.swift */,
 				E07942842B13E4A60053DB47 /* OnchainTransaction.swift */,
@@ -226,7 +228,7 @@
 				E079424E2B13A7DF0053DB47 /* Preview Content */,
 				E05A11FC2B265C290062D67C /* CredentialsStore.swift */,
 				E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */,
-				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
+				E094B5F22B49C3F000E8F41C /* KrakenClient.swift */,
 			);
 			path = SatsNav;
 			sourceTree = "<group>";
@@ -264,6 +266,7 @@
 				E07942C62B13FA840053DB47 /* round.swift */,
 				E07942C92B13FB720053DB47 /* format.swift */,
 				E065EDF62B1FD0320007CE2E /* buildBtcHistory.swift */,
+				E094B5F42B49EF1B00E8F41C /* convertKrakenLedgerToCommonLedger.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -441,7 +444,6 @@
 				E0DBFCA62B40219B0042D319 /* OnchainTransactionsFetcher.swift in Sources */,
 				E07942972B13E4A60053DB47 /* Addresses.swift in Sources */,
 				E065EDF52B1FC6EB0007CE2E /* BalancesManager.swift in Sources */,
-				E079429F2B13E4A60053DB47 /* KrakenApi.swift in Sources */,
 				E094B5EB2B423D7A00E8F41C /* OnchainWallet.swift in Sources */,
 				E07942BA2B13F7A60053DB47 /* CustomCSVReader.swift in Sources */,
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
@@ -452,6 +454,7 @@
 				E094B5F12B48A7F100E8F41C /* ServiceAccount.swift in Sources */,
 				E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */,
 				E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */,
+				E094B5F52B49EF1B00E8F41C /* convertKrakenLedgerToCommonLedger.swift in Sources */,
 				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
 				E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */,
@@ -463,6 +466,7 @@
 				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
 				E07942A22B13E4A60053DB47 /* Models.swift in Sources */,
 				E07942962B13E4A60053DB47 /* Address.swift in Sources */,
+				E094B5F32B49C3F000E8F41C /* KrakenClient.swift in Sources */,
 				E07942C42B13F7B90053DB47 /* getScriptHashForElectrum.swift in Sources */,
 				E094B5ED2B47490300E8F41C /* AddOnchainWalletView.swift in Sources */,
 				E079429E2B13E4A60053DB47 /* Array.swift in Sources */,

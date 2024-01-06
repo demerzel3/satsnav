@@ -67,25 +67,50 @@ final class BalancesManager: ObservableObject {
     func update() async {
         await updateOnchainWallets()
         await updateServiceAccounts()
+        await load()
     }
 
     @RealmActor
     private func updateOnchainWallets() async {
         let realm = try! await getRealm()
         let wallets = realm.objects(OnchainWallet.self)
-        let fetcher = OnchainTransactionsFetcher()
 
-        // TODO: add support for multiple onchain wallets in OnchainTransactionsFetcher
-        let allAddresses = wallets.reduce(into: [Address]()) { partialResult, wallet in
-            partialResult.append(contentsOf: wallet.addresses.map { $0.toAddress() })
+        // TODO: add support for multiple onchain wallets
+        guard let wallet = wallets.first else {
+            return
         }
-        let ledgers = await fetcher.fetchOnchainTransactions(addresses: allAddresses)
 
+        let fetcher = await OnchainTransactionsFetcher()
+        defer {
+            fetcher.shutdown()
+        }
+
+        let ledgers = await fetcher.fetchOnchainTransactions(addresses: wallet.addresses.map { $0.toAddress() })
         await merge(ledgers)
     }
 
+    @RealmActor
     private func updateServiceAccounts() async {
-        // TODO: implement
+        let realm = try! await getRealm()
+        let accounts = realm.objects(ServiceAccount.self)
+
+        // TODO: Add support for multiple accounts
+        guard let account = accounts.first else {
+            return
+        }
+
+        let maybeLastKrakenLedger = realm.objects(LedgerEntry.self)
+            .filter { $0.wallet == "Kraken" && $0.id.starts(with: "L") }
+            .sorted { a, b in a.date < b.date }.last
+        guard let lastKrakenLedger = maybeLastKrakenLedger else {
+            // TODO: inform the user that they must import data via CSV as a baseline to avoid too many API calls
+            return
+        }
+
+        let client = KrakenClient(apiKey: account.apiKey, apiSecret: account.apiSecret)
+        let ledgers = await client.getLedgers(afterLedgerId: lastKrakenLedger.id)
+
+        await merge(ledgers)
     }
 
     @RealmActor
@@ -105,8 +130,6 @@ final class BalancesManager: ObservableObject {
             print("-- Added \(newEntries.count) entries")
         }
         print("-- MERGING ENDED")
-
-        await load()
     }
 
     @RealmActor
@@ -117,6 +140,18 @@ final class BalancesManager: ObservableObject {
         }
 
         await updateOnchainWallets()
+        await load()
+    }
+
+    @RealmActor
+    func addServiceAccount(_ account: ServiceAccount) async {
+        let realm = try! await getRealm()
+        try! realm.write {
+            realm.add(account)
+        }
+
+        await updateServiceAccounts()
+        await load()
     }
 
     private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
@@ -158,6 +193,10 @@ final class BalancesManager: ObservableObject {
             ////                }
             ////                break
 //            }
+        }
+        if let btcKraken = balances["Kraken"]?[BTC] {
+            print("-- Kraken --")
+            print("total", btcKraken.sum)
         }
     }
 
