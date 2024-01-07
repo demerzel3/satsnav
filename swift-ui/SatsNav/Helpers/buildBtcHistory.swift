@@ -1,6 +1,6 @@
 import Foundation
 
-struct PortfolioHistoryItem {
+struct PortfolioHistoryItem: Codable {
     let date: Date
     let total: Decimal // Incl. bonus
     let bonus: Decimal
