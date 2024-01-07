@@ -1,11 +1,31 @@
 import Foundation
 import RealmSwift
 
-struct WalletRecap: Identifiable {
+struct WalletRecap: Identifiable, Codable {
     let wallet: String
     let count: Int
 
     var id: String { wallet }
+}
+
+enum CacheKey: String, PersistableEnum {
+    case balancesManagerHistory
+    case balancesManagerRecap
+}
+
+final class CacheItem: Object {
+    @Persisted(primaryKey: true) var key: CacheKey
+    @Persisted var data: Data
+
+    convenience init(key: CacheKey, value: any Codable) throws {
+        self.init()
+        self.key = key
+        self.data = try JSONEncoder().encode(value)
+    }
+
+    func getValue<T: Codable>() throws -> T {
+        return try JSONDecoder().decode(T.self, from: data)
+    }
 }
 
 @globalActor actor RealmActor: GlobalActor {
@@ -29,7 +49,7 @@ final class BalancesManager: ObservableObject {
     }
 
     @RealmActor
-    func load() async {
+    private func updateComputedValues() async {
         let start = Date.now
         let realm = try! await getRealm()
         let ledgers = realm.objects(LedgerEntry.self).sorted { a, b in a.date < b.date }
@@ -57,7 +77,7 @@ final class BalancesManager: ObservableObject {
         })
 
         // Update published values
-        DispatchQueue.main.async {
+        await MainActor.run {
             self.history = history
             self.recap = recap
         }
@@ -65,9 +85,34 @@ final class BalancesManager: ObservableObject {
 
     @RealmActor
     func update() async {
+        let realm = try! await getRealm()
+        // Read data from cache
+        if history.isEmpty && recap.isEmpty {
+            if let historyCache = realm.object(ofType: CacheItem.self, forPrimaryKey: CacheKey.balancesManagerHistory),
+               let history: [PortfolioHistoryItem] = try? historyCache.getValue()
+            {
+                await MainActor.run { self.history = history }
+            }
+            if let recapCache = realm.object(ofType: CacheItem.self, forPrimaryKey: CacheKey.balancesManagerRecap),
+               let recap: [WalletRecap] = try? recapCache.getValue()
+            {
+                await MainActor.run { self.recap = recap }
+            }
+        }
+
         await updateOnchainWallets()
         await updateServiceAccounts()
-        await load()
+        await updateComputedValues()
+
+        // Store computed values in cache
+        do {
+            try realm.write {
+                try realm.add(CacheItem(key: .balancesManagerHistory, value: history), update: .modified)
+                try realm.add(CacheItem(key: .balancesManagerRecap, value: recap), update: .modified)
+            }
+        } catch {
+            print("Error while writing to cache", error)
+        }
     }
 
     @RealmActor
@@ -139,8 +184,7 @@ final class BalancesManager: ObservableObject {
             realm.add(wallet)
         }
 
-        await updateOnchainWallets()
-        await load()
+        await update()
     }
 
     @RealmActor
@@ -150,8 +194,7 @@ final class BalancesManager: ObservableObject {
             realm.add(account)
         }
 
-        await updateServiceAccounts()
-        await load()
+        await update()
     }
 
     private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
