@@ -27,17 +27,19 @@ func buildBtcHistory(balances: [String: Balance], getLedgerById: (String) -> Led
     var entries = [PortfolioHistoryItem(date: Date.now, total: total, bonus: bonus, spent: spent)]
 
     let calendar = utcCalendar()
-    var date = allBtcRefs.last.map { $0.date }.map { calendar.startOfDay(for: $0) }
-    while let d = date {
-        while let last = allBtcRefs.popLast(), last.date >= d {
+    var date: Date? = calendar.startOfDay(for: Date.now)
+    while let d = date, allBtcRefs.count > 0 {
+        while let last = allBtcRefs.last, last.date >= d {
             total -= last.amount
             spent -= last.rate.map { $0 * last.amount } ?? 0
             if let entry = getLedgerById(last.refId), entry.type == .bonus || entry.type == .interest {
                 bonus -= last.amount
             }
+            _ = allBtcRefs.popLast()
         }
         entries.append(PortfolioHistoryItem(date: d, total: total, bonus: bonus, spent: spent))
-        date = allBtcRefs.last.map { $0.date }.map { calendar.startOfDay(for: $0) }
+        // Go back one day and repeat
+        date = calendar.date(byAdding: .init(day: -1), to: d)
     }
 
     return entries.reversed()

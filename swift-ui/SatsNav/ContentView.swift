@@ -38,7 +38,7 @@ struct ContentView: View {
     }
 
     var chartData: [ChartDataItem] {
-        balances.history.flatMap {
+        return balances.history.flatMap {
             let price = btc.prices[$0.date] ?? webSocketManager.btcPrice
             return [
                 ChartDataItem(source: "capital", date: $0.date, amount: $0.spent),
@@ -66,7 +66,46 @@ struct ContentView: View {
                 )
             }
         }
-        // .frame(width: nil, height: 200)
+        .chartYScale(domain: [0, 750_000])
+        .chartYAxis {
+            AxisMarks(
+                // format: Decimal.FormatStyle.Currency(code: "EUR"),
+                values: .automatic(desiredCount: 14)
+            ) {
+                AxisGridLine()
+            }
+
+            AxisMarks(
+                values: [0, 250_000, 500_000, 750_000]
+            ) {
+                let value = $0.as(Int.self)!
+                AxisValueLabel {
+                    Text(formatYAxis(value))
+                }
+            }
+
+            if let lastItem = balances.history.last {
+                // Capital Mark
+                AxisMarks(
+                    values: [lastItem.spent]
+                ) {
+                    let value = $0.as(Int.self)!
+                    AxisValueLabel {
+                        Text(formatYAxis(value)).foregroundStyle(Color(.blue)).fontWeight(.bold)
+                    }
+                }
+
+                // Total Mark
+                AxisMarks(
+                    values: [lastItem.total * webSocketManager.btcPrice]
+                ) {
+                    let value = $0.as(Int.self)!
+                    AxisValueLabel {
+                        Text(formatYAxis(value)).foregroundStyle(Color(.orange)).fontWeight(.bold)
+                    }
+                }
+            }
+        }
         .padding()
     }
 
@@ -151,6 +190,7 @@ struct ContentView: View {
                 // TODO: communicate progress while this is ongoing...
                 Task {
                     await balances.merge(entries)
+                    await balances.update()
                 }
             })
         }
@@ -189,6 +229,22 @@ struct ContentView: View {
             webSocketManager.connect()
             btc.load()
         }
+    }
+}
+
+private func formatYAxis(_ number: Int) -> String {
+    if number == 0 {
+        return "0"
+    }
+
+    let number = Double(number)
+    switch number {
+    case 1_000_000...:
+        return String(format: "%.1fM", number / 100_000)
+    case 100_000...:
+        return String(format: "%.0fK", number / 1_000)
+    default:
+        return "\(number)"
     }
 }
 
