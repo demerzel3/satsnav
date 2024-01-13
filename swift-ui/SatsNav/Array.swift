@@ -6,6 +6,17 @@ extension Array {
         let second = self.filter { !predicate($0) }
         return (first, second)
     }
+
+    func sample(every step: Int) -> [Element] {
+        guard step > 0, !isEmpty else { return [] }
+        var result = stride(from: 0, to: count - 1, by: step).map { self[$0] }
+        // Ensure the last element is always included
+        if let last = self.last {
+            result.append(last)
+        }
+
+        return result
+    }
 }
 
 extension Array where Element == Ref {
