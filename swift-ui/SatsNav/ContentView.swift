@@ -13,15 +13,29 @@ struct ChartDataItem: Identifiable {
     }
 }
 
+private enum ChartInterval: Hashable {
+    case interval(size: Double, label: String, sampleSize: Int)
+    case all
+}
+
+private let INTERVALS: [ChartInterval] = [
+    .interval(size: 30*24*60*60, label: "1M", sampleSize: 1),
+    .interval(size: 3*30*24*60*60, label: "3M", sampleSize: 1),
+    .interval(size: 6*30*24*60*60, label: "6M", sampleSize: 1),
+    .interval(size: 365*24*60*60, label: "1Y", sampleSize: 3),
+    .interval(size: 3*365*24*60*60, label: "4Y", sampleSize: 7),
+    .all,
+]
+
 struct ContentView: View {
     var credentials: Credentials
     @StateObject private var balances: BalancesManager
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
-    @State var coldStorage: RefsArray = []
     @State private var csvImportWizardPresented = false
     @State private var addOnchainWalletWizardPresented = false
     @State private var addServiceAccountWizardPresented = false
+    @State private var chartInterval = ChartInterval.all
 
     init(credentials: Credentials) {
         self.credentials = credentials
@@ -31,80 +45,103 @@ struct ContentView: View {
     var header: some View {
         VStack {
             (Text("BTC ") + Text(balances.current.total as NSNumber, formatter: btcFormatter)).font(.title)
-            (Text("€ ") + Text((balances.current.total * webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("€ ") + Text((balances.current.total*webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
             (Text("BTC 1 = € ") + Text(webSocketManager.btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
             (Text("cost basis € ") + Text((balances.current.spent / balances.current.total) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
     var chartData: [ChartDataItem] {
-        return balances.history.flatMap {
+        var history: [PortfolioHistoryItem]
+        switch chartInterval {
+        case .interval(let size, _, let sampleSize):
+            let fromIndex = balances.history.lastIndex { $0.date.timeIntervalSinceNow < -size }
+            history = (fromIndex.map { Array(balances.history[$0...]) } ?? balances.history).sample(every: sampleSize)
+        case .all:
+            history = balances.history.sample(every: 14)
+        }
+
+        return history.flatMap {
             let price = btc.prices[$0.date] ?? webSocketManager.btcPrice
             return [
                 ChartDataItem(source: "capital", date: $0.date, amount: $0.spent),
-                ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus * price),
-                ChartDataItem(source: "value", date: $0.date, amount: ($0.total - $0.bonus) * price),
+                ChartDataItem(source: "bonuses", date: $0.date, amount: $0.bonus*price),
+                ChartDataItem(source: "value", date: $0.date, amount: ($0.total - $0.bonus)*price),
             ]
         }
     }
 
     var chart: some View {
-        Chart {
-            ForEach(chartData) { item in
-                AreaMark(
-                    x: .value("Date", item.date),
-                    // Using this trick with capital so that it is present in the legend.
-                    y: .value("Amount", item.source == "capital" ? 0 : item.amount)
-                )
-                .foregroundStyle(by: .value("Source", item.source))
-            }
+        VStack {
+            Chart {
+                ForEach(chartData) { item in
+                    AreaMark(
+                        x: .value("Date", item.date),
+                        // Using this trick with capital so that it is present in the legend.
+                        y: .value("Amount", item.source == "capital" ? 0 : item.amount)
+                    )
+                    .foregroundStyle(by: .value("Source", item.source))
+                }
 
-            ForEach(chartData.filter { $0.source == "capital" }) { item in
-                LineMark(
-                    x: .value("Date", item.date),
-                    y: .value("Amount", item.amount)
-                )
-            }
-        }
-        .chartYScale(domain: [0, 750_000])
-        .chartYAxis {
-            AxisMarks(
-                // format: Decimal.FormatStyle.Currency(code: "EUR"),
-                values: .automatic(desiredCount: 14)
-            ) {
-                AxisGridLine()
-            }
-
-            AxisMarks(
-                values: [0, 250_000, 500_000, 750_000]
-            ) {
-                let value = $0.as(Int.self)!
-                AxisValueLabel {
-                    Text(formatYAxis(value))
+                ForEach(chartData.filter { $0.source == "capital" }) { item in
+                    LineMark(
+                        x: .value("Date", item.date),
+                        y: .value("Amount", item.amount)
+                    )
                 }
             }
-
-            if let lastItem = balances.history.last {
-                // Capital Mark
+            .chartYScale(domain: [0, 750_000])
+            .chartYAxis {
                 AxisMarks(
-                    values: [lastItem.spent]
+                    // format: Decimal.FormatStyle.Currency(code: "EUR"),
+                    values: .automatic(desiredCount: 14)
+                ) {
+                    AxisGridLine()
+                }
+
+                AxisMarks(
+                    values: [0, 250_000, 500_000, 750_000]
                 ) {
                     let value = $0.as(Int.self)!
                     AxisValueLabel {
-                        Text(formatYAxis(value)).foregroundStyle(Color(.blue)).fontWeight(.bold)
+                        Text(formatYAxis(value))
                     }
                 }
 
-                // Total Mark
-                AxisMarks(
-                    values: [lastItem.total * webSocketManager.btcPrice]
-                ) {
-                    let value = $0.as(Int.self)!
-                    AxisValueLabel {
-                        Text(formatYAxis(value)).foregroundStyle(Color(.orange)).fontWeight(.bold)
+                if let lastItem = balances.history.last {
+                    // Capital Mark
+                    AxisMarks(
+                        values: [lastItem.spent]
+                    ) {
+                        let value = $0.as(Int.self)!
+                        AxisValueLabel {
+                            Text(formatYAxis(value)).foregroundStyle(Color(.blue)).fontWeight(.bold)
+                        }
+                    }
+
+                    // Total Mark
+                    AxisMarks(
+                        values: [lastItem.total*webSocketManager.btcPrice]
+                    ) {
+                        let value = $0.as(Int.self)!
+                        AxisValueLabel {
+                            Text(formatYAxis(value)).foregroundStyle(Color(.orange)).fontWeight(.bold)
+                        }
                     }
                 }
             }
+
+            Picker("Chart Interval", selection: $chartInterval) {
+                ForEach(INTERVALS, id: \.self) {
+                    switch $0 {
+                    case .interval(_, let label, _):
+                        Text(label)
+                    case .all:
+                        Text("All")
+                    }
+                }
+            }
+            .pickerStyle(.segmented)
         }
         .padding()
     }
@@ -125,28 +162,6 @@ struct ContentView: View {
                                     Text("\(item.count)")
                                 }
                             }
-
-//                            ForEach(coldStorage) { ref in
-//                                VStack(alignment: .leading) {
-//                                    Text(ref.date, format: Date.FormatStyle(date: .numeric, time: .standard))
-//                                    Text("BTC ") + Text(ref.amount as NSNumber, formatter: btcFormatter)
-//                                        + Text(" (\(ref.refIds.count))")
-//                                    Text(ref.refId)
-//                                    if let rate = ref.rate {
-//                                        Text("€ ") + Text(rate as NSNumber, formatter: fiatFormatter)
-//                                    } else {
-//                                        Text("€ -")
-//                                    }
-//                                }
-
-//                                Text(verbatim: "\(ref)")
-//                                NavigationLink {
-//                                    Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-//                                } label: {
-//                                    Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-//                                }
-//                            }
-                            // .onDelete(perform: deleteItems)
                         } else {
                             HStack {
                                 Spacer()
