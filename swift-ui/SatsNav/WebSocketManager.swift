@@ -5,6 +5,7 @@ import UIKit
 class WebSocketManager: ObservableObject {
     @Published var isConnected = false
     @Published var btcPrice: Decimal = 0
+    private var btcPriceLastUpdated: Date?
     private var socket: WebSocket?
     private var notificationCenter: NotificationCenter
 
@@ -63,7 +64,7 @@ class WebSocketManager: ObservableObject {
                    let closePriceStr = cArray.first as? String,
                    let closePrice = Decimal(string: closePriceStr)
                 {
-                    self.btcPrice = closePrice
+                    self.setBtcPriceDebounced(nextPrice: closePrice)
                 } else {
                     print("Received text: \(string)")
                 }
@@ -90,5 +91,15 @@ class WebSocketManager: ObservableObject {
 
     func disconnect() {
         socket?.disconnect()
+    }
+
+    // Debounced to avoid too many updates
+    func setBtcPriceDebounced(nextPrice: Decimal) {
+        if let lastUpdated = btcPriceLastUpdated, Date.now.timeIntervalSince(lastUpdated) < 2.5 {
+            return
+        }
+
+        btcPrice = nextPrice
+        btcPriceLastUpdated = Date.now
     }
 }
