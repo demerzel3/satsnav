@@ -1,12 +1,12 @@
 import Foundation
 import RealmSwift
 
-enum AssetType: Int, PersistableEnum {
+enum AssetType: Int, PersistableEnum, Codable {
     case fiat
     case crypto
 }
 
-struct Asset: Hashable {
+struct Asset: Hashable, Codable {
     let name: String
     let type: AssetType
 }

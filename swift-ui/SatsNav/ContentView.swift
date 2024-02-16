@@ -156,10 +156,17 @@ struct ContentView: View {
                     Group {
                         if balances.recap.count > 0 {
                             ForEach(balances.recap) { item in
+                                let btcAmount = item.sumByAsset[BTC, default: 0]
+                                let oneEuroInBtc = 1 / webSocketManager.btcPrice
+                                let hasBtc = btcAmount >= oneEuroInBtc
+
                                 HStack {
-                                    Text(item.wallet)
+                                    Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
                                     Spacer()
-                                    Text("\(item.count)")
+                                    VStack(alignment: .trailing) {
+                                        Text("BTC \(formatBtcAmount(btcAmount))").foregroundStyle(hasBtc ? .primary : .secondary)
+                                        Text("entries \(item.count)").foregroundStyle(.secondary)
+                                    }
                                 }
                             }
                         } else {

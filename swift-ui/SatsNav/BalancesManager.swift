@@ -4,6 +4,7 @@ import RealmSwift
 struct WalletRecap: Identifiable, Codable {
     let wallet: String
     let count: Int
+    let sumByAsset: [Asset: Decimal]
 
     var id: String { wallet }
 }
@@ -68,12 +69,15 @@ final class BalancesManager: ObservableObject {
         })
         print("Ready after \(Date.now.timeIntervalSince(start))s")
 
-        let recap = ledgers.reduce(into: [String: Int]()) { dict, entry in
-            dict[entry.wallet, default: 0] += 1
-        }.map { (key: String, value: Int) in
-            WalletRecap(wallet: key, count: value)
+        let recap = balances.map { wallet, balance in
+            WalletRecap(
+                wallet: wallet,
+                // TODO: this is number of refs, should be number of ledger entries
+                count: balance.values.reduce(0) { $0 + $1.count },
+                sumByAsset: balance.mapValues { $0.sum }
+            )
         }.sorted(by: { a, b in
-            a.wallet < b.wallet
+            b.sumByAsset[BTC, default: 0] < a.sumByAsset[BTC, default: 0]
         })
 
         // Update published values
