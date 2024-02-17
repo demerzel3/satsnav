@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var addOnchainWalletWizardPresented = false
     @State private var addServiceAccountWizardPresented = false
     @State private var chartInterval = ChartInterval.all
+    @State private var showAllWallets = false
 
     init(credentials: Credentials) {
         self.credentials = credentials
@@ -69,6 +70,27 @@ struct ContentView: View {
                 ChartDataItem(source: "value", date: $0.date, amount: ($0.total - $0.bonus)*price),
             ]
         }
+    }
+
+    var recapToDisplay: [WalletRecap] {
+        guard webSocketManager.btcPrice > 0 else {
+            return []
+        }
+
+        if showAllWallets {
+            return balances.recap
+        }
+
+        guard let lastItemIndexToDisplay = balances.recap.lastIndex(where: { item in
+            let btcAmount = item.sumByAsset[BTC, default: 0]
+            let oneEuroInBtc = 1 / webSocketManager.btcPrice
+
+            return btcAmount >= oneEuroInBtc
+        }) else {
+            return []
+        }
+
+        return [WalletRecap](balances.recap[...lastItemIndexToDisplay])
     }
 
     var chart: some View {
@@ -154,8 +176,9 @@ struct ContentView: View {
 
                 List {
                     Group {
-                        if balances.recap.count > 0 {
-                            ForEach(balances.recap) { item in
+                        let wallets = recapToDisplay
+                        if wallets.count > 0 {
+                            ForEach(wallets) { item in
                                 let btcAmount = item.sumByAsset[BTC, default: 0]
                                 let oneEuroInBtc = 1 / webSocketManager.btcPrice
                                 let hasBtc = btcAmount >= oneEuroInBtc
@@ -169,10 +192,28 @@ struct ContentView: View {
                                     }
                                 }
                             }
+
+                            if balances.recap.count > wallets.count {
+                                HStack {
+                                    Spacer()
+                                    Button(action: { showAllWallets = true }) {
+                                        Text("Show small balances")
+                                    }.foregroundColor(.blue)
+                                    Spacer()
+                                }.listRowSeparator(.hidden)
+                            } else if showAllWallets {
+                                HStack {
+                                    Spacer()
+                                    Button(action: { showAllWallets = false }) {
+                                        Text("Hide small balances")
+                                    }.foregroundColor(.blue)
+                                    Spacer()
+                                }.listRowSeparator(.hidden)
+                            }
                         } else {
                             HStack {
                                 Spacer()
-                                Text("Loading...")
+                                Text("Loading...").foregroundStyle(.secondary)
                                 Spacer()
                             }.listRowSeparator(.hidden)
                         }
