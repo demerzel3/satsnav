@@ -21,7 +21,8 @@ extension Asset {
         case "XXDG":
             self.name = "DOGE"
             self.type = .crypto
-        case "XBT.M":
+        // .M is locked staking, .F is flexible staking
+        case "XBT.M", "XBT.F":
             self.name = "BTC"
             self.type = .crypto
         case let a where a.hasPrefix("X"):
