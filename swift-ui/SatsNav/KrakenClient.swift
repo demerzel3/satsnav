@@ -14,6 +14,13 @@ final class KrakenClient {
     }
 
     private func fetchLedgersPage(page: Int = 0) async throws -> [KrakenLedgerEntry] {
+        // Each ledgers entry request increased the rate limit counter by 2
+        // The rate limit counter is decreased by 0.5 every second
+        // Calls start to get rate limited at 20 (=10 calls)
+        // https://support.kraken.com/hc/en-us/articles/206548367-What-are-the-API-rate-limits-#2
+        if page > 10 {
+            try! await Task.sleep(nanoseconds: 4_000_000_000)
+        }
         let result = await internalClient.ledgersInfo(ofs: 50 * page)
         guard case .success(let payload) = result else {
             if case .failure(let err) = result {
