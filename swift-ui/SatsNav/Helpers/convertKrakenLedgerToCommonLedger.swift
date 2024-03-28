@@ -7,6 +7,7 @@ struct KrakenLedgerEntry {
     let type: String
     let subtype: String
     let asset: String
+    let wallet: String
     let amount: Decimal
     let fee: Decimal
     let balance: Decimal
@@ -49,15 +50,17 @@ extension Asset {
 }
 
 func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerEntry] {
-    var lastDepositWithdrawalDate: Date?
     var balances = [String: Decimal]()
+    var lastEarnEntry: KrakenLedgerEntry?
     var sanitizedCount = 0
     var ledgers = [LedgerEntry]()
-    // "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
+
     for dict in entries {
-        let id = dict.id
+        let ticker = dict.asset
+        let balanceKey = "\(ticker)-\(dict.wallet)"
         let subtype = dict.subtype
         let date = dict.time
+        let amount = dict.amount
         let type: LedgerEntry.LedgerEntryType = switch dict.type {
         case "deposit": .deposit
         case "withdrawal": .withdrawal
@@ -66,6 +69,10 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
         case "receive": .trade
         case "staking": .interest
         case "dividend": .interest
+        case "earn" where amount < 0: .withdrawal
+        case "earn" where amount > 0 && lastEarnEntry?.asset == dict.asset && lastEarnEntry?.amount == -amount: .deposit
+        case "earn" where amount > 0: .interest
+        case "earn": fatalError("Unexpected earn entry \(dict)")
         case "transfer" where subtype == "spottostaking": .withdrawal
         case "transfer" where subtype == "stakingfromspot": .deposit
         case "transfer": .transfer
@@ -74,24 +81,22 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
             fatalError("Unexpected Kraken transaction type: \(dict.type)")
         }
 
-        // Duplicated Deposit/Withdrawal, skip
-        if type == .withdrawal || type == .deposit, id == "" {
-            lastDepositWithdrawalDate = date
-            continue
+        // Keep the last entry around to match transfers between wallets
+        if dict.type == "earn", amount < 0 {
+            lastEarnEntry = dict
         }
 
-        let ticker = dict.asset
         let asset = Asset(fromKrakenTicker: ticker)
         let balance = dict.balance
-        let amount = dict.amount
-        let fee = dict.fee
+        let id = balance < 0 ? "sanitized-\(dict.id)" : dict.id
+        let fee = abs(dict.fee)
         let entry = LedgerEntry(
             wallet: "Kraken",
-            id: balance < 0 ? "sanitized-\(id)" : id,
-            groupId: dict.refId,
+            id: id,
+            groupId: dict.refId == "Unknown" ? id : dict.refId,
             // Use date of entry with no ID that generally precedes the one with ID
-            date: type == .withdrawal ? lastDepositWithdrawalDate ?? date : date,
-            // Failed withdrwals get reaccredited, we want to track those as deposits
+            date: date,
+            // Failed withdrawals get reaccredited, we want to track those as deposits
             type: type == .withdrawal && amount > 0 ? .deposit : type,
             amount: balance < 0 ? amount - balance : amount,
             asset: asset
@@ -115,7 +120,7 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
         }
 
         // Compensate amount sanitization with a separate fee entry
-        if amount > 0, balances[ticker, default: 0] < 0 {
+        if amount > 0, balances[balanceKey, default: 0] < 0 {
             ledgers.append(LedgerEntry(
                 wallet: entry.wallet,
                 id: "sanitized-fee-\(entry.id)",
@@ -129,23 +134,21 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
             sanitizedCount -= 1
         }
 
-        if balances[ticker] == nil {
-            balances[ticker] = balance
+        if balances[balanceKey] == nil {
+            balances[balanceKey] = balance
         } else {
-            balances[ticker, default: 0] += amount - fee
+            balances[balanceKey, default: 0] += amount - fee
         }
         ledgers.append(entry)
 
         // Ledger sanity check
-        if ticker != "NFT", balances[ticker, default: 0] != balance {
-            print("Wrong balance for \(ticker), is \(balances[ticker, default: 0]), expected \(balance)")
-            // fatalError("Wrong balance for \(ticker), is \(balances[ticker, default: 0]), expected \(balance)")
+        if ticker != "NFT", balances[balanceKey, default: 0] != balance {
+            // print("Wrong balance for \(ticker), is \(balances[ticker, default: 0]), expected \(balance)")
+            fatalError("Wrong balance for \(ticker), is \(balances[balanceKey, default: 0]), expected \(balance)")
         }
     }
 
-    if sanitizedCount > 0 {
-        fatalError("Sanitized count should be 0, is \(sanitizedCount)")
-    }
+    assert(sanitizedCount > 0, "Sanitized count should be 0, is \(sanitizedCount)")
 
     return ledgers
 }

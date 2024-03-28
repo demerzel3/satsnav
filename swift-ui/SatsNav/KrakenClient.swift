@@ -60,6 +60,8 @@ final class KrakenClient {
                 type: type,
                 subtype: subtype,
                 asset: asset,
+                // TODO: needs fixing, infer wallet from ticker?
+                wallet: "spot / main",
                 amount: amount,
                 fee: fee,
                 balance: balance

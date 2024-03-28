@@ -18,7 +18,7 @@ class KrakenCSVReader: CSVReader {
         let csv: CSV = try CSV<Named>(url: fileUrl)
         var krakenLedger = [KrakenLedgerEntry]()
 
-        // "txid","refid","time","type","subtype","aclass","asset","amount","fee","balance"
+        // "txid","refid","time","type","subtype","aclass","asset","wallet","amount","fee","balance"
         try csv.enumerateAsDict { dict in
             krakenLedger.append(KrakenLedgerEntry(
                 id: dict["txid"] ?? "",
@@ -27,6 +27,7 @@ class KrakenCSVReader: CSVReader {
                 type: dict["type"] ?? "",
                 subtype: dict["subtype"] ?? "",
                 asset: dict["asset"] ?? "",
+                wallet: dict["wallet"] ?? "spot / main",
                 amount: Decimal(string: dict["amount"] ?? "0") ?? 0,
                 fee: Decimal(string: dict["fee"] ?? "0") ?? 0,
                 balance: Decimal(string: dict["balance"] ?? "0") ?? 0
