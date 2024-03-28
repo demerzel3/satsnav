@@ -25,6 +25,8 @@ enum GroupedLedger: CustomStringConvertible {
             return entry.description
         case .trade(let spend, let receive):
             return "trade \(spend) for \(receive)"
+        case .transfer(let from, let to) where from.wallet == to.wallet:
+            return "internal transfer \(from.wallet) \(from.asset.name) \(formatBtcAmount(abs(from.amount)))"
         case .transfer(let from, let to):
             return "transfer from \(from) to \(to)"
         }
@@ -57,8 +59,12 @@ func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
             // pair with existing transfer
             if let transfer = transferByAmount[key],
                transfer.type != entry.type,
-               // Consider 24h the maximum discrepancy to match transfers
-               entry.amount > 0 || entry.date.timeIntervalSince(transfer.date) < 86400
+
+               entry.amount > 0 ||
+               // Consider 24h the maximum discrepancy to match transfers between different wallets
+               (entry.wallet != transfer.wallet && entry.date.timeIntervalSince(transfer.date) < 86400) ||
+               // Transfers within the same wallet are expected to have the same date
+               (entry.wallet == transfer.wallet && entry.date == transfer.date)
             {
                 if entry.amount > 0 {
                     if transfer.date > entry.date {
