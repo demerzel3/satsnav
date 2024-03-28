@@ -148,7 +148,7 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
         }
     }
 
-    assert(sanitizedCount > 0, "Sanitized count should be 0, is \(sanitizedCount)")
+    assert(sanitizedCount == 0, "Sanitized count should be 0, is \(sanitizedCount)")
 
     return ledgers
 }
