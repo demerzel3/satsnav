@@ -128,7 +128,7 @@ func convertKrakenLedgerToCommonLedger(entries: [KrakenLedgerEntry]) -> [LedgerE
                 // Putting the fee 1 second after the trade avoids issues with balance not being present.
                 date: entry.date.addingTimeInterval(1),
                 type: .fee,
-                amount: balances[ticker, default: 0],
+                amount: balances[balanceKey, default: 0],
                 asset: asset
             ))
             sanitizedCount -= 1

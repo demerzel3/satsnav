@@ -26,7 +26,7 @@ enum GroupedLedger: CustomStringConvertible {
         case .trade(let spend, let receive):
             return "trade \(spend) for \(receive)"
         case .transfer(let from, let to) where from.wallet == to.wallet:
-            return "internal transfer \(from.wallet) \(from.asset.name) \(formatBtcAmount(abs(from.amount)))"
+            return "internal transfer \(from.wallet) \(from.asset.name) \(formatBtcAmount(abs(from.amount))) - \(from.id) + \(to.id)"
         case .transfer(let from, let to):
             return "transfer from \(from) to \(to)"
         }
