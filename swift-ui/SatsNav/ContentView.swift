@@ -112,21 +112,16 @@ struct ContentView: View {
                     )
                 }
             }
-            .chartYScale(domain: [0, 750_000])
             .chartYAxis {
-                AxisMarks(
-                    // format: Decimal.FormatStyle.Currency(code: "EUR"),
-                    values: .automatic(desiredCount: 14)
-                ) {
-                    AxisGridLine()
-                }
-
-                AxisMarks(
-                    values: [0, 250_000, 500_000, 750_000]
-                ) {
+                AxisMarks {
                     let value = $0.as(Int.self)!
                     AxisValueLabel {
                         Text(formatYAxis(value))
+                    }
+                    if value == 0 {
+                        AxisGridLine()
+                    } else {
+                        AxisGridLine(centered: nil, stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
                     }
                 }
 
