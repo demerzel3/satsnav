@@ -30,16 +30,12 @@
 		E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942842B13E4A60053DB47 /* OnchainTransaction.swift */; };
 		E07942992B13E4A60053DB47 /* Decimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942892B13E4A60053DB47 /* Decimal.swift */; };
 		E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */; };
-		E079429B2B13E4A60053DB47 /* Deque.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942832B13E4A60053DB47 /* Deque.swift */; };
 		E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428B2B13E4A60053DB47 /* TransactionStorage.swift */; };
 		E079429E2B13E4A60053DB47 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428C2B13E4A60053DB47 /* Array.swift */; };
 		E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* GroupedLedger.swift */; };
 		E07942A12B13E4A60053DB47 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942952B13E4A60053DB47 /* Balance.swift */; };
 		E07942A22B13E4A60053DB47 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942942B13E4A60053DB47 /* Models.swift */; };
 		E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */; };
-		E07942A62B13E72E0053DB47 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A52B13E72E0053DB47 /* Collections */; };
-		E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A72B13E72E0053DB47 /* DequeModule */; };
-		E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E07942A92B13E72E0053DB47 /* OrderedCollections */; };
 		E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */ = {isa = PBXBuildFile; productRef = E07942B32B13E7FF0053DB47 /* SwiftCSV */; };
 		E07942B62B13F7A60053DB47 /* EtherscanCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942772B13E4A60053DB47 /* EtherscanCSVReader.swift */; };
 		E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079427B2B13E4A60053DB47 /* CoinbaseCSVReader.swift */; };
@@ -109,7 +105,6 @@
 		E079427F2B13E4A60053DB47 /* CSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVReader.swift; sourceTree = "<group>"; };
 		E07942802B13E4A60053DB47 /* BlockFiCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockFiCSVReader.swift; sourceTree = "<group>"; };
 		E07942822B13E4A60053DB47 /* LednCSVReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LednCSVReader.swift; sourceTree = "<group>"; };
-		E07942832B13E4A60053DB47 /* Deque.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deque.swift; sourceTree = "<group>"; };
 		E07942842B13E4A60053DB47 /* OnchainTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainTransaction.swift; sourceTree = "<group>"; };
 		E07942872B13E4A60053DB47 /* subtract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = subtract.swift; sourceTree = "<group>"; };
 		E07942882B13E4A60053DB47 /* getScriptHashForElectrum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = getScriptHashForElectrum.swift; sourceTree = "<group>"; };
@@ -144,9 +139,6 @@
 			files = (
 				E05A11FB2B24FB8A0062D67C /* RealmSwift in Frameworks */,
 				E05A11F92B24FB8A0062D67C /* Realm in Frameworks */,
-				E07942A62B13E72E0053DB47 /* Collections in Frameworks */,
-				E07942AA2B13E72E0053DB47 /* OrderedCollections in Frameworks */,
-				E07942A82B13E72E0053DB47 /* DequeModule in Frameworks */,
 				E07942CD2B1A8DDB0053DB47 /* Starscream in Frameworks */,
 				E07942B42B13E7FF0053DB47 /* SwiftCSV in Frameworks */,
 				E065EDFA2B21C6D80007CE2E /* KrakenAPI in Frameworks */,
@@ -214,7 +206,6 @@
 				E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */,
 				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
-				E07942832B13E4A60053DB47 /* Deque.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
 				E07942922B13E4A60053DB47 /* GroupedLedger.swift */,
 				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
@@ -309,9 +300,6 @@
 			);
 			name = SatsNav;
 			packageProductDependencies = (
-				E07942A52B13E72E0053DB47 /* Collections */,
-				E07942A72B13E72E0053DB47 /* DequeModule */,
-				E07942A92B13E72E0053DB47 /* OrderedCollections */,
 				E07942B32B13E7FF0053DB47 /* SwiftCSV */,
 				E07942CC2B1A8DDB0053DB47 /* Starscream */,
 				E065EDF92B21C6D80007CE2E /* KrakenAPI */,
@@ -391,7 +379,6 @@
 			);
 			mainGroup = E079423A2B13A7DD0053DB47;
 			packageReferences = (
-				E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */,
 				E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */,
 				E07942CB2B1A8DDB0053DB47 /* XCRemoteSwiftPackageReference "Starscream" */,
 				E065EDF82B21C6D80007CE2E /* XCRemoteSwiftPackageReference "KrakenAPI" */,
@@ -466,7 +453,6 @@
 				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
 				E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */,
-				E079429B2B13E4A60053DB47 /* Deque.swift in Sources */,
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
 				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
@@ -839,14 +825,6 @@
 				minimumVersion = 2.1.0;
 			};
 		};
-		E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-collections.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.5;
-			};
-		};
 		E07942B22B13E7FF0053DB47 /* XCRemoteSwiftPackageReference "SwiftCSV" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/swiftcsv/SwiftCSV.git";
@@ -880,21 +858,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E065EDF82B21C6D80007CE2E /* XCRemoteSwiftPackageReference "KrakenAPI" */;
 			productName = KrakenAPI;
-		};
-		E07942A52B13E72E0053DB47 /* Collections */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
-			productName = Collections;
-		};
-		E07942A72B13E72E0053DB47 /* DequeModule */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
-			productName = DequeModule;
-		};
-		E07942A92B13E72E0053DB47 /* OrderedCollections */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E07942A42B13E72E0053DB47 /* XCRemoteSwiftPackageReference "swift-collections" */;
-			productName = OrderedCollections;
 		};
 		E07942B32B13E7FF0053DB47 /* SwiftCSV */ = {
 			isa = XCSwiftPackageProductDependency;

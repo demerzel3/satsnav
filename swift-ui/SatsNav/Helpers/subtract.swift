@@ -3,7 +3,7 @@ import Foundation
 /**
  Removes refs from asset balance using LIFO strategy
  */
-func subtract(refs: inout RefsDeque, amount: Decimal) -> RefsArray {
+func subtract(refs: inout RefsArray, amount: Decimal) -> RefsArray {
     assert(amount >= 0, "amount must be positive")
     let balanceBefore = refs.sum
 

@@ -8,7 +8,7 @@ private func createDateFormatter() -> DateFormatter {
 }
 
 struct RefsView: View {
-    let refs: RefsDeque
+    let refs: RefsArray
     let dateFormatter: DateFormatter = createDateFormatter()
 
     var body: some View {

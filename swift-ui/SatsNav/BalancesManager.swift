@@ -49,13 +49,13 @@ final class BalancesManager: ObservableObject {
         self.realmConfiguration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
     }
 
-    func getRefs(byWallet wallet: String, asset: Asset) -> RefsDeque {
+    func getRefs(byWallet wallet: String, asset: Asset) -> RefsArray {
         guard let walletBalances = balances[wallet] else {
-            return RefsDeque()
+            return RefsArray()
         }
 
         guard let assetBalance = walletBalances[asset] else {
-            return RefsDeque()
+            return RefsArray()
         }
 
         return assetBalance

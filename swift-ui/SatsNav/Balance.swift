@@ -1,4 +1,3 @@
-import Collections
 import Foundation
 
 private let BASE_ASSET = Asset(name: "EUR", type: .fiat)
@@ -31,9 +30,8 @@ struct Ref: Identifiable, Equatable {
     }
 }
 
-typealias RefsDeque = Deque<Ref>
 typealias RefsArray = [Ref]
-typealias Balance = [Asset: RefsDeque]
+typealias Balance = [Asset: RefsArray]
 
 /**
  TODO: consolidate Refs without rate if they come from interests/bonus or other kinds of presents
@@ -62,7 +60,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
                 continue
             }
 
-            var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsDeque()]
+            var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsArray()]
             if entry.amount > 0 {
                 let rate = ledgersMeta[entry.globalId].flatMap { $0.rate }
 
@@ -85,7 +83,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             let subtractedRefs = subtract(refs: &fromRefs, amount: to.amount)
             balances[from.wallet, default: Balance()][from.asset] = fromRefs
-            balances[to.wallet, default: Balance()][to.asset, default: RefsDeque()]
+            balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
                 .append(contentsOf: subtractedRefs.map { $0.withAppendedRef(to.globalId) })
 
         case .trade(let spend, let receive):
@@ -96,7 +94,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             if spend.asset != BASE_ASSET {
                 // Move refs to receive balance
-                var refs = balances[wallet, default: Balance()][spend.asset, default: RefsDeque()]
+                var refs = balances[wallet, default: Balance()][spend.asset, default: RefsArray()]
                 refs.forEach { assert($0.amount > 0, "invalid ref before subtract \($0)") }
                 let removedRefs = subtract(refs: &refs, amount: -spend.amount)
                 refs.forEach { assert($0.amount > 0, "invalid ref after subtract \($0)") }
@@ -127,15 +125,12 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
                         receiveRefs[0] = first.withAmount(first.amount + dust)
                     } else if dust < 0 {
-                        // TODO: this Array -> Deqeue -> Array conversion cannot be good for performance
-                        var receiveRefsDequeue = RefsDeque(receiveRefs)
                         // Drop refs up to the dust amount
-                        _ = subtract(refs: &receiveRefsDequeue, amount: -dust)
-                        receiveRefs = receiveRefsDequeue.map { $0 }
+                        _ = subtract(refs: &receiveRefs, amount: -dust)
                     }
-                    assert(receiveRefs.sum == receive.amount, "Trade balance update error, should be \(receive.amount), is \(receiveRefs.reduce(0) { $0 + $1.amount })")
+                    assert(receiveRefs.sum == receive.amount, "Trade balance update error, should be \(receive.amount), is \(receiveRefs.sum)")
 
-                    let allReceiveRefs = balances[wallet, default: Balance()][receive.asset, default: RefsDeque()] + receiveRefs
+                    let allReceiveRefs = balances[wallet, default: Balance()][receive.asset, default: RefsArray()] + receiveRefs
                     balances[wallet, default: Balance()][receive.asset] = allReceiveRefs
                 }
 
@@ -145,7 +140,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             if receive.asset != BASE_ASSET {
                 // Add ref to balance
                 let ref = Ref(refIds: [receive.globalId], amount: receive.amount, date: receive.date, rate: rate)
-                balances[receive.wallet, default: Balance()][receive.asset, default: RefsDeque()].append(ref)
+                balances[receive.wallet, default: Balance()][receive.asset, default: RefsArray()].append(ref)
             }
         }
     }
