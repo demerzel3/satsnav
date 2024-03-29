@@ -168,58 +168,62 @@ struct ContentView: View {
         .padding()
     }
 
+    var list: some View {
+        List {
+            let wallets = recapToDisplay
+            if wallets.count > 0 {
+                ForEach(wallets) { item in
+                    let btcAmount = item.sumByAsset[BTC, default: 0]
+                    let oneEuroInBtc = 1 / webSocketManager.btcPrice
+                    let hasBtc = btcAmount >= oneEuroInBtc
+
+                    NavigationLink(destination: RefsView(refs: balances.getRefs(byWallet: item.wallet, asset: BTC))) {
+                        // Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
+                        HStack {
+                            Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("BTC \(formatBtcAmount(btcAmount))").foregroundStyle(hasBtc ? .primary : .secondary)
+                                Text("entries \(item.count)").foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
+                if balances.recap.count > wallets.count {
+                    HStack {
+                        Spacer()
+                        Button(action: { showAllWallets = true }) {
+                            Text("Show small balances")
+                        }.foregroundColor(.blue)
+                        Spacer()
+                    }.listRowSeparator(.hidden)
+                } else if showAllWallets {
+                    HStack {
+                        Spacer()
+                        Button(action: { showAllWallets = false }) {
+                            Text("Hide small balances")
+                        }.foregroundColor(.blue)
+                        Spacer()
+                    }.listRowSeparator(.hidden)
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    Text("Loading...").foregroundStyle(.secondary)
+                    Spacer()
+                }.listRowSeparator(.hidden)
+            }
+        }
+        .listStyle(.plain)
+    }
+
     var body: some View {
         NavigationView {
             VStack {
                 self.header
                 self.chart
-
-                List {
-                    Group {
-                        let wallets = recapToDisplay
-                        if wallets.count > 0 {
-                            ForEach(wallets) { item in
-                                let btcAmount = item.sumByAsset[BTC, default: 0]
-                                let oneEuroInBtc = 1 / webSocketManager.btcPrice
-                                let hasBtc = btcAmount >= oneEuroInBtc
-
-                                HStack {
-                                    Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
-                                    Spacer()
-                                    VStack(alignment: .trailing) {
-                                        Text("BTC \(formatBtcAmount(btcAmount))").foregroundStyle(hasBtc ? .primary : .secondary)
-                                        Text("entries \(item.count)").foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-
-                            if balances.recap.count > wallets.count {
-                                HStack {
-                                    Spacer()
-                                    Button(action: { showAllWallets = true }) {
-                                        Text("Show small balances")
-                                    }.foregroundColor(.blue)
-                                    Spacer()
-                                }.listRowSeparator(.hidden)
-                            } else if showAllWallets {
-                                HStack {
-                                    Spacer()
-                                    Button(action: { showAllWallets = false }) {
-                                        Text("Hide small balances")
-                                    }.foregroundColor(.blue)
-                                    Spacer()
-                                }.listRowSeparator(.hidden)
-                            }
-                        } else {
-                            HStack {
-                                Spacer()
-                                Text("Loading...").foregroundStyle(.secondary)
-                                Spacer()
-                            }.listRowSeparator(.hidden)
-                        }
-                    }
-                }
-                .listStyle(.plain)
+                self.list
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
