@@ -25,8 +25,8 @@ struct Ref: Identifiable, Equatable {
         return Ref(refIds: refIds, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate)
     }
 
-    func withAppendedRef(_ newRefId: String) -> Ref {
-        return Ref(refIds: refIds + [newRefId], amount: amount, date: date, rate: rate)
+    func withAppendedRefs(_ newRefIds: String...) -> Ref {
+        return Ref(refIds: refIds + newRefIds, amount: amount, date: date, rate: rate)
     }
 }
 
@@ -84,7 +84,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             let subtractedRefs = subtract(refs: &fromRefs, amount: to.amount)
             balances[from.wallet, default: Balance()][from.asset] = fromRefs
             balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
-                .append(contentsOf: subtractedRefs.map { $0.withAppendedRef(to.globalId) })
+                .append(contentsOf: subtractedRefs.map { $0.withAppendedRefs(from.globalId, to.globalId) })
 
         case .trade(let spend, let receive):
             assert(spend.amount != 0 && receive.amount != 0, "invalid trade amount \(spend) -> \(receive)")
@@ -113,7 +113,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
                         return ref
                             .withAmount(nextAmount, rate: nextRate, date: receive.date)
-                            .withAppendedRef(receive.globalId)
+                            .withAppendedRefs(spend.globalId, receive.globalId)
                     }
 
                     let dust = receive.amount - receiveRefs.sum
@@ -139,7 +139,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             if receive.asset != BASE_ASSET {
                 // Add ref to balance
-                let ref = Ref(refIds: [receive.globalId], amount: receive.amount, date: receive.date, rate: rate)
+                let ref = Ref(refIds: [spend.globalId, receive.globalId], amount: receive.amount, date: receive.date, rate: rate)
                 balances[receive.wallet, default: Balance()][receive.asset, default: RefsArray()].append(ref)
             }
         }
