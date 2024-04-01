@@ -69,7 +69,9 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             }
 
             var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsArray()]
-            if entry.amount > 0 {
+            if entry.amount > 0, entry.asset == BASE_ASSET {
+                refs.append(Ref(refIds: [entry.globalId], amount: entry.amount, date: entry.date, rate: 1))
+            } else if entry.amount > 0 {
                 let rate = ledgersMeta[entry.globalId].flatMap { $0.rate }
 
                 if let userProvidedRate = rate {
