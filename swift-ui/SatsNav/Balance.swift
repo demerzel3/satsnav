@@ -3,9 +3,7 @@ import Foundation
 private let BASE_ASSET = Asset(name: "EUR", type: .fiat)
 
 struct Ref: Identifiable, Equatable {
-    var id: String {
-        refIds.joined()
-    }
+    let id: UUID = .init()
 
     let refIds: [String]
     let amount: Decimal
@@ -82,7 +80,16 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             } else {
                 _ = subtract(refs: &refs, amount: -entry.amount)
             }
-            balances[entry.wallet, default: Balance()][entry.asset] = refs
+            let groupedRefs = refs.reduce(into: [[Ref]]()) {
+                if let lastGroup = $0.last, !lastGroup.isEmpty, lastGroup[0].rate == $1.rate {
+                    $0[$0.count - 1].append($1)
+                } else {
+                    $0.append([$1])
+                }
+            }
+            balances[entry.wallet, default: Balance()][entry.asset] = groupedRefs.map { refsGroup in
+                refsGroup[0].withAmount(refsGroup.sum)
+            }
 
         case .transfer(let from, let to):
             assert(from.amount != 0 && to.amount != 0, "invalid transfer amount \(from) -> \(to)")
@@ -93,24 +100,16 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             let subtractedRefs = subtract(refs: &fromRefs, amount: to.amount)
             balances[from.wallet, default: Balance()][from.asset] = fromRefs
-//            balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
-//                .append(contentsOf: subtractedRefs.map { $0.withAppendedRefs(from.globalId, to.globalId) })
-            let contiguousRefsWithoutRate = subtractedRefs.reduce(into: [0]) {
-                if $1.rate != nil {
-                    if let last = $0.last, last > 0 {
-                        $0.append(0)
-                    }
+            let groupedRefs = subtractedRefs.reduce(into: [[Ref]]()) {
+                if let lastGroup = $0.last, !lastGroup.isEmpty, lastGroup[0].rate == $1.rate {
+                    $0[$0.count - 1].append($1)
                 } else {
-                    $0.append($0.removeLast() + 1)
+                    $0.append([$1])
                 }
             }
-            if contiguousRefsWithoutRate.contains(where: { $0 > 1 }) {
-                print(group)
-                print("\(subtractedRefs.count) - \(to.amount) \(to.assetName) - \(contiguousRefsWithoutRate)")
-            }
             balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
-                .append(contentsOf: subtractedRefs.map {
-                    Ref(refIds: [from.globalId, to.globalId], amount: $0.amount, date: $0.date, rate: $0.rate, spends: [$0])
+                .append(contentsOf: groupedRefs.map { refsGroup in
+                    Ref(refIds: [from.globalId, to.globalId], amount: refsGroup.sum, date: refsGroup[0].date, rate: refsGroup[0].rate, spends: refsGroup)
                 })
 
         case .trade(let spend, let receive):
@@ -139,41 +138,28 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
                     )
                 )
             } else {
-                let contiguousRefsWithoutRate = removedRefs.reduce(into: [0]) {
-                    if $1.rate != nil {
-                        if let last = $0.last, last > 0 {
-                            $0.append(0)
-                        }
+                let groupedRefs = removedRefs.reduce(into: [[Ref]]()) {
+                    if let lastGroup = $0.last, !lastGroup.isEmpty, lastGroup[0].rate == $1.rate {
+                        $0[$0.count - 1].append($1)
                     } else {
-                        $0.append($0.removeLast() + 1)
+                        $0.append([$1])
                     }
-                }
-                if contiguousRefsWithoutRate.contains(where: { $0 > 1 }) {
-                    print(group)
-                    for removedRef in removedRefs {
-                        print("\(removedRef.refId) \(removedRef.amount) \(removedRef.rate == nil ? "-" : String(describing: rate))")
-                    }
-                    print("\(removedRefs.count) - \(-spend.amount) \(spend.assetName) - \(contiguousRefsWithoutRate)")
                 }
 
                 let precision = max(10, receive.amount.significantFractionalDecimalDigits)
                 // Propagate rate to receive side, skipping the ones that result in rounding errors
-                var receiveRefs = removedRefs.compactMap { ref -> Ref? in
-                    let nextRate = ref.rate.map { $0 * rate }
-                    let nextAmount = round(ref.amount / rate, precision: precision)
+                var receiveRefs = groupedRefs.compactMap { refsGroup -> Ref? in
+                    let nextRate = refsGroup[0].rate.map { $0 * rate }.map { round($0, precision: precision) }
+                    let nextAmount = round(refsGroup.sum / rate, precision: precision)
 
                     guard nextAmount > 0 else { return nil }
 
-//                return ref
-//                    .withAmount(nextAmount, rate: nextRate, date: receive.date)
-//                    .withAppendedRefs(spend.globalId, receive.globalId)
                     return Ref(
                         refIds: [spend.globalId, receive.globalId],
                         amount: nextAmount,
                         date: receive.date,
-                        // backfill rate to 1 if receive asset is BASE_ASSET
-                        rate: nextRate ?? (receive.asset == BASE_ASSET ? 1 : nil),
-                        spends: [ref]
+                        rate: nextRate,
+                        spends: refsGroup
                     )
                 }
 
