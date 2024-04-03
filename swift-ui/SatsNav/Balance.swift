@@ -95,6 +95,19 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             balances[from.wallet, default: Balance()][from.asset] = fromRefs
 //            balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
 //                .append(contentsOf: subtractedRefs.map { $0.withAppendedRefs(from.globalId, to.globalId) })
+            let contiguousRefsWithoutRate = subtractedRefs.reduce(into: [0]) {
+                if $1.rate != nil {
+                    if let last = $0.last, last > 0 {
+                        $0.append(0)
+                    }
+                } else {
+                    $0.append($0.removeLast() + 1)
+                }
+            }
+            if contiguousRefsWithoutRate.contains(where: { $0 > 1 }) {
+                print(group)
+                print("\(subtractedRefs.count) - \(to.amount) \(to.assetName) - \(contiguousRefsWithoutRate)")
+            }
             balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
                 .append(contentsOf: subtractedRefs.map {
                     Ref(refIds: [from.globalId, to.globalId], amount: $0.amount, date: $0.date, rate: $0.rate, spends: [$0])
@@ -115,42 +128,71 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             balances[wallet, default: Balance()][spend.asset] = refs
 
-            let precision = max(10, receive.amount.significantFractionalDecimalDigits)
-            // Propagate rate to receive side, skipping the ones that result in rounding errors
-            var receiveRefs = removedRefs.compactMap { ref -> Ref? in
-                let nextRate = ref.rate.map { $0 * rate }
-                let nextAmount = round(ref.amount / rate, precision: precision)
+            if receive.asset == BASE_ASSET {
+                balances[wallet, default: Balance()][receive.asset, default: RefsArray()].append(
+                    Ref(
+                        refIds: [spend.globalId, receive.globalId],
+                        amount: receive.amount,
+                        date: receive.date,
+                        rate: 1,
+                        spends: removedRefs
+                    )
+                )
+            } else {
+                let contiguousRefsWithoutRate = removedRefs.reduce(into: [0]) {
+                    if $1.rate != nil {
+                        if let last = $0.last, last > 0 {
+                            $0.append(0)
+                        }
+                    } else {
+                        $0.append($0.removeLast() + 1)
+                    }
+                }
+                if contiguousRefsWithoutRate.contains(where: { $0 > 1 }) {
+                    print(group)
+                    for removedRef in removedRefs {
+                        print("\(removedRef.refId) \(removedRef.amount) \(removedRef.rate == nil ? "-" : String(describing: rate))")
+                    }
+                    print("\(removedRefs.count) - \(-spend.amount) \(spend.assetName) - \(contiguousRefsWithoutRate)")
+                }
 
-                guard nextAmount > 0 else { return nil }
+                let precision = max(10, receive.amount.significantFractionalDecimalDigits)
+                // Propagate rate to receive side, skipping the ones that result in rounding errors
+                var receiveRefs = removedRefs.compactMap { ref -> Ref? in
+                    let nextRate = ref.rate.map { $0 * rate }
+                    let nextAmount = round(ref.amount / rate, precision: precision)
+
+                    guard nextAmount > 0 else { return nil }
 
 //                return ref
 //                    .withAmount(nextAmount, rate: nextRate, date: receive.date)
 //                    .withAppendedRefs(spend.globalId, receive.globalId)
-                return Ref(
-                    refIds: [spend.globalId, receive.globalId],
-                    amount: nextAmount,
-                    date: receive.date,
-                    rate: nextRate,
-                    spends: [ref]
-                )
-            }
-
-            let dust = receive.amount - receiveRefs.sum
-            // TODO: alert if dust is significantly bigger than a rounding error
-            if dust > 0 {
-                guard let first = receiveRefs.first else {
-                    fatalError("Cannot fix rounding error, no elements")
+                    return Ref(
+                        refIds: [spend.globalId, receive.globalId],
+                        amount: nextAmount,
+                        date: receive.date,
+                        // backfill rate to 1 if receive asset is BASE_ASSET
+                        rate: nextRate ?? (receive.asset == BASE_ASSET ? 1 : nil),
+                        spends: [ref]
+                    )
                 }
 
-                receiveRefs[0] = first.withAmount(first.amount + dust)
-            } else if dust < 0 {
-                // Drop refs up to the dust amount
-                _ = subtract(refs: &receiveRefs, amount: -dust)
-            }
-            assert(receiveRefs.sum == receive.amount, "Trade balance update error, should be \(receive.amount), is \(receiveRefs.sum)")
+                let dust = receive.amount - receiveRefs.sum
+                // TODO: alert if dust is significantly bigger than a rounding error
+                if dust > 0 {
+                    guard let first = receiveRefs.first else {
+                        fatalError("Cannot fix rounding error, no elements")
+                    }
 
-            let allReceiveRefs = balances[wallet, default: Balance()][receive.asset, default: RefsArray()] + receiveRefs
-            balances[wallet, default: Balance()][receive.asset] = allReceiveRefs
+                    receiveRefs[0] = first.withAmount(first.amount + dust)
+                } else if dust < 0 {
+                    // Drop refs up to the dust amount
+                    _ = subtract(refs: &receiveRefs, amount: -dust)
+                }
+                assert(receiveRefs.sum == receive.amount, "Trade balance update error, should be \(receive.amount), is \(receiveRefs.sum)")
+
+                balances[wallet, default: Balance()][receive.asset, default: RefsArray()] += receiveRefs
+            }
         }
     }
 
