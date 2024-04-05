@@ -76,16 +76,19 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             } else {
                 _ = subtract(refs: &refs, amount: -entry.amount)
             }
-            let groupedRefs = refs.reduce(into: [[Ref]]()) {
-                if let lastGroup = $0.last, !lastGroup.isEmpty, lastGroup[0].rate == $1.rate {
-                    $0[$0.count - 1].append($1)
-                } else {
-                    $0.append([$1])
-                }
-            }
-            balances[entry.wallet, default: Balance()][entry.asset] = groupedRefs.map { refsGroup in
-                refsGroup[0].withAmount(refsGroup.sum)
-            }
+//            let groupedRefs = refs.reduce(into: [[Ref]]()) {
+//                if let lastGroup = $0.last, !lastGroup.isEmpty, lastGroup[0].rate == $1.rate {
+//                    $0[$0.count - 1].append($1)
+//                } else {
+//                    $0.append([$1])
+//                }
+//            }
+//            walletBalance[entry.asset] = groupedRefs.map { refsGroup in
+//                refsGroup[0].withAmount(refsGroup.sum)
+//            }
+//            print("balances", balances.count)
+//            balances[entry.wallet] = walletBalance
+            balances[entry.wallet, default: Balance()][entry.asset] = refs
 
         case .transfer(let from, let to):
             assert(from.amount != 0 && to.amount != 0, "invalid transfer amount \(from) -> \(to)")
