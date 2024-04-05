@@ -284,6 +284,7 @@ struct ContentView: View {
                 }
             })
         }
+        .navigationViewStyle(.stack)
         .task {
             await balances.update()
         }
