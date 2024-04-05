@@ -29,11 +29,7 @@ struct Ref: Identifiable, Equatable {
 
     func withAmount(_ newAmount: Decimal, rate newRate: Decimal? = nil, date newDate: Date? = nil) -> Ref {
         assert(newAmount > 0, "Invalid amount \(newAmount)")
-        return Ref(refIds: refIds, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate)
-    }
-
-    func withAppendedRefs(_ newRefIds: String...) -> Ref {
-        return Ref(refIds: refIds + newRefIds, amount: amount, date: date, rate: rate)
+        return Ref(refIds: refIds, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate, spends: spends)
     }
 }
 
