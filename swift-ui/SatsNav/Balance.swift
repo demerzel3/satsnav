@@ -6,13 +6,15 @@ struct Ref: Identifiable, Equatable {
     let id: UUID = .init()
 
     let refIds: [String]
+    let asset: Asset
     let amount: Decimal
     let date: Date
     let rate: Decimal?
     let spends: [Ref]
 
-    init(refIds: [String], amount: Decimal, date: Date, rate: Decimal?, spends: [Ref]? = nil) {
+    init(refIds: [String], asset: Asset, amount: Decimal, date: Date, rate: Decimal?, spends: [Ref]? = nil) {
         self.refIds = refIds
+        self.asset = asset
         self.amount = amount
         self.date = date
         self.rate = rate
@@ -29,7 +31,7 @@ struct Ref: Identifiable, Equatable {
 
     func withAmount(_ newAmount: Decimal, rate newRate: Decimal? = nil, date newDate: Date? = nil) -> Ref {
         assert(newAmount > 0, "Invalid amount \(newAmount)")
-        return Ref(refIds: refIds, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate, spends: spends)
+        return Ref(refIds: refIds, asset: asset, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate, spends: spends)
     }
 }
 
@@ -64,7 +66,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
             var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsArray()]
             if entry.amount > 0, entry.asset == BASE_ASSET {
-                refs.append(Ref(refIds: [entry.globalId], amount: entry.amount, date: entry.date, rate: 1))
+                refs.append(Ref(refIds: [entry.globalId], asset: BASE_ASSET, amount: entry.amount, date: entry.date, rate: 1))
             } else if entry.amount > 0 {
                 let rate = ledgersMeta[entry.globalId].flatMap { $0.rate }
 
@@ -72,7 +74,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
                     print("🚨🚨🚨 Using user-provided rate for \(entry), rate: \(userProvidedRate)")
                 }
 
-                refs.append(Ref(refIds: [entry.globalId], amount: entry.amount, date: entry.date, rate: rate))
+                refs.append(Ref(refIds: [entry.globalId], asset: entry.asset, amount: entry.amount, date: entry.date, rate: rate))
             } else {
                 _ = subtract(refs: &refs, amount: -entry.amount)
             }
@@ -108,7 +110,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             }
             balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
                 .append(contentsOf: groupedRefs.map { refsGroup in
-                    Ref(refIds: [from.globalId, to.globalId], amount: refsGroup.sum, date: refsGroup[0].date, rate: refsGroup[0].rate, spends: refsGroup)
+                    Ref(refIds: [from.globalId, to.globalId], asset: to.asset, amount: refsGroup.sum, date: refsGroup[0].date, rate: refsGroup[0].rate, spends: refsGroup)
                 })
 
         case .trade(let spend, let receive):
@@ -130,6 +132,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
                 balances[wallet, default: Balance()][receive.asset, default: RefsArray()].append(
                     Ref(
                         refIds: [spend.globalId, receive.globalId],
+                        asset: BASE_ASSET,
                         amount: receive.amount,
                         date: receive.date,
                         rate: 1,
@@ -155,6 +158,7 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
 
                     return Ref(
                         refIds: [spend.globalId, receive.globalId],
+                        asset: receive.asset,
                         amount: nextAmount,
                         date: receive.date,
                         rate: nextRate,
