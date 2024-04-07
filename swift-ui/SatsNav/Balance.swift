@@ -1,8 +1,8 @@
 import Foundation
 
-private let BASE_ASSET = Asset(name: "EUR", type: .fiat)
+let BASE_ASSET = Asset(name: "EUR", type: .fiat)
 
-struct Ref: Identifiable, Equatable {
+struct Ref: Identifiable, Equatable, Hashable {
     let id: UUID = .init()
 
     let refIds: [String]
