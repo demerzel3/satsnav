@@ -215,48 +215,51 @@ final class BalancesManager: ObservableObject {
 
     private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
         if let btcColdStorage = balances["❄️"]?[BTC] {
-            print("-- Cold storage --")
-            print("total", btcColdStorage.sum)
+            verifyBalance(balance: btcColdStorage, description: "Cold storage", getLedgerById: getLedgerById)
+        }
+        if let btcKraken = balances["Kraken"]?[BTC] {
+            verifyBalance(balance: btcKraken, description: "Kraken", getLedgerById: getLedgerById)
+        }
+    }
 
-            let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = btcColdStorage
-                .compactMap {
-                    guard let entry = getLedgerById($0.refId) else {
-                        print("Entry not found \($0.refId)")
-                        return nil
-                    }
+    private func verifyBalance(balance: RefsArray, description: String, getLedgerById: (String) -> LedgerEntry?) {
+        print("-- \(description) --")
+        print("total", balance.sum)
 
-                    return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
+        let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = balance
+            .compactMap {
+                guard let entry = getLedgerById($0.refId) else {
+                    print("Entry not found \($0.refId)")
+                    return nil
                 }
-            // .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
-            // .filter { $0.ref.rate == nil }
-            // .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
-            // .sorted { a, b in a.ref.date < b.ref.date }
-            // .sorted { a, b in a.ref.rate ?? 0 < b.ref.rate ?? 0 }
 
-            let withoutRate = enrichedRefs
-                .filter { $0.entry.type != .bonus && $0.entry.type != .interest && $0.ref.rate == nil }
-                .map { $0.ref }
-                .sum
-            print("Without rate \(withoutRate)")
-            // assert(withoutRate < 0.032, "Something broke in the grouping")
+                return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
+            }
+        // .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
+        // .filter { $0.ref.rate == nil }
+        // .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
+        // .sorted { a, b in a.ref.date < b.ref.date }
+        // .sorted { a, b in a.ref.rate ?? 0 < b.ref.rate ?? 0 }
 
-            let oneSat = Decimal(string: "0.00000001")!
-            print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
+        let withoutRate = enrichedRefs
+            .filter { $0.entry.type != .bonus && $0.entry.type != .interest && $0.ref.rate == nil }
+            .map { $0.ref }
+            .sum
+        print("Without rate \(withoutRate)")
+        // assert(withoutRate < 0.032, "Something broke in the grouping")
+
+        let oneSat = Decimal(string: "0.00000001")!
+        print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
 //            for (ref, _, comment) in enrichedRefs where ref.amount < oneSat {
 //                // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
 //                let rate = formatFiatAmount(ref.rate ?? 0)
 //                let amount = formatBtcAmount(ref.amount)
 //                print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
-            ////                for refId in ref.refIds {
-            ////                    print(ledgersIndex[refId]!)
-            ////                }
-            ////                break
+        ////                for refId in ref.refIds {
+        ////                    print(ledgersIndex[refId]!)
+        ////                }
+        ////                break
 //            }
-        }
-        if let btcKraken = balances["Kraken"]?[BTC] {
-            print("-- Kraken --")
-            print("total", btcKraken.sum)
-        }
     }
 
     private func getRealm() async throws -> Realm {
