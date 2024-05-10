@@ -16,35 +16,19 @@ struct KrakenLedgerEntry {
 extension Asset {
     init(fromKrakenTicker ticker: String) {
         switch ticker {
-        case "XXBT":
-            self.name = "BTC"
+        // .M is locked staking
+        case let sym where sym.hasSuffix(".M"):
+            // get rid of .M for now, in the future we need to treat this as a separate wallet for tracking purposes
+            let endIndex = sym.index(sym.endIndex, offsetBy: -2)
+            self.name = String(sym[sym.startIndex ..< endIndex])
             self.type = .crypto
-        case "XXDG":
-            self.name = "DOGE"
-            self.type = .crypto
-        // .M is locked staking, .F is flexible staking
-        case "XBT.M", "XBT.F":
-            self.name = "BTC"
-            self.type = .crypto
-        case let a where a.hasPrefix("X"):
-            self.name = String(a.dropFirst())
-            self.type = .crypto
-        case let a where a.hasPrefix("Z"):
-            let startIndex = a.index(a.startIndex, offsetBy: 1)
-            // get rid of .HOLD as it's not really useful
-            let endIndex = a.index(a.endIndex, offsetBy: a.hasSuffix(".HOLD") ? -5 : 0)
-            if a.hasSuffix(".HOLD") {
-                print(a, a.hasSuffix(".HOLD"), endIndex)
-            }
-            self.name = String(a[startIndex ..< endIndex])
-            self.type = .fiat
         case let a where a.hasSuffix(".HOLD"):
             let endIndex = a.index(a.endIndex, offsetBy: a.hasSuffix(".HOLD") ? -5 : 0)
             self.name = String(a[a.startIndex ..< endIndex])
             self.type = .fiat
         default:
             self.name = ticker
-            self.type = .crypto
+            self.type = ticker == "USD" || ticker == "EUR" ? .fiat : .crypto
         }
     }
 }
