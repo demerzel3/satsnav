@@ -33,7 +33,7 @@
 		E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */; };
 		E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428B2B13E4A60053DB47 /* TransactionStorage.swift */; };
 		E079429E2B13E4A60053DB47 /* Array.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428C2B13E4A60053DB47 /* Array.swift */; };
-		E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* GroupedLedger.swift */; };
+		E07942A02B13E4A60053DB47 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942922B13E4A60053DB47 /* Transaction.swift */; };
 		E07942A12B13E4A60053DB47 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942952B13E4A60053DB47 /* Balance.swift */; };
 		E07942A22B13E4A60053DB47 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942942B13E4A60053DB47 /* Models.swift */; };
 		E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */; };
@@ -118,7 +118,7 @@
 		E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElectrumJSONRPCRequest.swift; sourceTree = "<group>"; };
 		E07942902B13E4A60053DB47 /* Addresses.swift.sample */ = {isa = PBXFileReference; lastKnownFileType = text; path = Addresses.swift.sample; sourceTree = "<group>"; };
 		E07942912B13E4A60053DB47 /* Address.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Address.swift; sourceTree = "<group>"; };
-		E07942922B13E4A60053DB47 /* GroupedLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupedLedger.swift; sourceTree = "<group>"; };
+		E07942922B13E4A60053DB47 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		E07942942B13E4A60053DB47 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E07942952B13E4A60053DB47 /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
 		E07942C62B13FA840053DB47 /* round.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = round.swift; sourceTree = "<group>"; };
@@ -219,7 +219,7 @@
 				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
-				E07942922B13E4A60053DB47 /* GroupedLedger.swift */,
+				E07942922B13E4A60053DB47 /* Transaction.swift */,
 				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
 				E065EDF22B1BD2F80007CE2E /* HistoricPriceProvider.swift */,
 				E07942942B13E4A60053DB47 /* Models.swift */,
@@ -457,7 +457,7 @@
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
 				E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */,
 				E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */,
-				E07942A02B13E4A60053DB47 /* GroupedLedger.swift in Sources */,
+				E07942A02B13E4A60053DB47 /* Transaction.swift in Sources */,
 				E094B5F12B48A7F100E8F41C /* ServiceAccount.swift in Sources */,
 				E07942982B13E4A60053DB47 /* OnchainTransaction.swift in Sources */,
 				E065EDF72B1FD0320007CE2E /* buildBtcHistory.swift in Sources */,

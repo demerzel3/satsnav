@@ -45,17 +45,17 @@ typealias Balance = [Asset: RefsArray]
  TODO: alert if dust is significantly bigger than a rounding error, doesn't seem the case by inspecting the logs though
  */
 
-func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [String: Balance] {
+func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String: Balance] {
     //             [Wallet: Balance]
     var balances = [String: Balance]()
-    for (index, group) in groupedLedgers.enumerated() {
+    for (index, group) in transactions.enumerated() {
         if debug {
             print(group)
         }
 
         if index % 500 == 0 {
             let topLevelRefsCount = balances.reduce(0) { $0 + $1.value.reduce(0) { $0 + $1.value.count }}
-            print("\(index)/\(groupedLedgers.count) - \(topLevelRefsCount)")
+            print("\(index)/\(transactions.count) - \(topLevelRefsCount)")
         }
 
         switch group {

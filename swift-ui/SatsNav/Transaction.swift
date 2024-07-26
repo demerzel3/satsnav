@@ -1,6 +1,6 @@
 import Foundation
 
-enum GroupedLedger: CustomStringConvertible {
+enum Transaction {
     // Single transaction within a wallet (e.g. Fee, Interest, Bonus) or ungrouped ledger entry
     case single(entry: LedgerEntry)
     // Trade within a single wallet
@@ -18,7 +18,9 @@ enum GroupedLedger: CustomStringConvertible {
             return from.date < to.date ? from.date : to.date
         }
     }
+}
 
+extension Transaction: CustomStringConvertible {
     var description: String {
         switch self {
         case .single(let entry):
@@ -33,11 +35,11 @@ enum GroupedLedger: CustomStringConvertible {
     }
 }
 
-func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [GroupedLedger] {
+func groupLedgers(ledgers: any Sequence<LedgerEntry>) -> [Transaction] {
     var ignoredLedgers = 0
     var transferByAmount = [String: LedgerEntry]()
     var tradesByGroupId = [String: LedgerEntry]()
-    var groups = [GroupedLedger]()
+    var groups = [Transaction]()
 
 //    let ledgersCountBeforeIgnore = ledgers.count
 //    ledgers = ledgers.filter { ledgersMeta["\($0.wallet)-\($0.id)"].map { !$0.ignored } ?? true }

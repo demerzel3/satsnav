@@ -68,9 +68,9 @@ final class BalancesManager: ObservableObject {
         let ledgers = await ledgerRepository.getAllLedgerEntries()
         let ledgersById = Dictionary(uniqueKeysWithValues: ledgers.map { ($0.globalId, $0) })
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
-        let groupedLedgers = groupLedgers(ledgers: ledgers)
-        print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")
-        balances = buildBalances(groupedLedgers: groupedLedgers, debug: false)
+        let transactions = groupLedgers(ledgers: ledgers)
+        print("Grouped after \(Date.now.timeIntervalSince(start))s \(transactions.count)")
+        balances = buildBalances(transactions: transactions, debug: false)
         print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
 
         verify(balances: balances, getLedgerById: { id in ledgersById[id] })
