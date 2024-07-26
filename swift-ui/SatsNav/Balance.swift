@@ -60,7 +60,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
 
         switch group {
         case .single(let entry):
-            // Ignore entries with amount 0
+            // TODO: we have a non-negligible amount of entries with 0 amount, maybe avoid injesting them in the first place
             guard entry.amount != 0 else {
                 continue
             }
