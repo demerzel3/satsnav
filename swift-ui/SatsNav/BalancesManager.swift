@@ -36,6 +36,7 @@ final class CacheItem: Object {
 final class BalancesManager: ObservableObject {
     @Published var history = [PortfolioHistoryItem]()
     @Published var recap = [WalletRecap]()
+    private var ledgerRepository: LedgerRepository
     private let realmConfiguration: Realm.Configuration
     private var realm: Realm?
 
@@ -45,8 +46,9 @@ final class BalancesManager: ObservableObject {
 
     private var balances = [String: Balance]()
 
-    init(credentials: Credentials) {
+    init(credentials: Credentials, ledgerRepository: LedgerRepository) {
         self.realmConfiguration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
+        self.ledgerRepository = ledgerRepository
     }
 
     func getRefs(byWallet wallet: String, asset: Asset) -> RefsArray {
@@ -61,24 +63,19 @@ final class BalancesManager: ObservableObject {
         return assetBalance
     }
 
-    @RealmActor
     private func updateComputedValues() async {
         let start = Date.now
-        let realm = try! await getRealm()
-        let ledgers = realm.objects(LedgerEntry.self).sorted { a, b in a.date < b.date }
+        let ledgers = await ledgerRepository.getAllLedgerEntries()
+        let ledgersById = Dictionary(uniqueKeysWithValues: ledgers.map { ($0.globalId, $0) })
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let groupedLedgers = groupLedgers(ledgers: ledgers)
         print("Grouped after \(Date.now.timeIntervalSince(start))s \(groupedLedgers.count)")
         balances = buildBalances(groupedLedgers: groupedLedgers, debug: false)
         print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
 
-        verify(balances: balances, getLedgerById: { id in
-            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
-        })
+        verify(balances: balances, getLedgerById: { id in ledgersById[id] })
 
-        let history = buildBtcHistory(balances: balances, getLedgerById: { id in
-            realm.object(ofType: LedgerEntry.self, forPrimaryKey: id)
-        })
+        let history = buildBtcHistory(balances: balances, getLedgerById: { id in ledgersById[id] })
         print("Ready after \(Date.now.timeIntervalSince(start))s")
 
         let recap = balances.map { wallet, balance in
@@ -160,7 +157,7 @@ final class BalancesManager: ObservableObject {
             return
         }
 
-        let maybeLastKrakenLedger = realm.objects(LedgerEntry.self)
+        let maybeLastKrakenLedger = realm.objects(RealmLedgerEntry.self)
             .filter { $0.wallet == "Kraken" && $0.id.starts(with: "L") }
             .sorted { a, b in a.date < b.date }.last
         guard let lastKrakenLedger = maybeLastKrakenLedger else {
@@ -174,22 +171,10 @@ final class BalancesManager: ObservableObject {
         await merge(ledgers)
     }
 
-    @RealmActor
     func merge(_ newEntries: [LedgerEntry]) async {
-        let realm = try! await getRealm()
         print("-- MERGING")
-        try! realm.write {
-            var deletedCount = 0
-            for entry in newEntries {
-                if let oldEntry = realm.object(ofType: LedgerEntry.self, forPrimaryKey: entry.globalId) {
-                    realm.delete(oldEntry)
-                    deletedCount += 1
-                }
-                realm.add(entry)
-            }
-            print("-- Deleted \(deletedCount) entries")
-            print("-- Added \(newEntries.count) entries")
-        }
+        let mergedCount = try! await ledgerRepository.merge(newEntries)
+        print("-- Merged \(mergedCount) entries")
         print("-- MERGING ENDED")
     }
 

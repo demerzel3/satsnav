@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E00D26D32C543D57005D51D5 /* LedgerRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D22C543D57005D51D5 /* LedgerRepository.swift */; };
 		E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DF92BB6AEE200DACDA9 /* RefsView.swift */; };
 		E0392DFC2BB6F77C00DACDA9 /* SpendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */; };
 		E05A11F92B24FB8A0062D67C /* Realm in Frameworks */ = {isa = PBXBuildFile; productRef = E05A11F82B24FB8A0062D67C /* Realm */; };
@@ -79,6 +80,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E00D26D22C543D57005D51D5 /* LedgerRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRepository.swift; sourceTree = "<group>"; };
 		E0392DF92BB6AEE200DACDA9 /* RefsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefsView.swift; sourceTree = "<group>"; };
 		E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendsView.swift; sourceTree = "<group>"; };
 		E05A11FC2B265C290062D67C /* CredentialsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsStore.swift; sourceTree = "<group>"; };
@@ -162,6 +164,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E00D26D12C543D3E005D51D5 /* Repository */ = {
+			isa = PBXGroup;
+			children = (
+				E06A2C832B249B6000ACC723 /* LedgerEntry.swift */,
+				E00D26D22C543D57005D51D5 /* LedgerRepository.swift */,
+			);
+			path = Repository;
+			sourceTree = "<group>";
+		};
 		E065EDFD2B22758F0007CE2E /* HistoricData */ = {
 			isa = PBXGroup;
 			children = (
@@ -193,6 +204,7 @@
 		E07942452B13A7DE0053DB47 /* SatsNav */ = {
 			isa = PBXGroup;
 			children = (
+				E00D26D12C543D3E005D51D5 /* Repository */,
 				E065EDFD2B22758F0007CE2E /* HistoricData */,
 				E07942902B13E4A60053DB47 /* Addresses.swift.sample */,
 				E07942912B13E4A60053DB47 /* Address.swift */,
@@ -215,7 +227,6 @@
 				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
 				E079428B2B13E4A60053DB47 /* TransactionStorage.swift */,
 				E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */,
-				E06A2C832B249B6000ACC723 /* LedgerEntry.swift */,
 				E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */,
 				E079424C2B13A7DF0053DB47 /* Assets.xcassets */,
 				E07942C82B13FB020053DB47 /* CSVReader */,
@@ -429,6 +440,7 @@
 			files = (
 				E07942BF2B13F7A60053DB47 /* LednCSVReader.swift in Sources */,
 				E079429C2B13E4A60053DB47 /* TransactionStorage.swift in Sources */,
+				E00D26D32C543D57005D51D5 /* LedgerRepository.swift in Sources */,
 				E05A11FD2B265C290062D67C /* CredentialsStore.swift in Sources */,
 				E07942A12B13E4A60053DB47 /* Balance.swift in Sources */,
 				E07942CA2B13FB720053DB47 /* format.swift in Sources */,

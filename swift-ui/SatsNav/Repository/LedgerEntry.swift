@@ -1,9 +1,8 @@
 import Foundation
 import RealmSwift
 
-enum AssetType: Int, PersistableEnum, Codable {
-    case fiat
-    case crypto
+enum AssetType: Int, Codable {
+    case fiat, crypto
 }
 
 struct Asset: Hashable, Codable {
@@ -11,7 +10,7 @@ struct Asset: Hashable, Codable {
     let type: AssetType
 }
 
-final class LedgerEntry: Object {
+final class RealmLedgerEntry: Object {
     enum LedgerEntryType: Int, PersistableEnum {
         case deposit
         case withdrawal
@@ -20,6 +19,11 @@ final class LedgerEntry: Object {
         case bonus
         case fee
         case transfer // Fallback
+    }
+
+    enum AssetType: Int, PersistableEnum, Codable {
+        case fiat
+        case crypto
     }
 
     @Persisted var wallet: String
@@ -47,10 +51,10 @@ final class LedgerEntry: Object {
     var asset: Asset {
         set {
             assetName = newValue.name
-            assetType = newValue.type
+            assetType = newValue.type == .fiat ? .fiat : .crypto
         }
         get {
-            Asset(name: assetName, type: assetType)
+            Asset(name: assetName, type: assetType == .fiat ? .fiat : .crypto)
         }
     }
 
@@ -76,5 +80,41 @@ extension Decimal: CustomPersistable {
 
     public var persistableValue: PersistedType {
         "\(self)"
+    }
+}
+
+struct LedgerEntry: Identifiable, Codable {
+    let wallet: String
+    let id: String
+    let groupId: String
+    let date: Date
+    let type: LedgerEntryType
+    let amount: Decimal
+    let asset: Asset
+
+    enum LedgerEntryType: Int, Codable {
+        case deposit, withdrawal, trade, interest, bonus, fee, transfer
+    }
+
+    var description: String {
+        "\(date) \(wallet) \(type) \(formattedAmount) - \(id)"
+    }
+}
+
+// Computed props
+extension LedgerEntry {
+    var globalId: String {
+        return "\(wallet)-\(id)"
+    }
+}
+
+// Formatting methods
+extension LedgerEntry {
+    var formattedAmount: String {
+        "\(asset.name) \(asset.type == .crypto ? formatBtcAmount(amount) : formatFiatAmount(amount))"
+    }
+
+    var formattedAbsAmount: String {
+        "\(asset.name) \(asset.type == .crypto ? formatBtcAmount(abs(amount)) : formatFiatAmount(abs(amount)))"
     }
 }

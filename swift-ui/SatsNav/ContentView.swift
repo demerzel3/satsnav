@@ -29,6 +29,7 @@ private let INTERVALS: [ChartInterval] = [
 
 struct ContentView: View {
     var credentials: Credentials
+    private var ledgerRepository: LedgerRepository
     @StateObject private var balances: BalancesManager
     @StateObject private var btc = HistoricPriceProvider()
     @StateObject private var webSocketManager = WebSocketManager()
@@ -39,8 +40,11 @@ struct ContentView: View {
     @State private var showAllWallets = false
 
     init(credentials: Credentials) {
+        let ledgerRepository = LedgerRepository(credentials: credentials)
+
         self.credentials = credentials
-        _balances = StateObject(wrappedValue: BalancesManager(credentials: credentials))
+        self.ledgerRepository = ledgerRepository
+        self._balances = StateObject(wrappedValue: BalancesManager(credentials: credentials, ledgerRepository: ledgerRepository))
     }
 
     var header: some View {

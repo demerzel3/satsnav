@@ -53,8 +53,9 @@ func buildBalances(groupedLedgers: [GroupedLedger], debug: Bool = false) -> [Str
             print(group)
         }
 
-        if index % 10 == 0 {
-            print("\(index)/\(groupedLedgers.count)")
+        if index % 500 == 0 {
+            let topLevelRefsCount = balances.reduce(0) { $0 + $1.value.reduce(0) { $0 + $1.value.count }}
+            print("\(index)/\(groupedLedgers.count) - \(topLevelRefsCount)")
         }
 
         switch group {
