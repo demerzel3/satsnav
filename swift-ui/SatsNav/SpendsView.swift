@@ -39,11 +39,13 @@ struct SpendsView: View {
                     let fiatAmount = item.rate.map { " - \(formatFiatAmount($0 * item.amount)) €" }
 
                     Section("\(amount)\(fiatAmount ?? "")") {
-                        ForEach(item.refIds, id: \.self) { refId in
-                            Button(action: {
-                                UIPasteboard.general.string = refId
-                                print("Copied to clipboard: \(refId)")
-                            }) { Text(refId) }
+                        switch item.transaction {
+                        case .single(let entry):
+                            Text("\(entry)")
+                        case .trade(let spend, let receive):
+                            Text("\(spend.asset.name) -> \(receive.asset.name)")
+                        case .transfer(let from, let to):
+                            Text("\(from.wallet) -> \(to.wallet)")
                         }
                     }
                 }

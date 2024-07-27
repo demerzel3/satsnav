@@ -213,12 +213,14 @@ final class BalancesManager: ObservableObject {
 
         let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = balance
             .compactMap {
-                guard let entry = getLedgerById($0.refId) else {
-                    print("Entry not found \($0.refId)")
-                    return nil
+                switch $0.transaction {
+                case .single(let entry):
+                    return ($0, entry, ledgersMeta[entry.globalId].flatMap { $0.comment })
+                case .trade(let spend, let receive):
+                    return ($0, receive, ledgersMeta[receive.globalId].flatMap { $0.comment })
+                case .transfer(let from, let to):
+                    return ($0, to, ledgersMeta[to.globalId].flatMap { $0.comment })
                 }
-
-                return ($0, entry, ledgersMeta[$0.refId].flatMap { $0.comment })
             }
         // .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
         // .filter { $0.ref.rate == nil }

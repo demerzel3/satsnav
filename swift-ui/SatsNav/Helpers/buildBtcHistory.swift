@@ -21,8 +21,12 @@ func buildBtcHistory(balances: [String: Balance], getLedgerById: (String) -> Led
     var total = allBtcRefs.sum
     var spent = allBtcRefs.compactMap { ref in ref.rate.map { $0 * ref.amount } }.reduce(0) { $0 + $1 }
     var bonus = allBtcRefs.filter {
-        let entry = getLedgerById($0.refId)
-        return entry?.type == .bonus || entry?.type == .interest
+        switch $0.transaction {
+        case let .single(entry) where entry.type == .bonus || entry.type == .interest:
+            return true
+        default:
+            return false
+        }
     }.sum
     var entries = [PortfolioHistoryItem(date: Date.now, total: total, bonus: bonus, spent: spent)]
 
@@ -32,7 +36,7 @@ func buildBtcHistory(balances: [String: Balance], getLedgerById: (String) -> Led
         while let last = allBtcRefs.last, last.date >= d {
             total -= last.amount
             spent -= last.rate.map { $0 * last.amount } ?? 0
-            if let entry = getLedgerById(last.refId), entry.type == .bonus || entry.type == .interest {
+            if case let .single(entry) = last.transaction, entry.type == .bonus || entry.type == .interest {
                 bonus -= last.amount
             }
             _ = allBtcRefs.popLast()

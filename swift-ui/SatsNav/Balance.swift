@@ -5,33 +5,28 @@ let BASE_ASSET = Asset(name: "EUR", type: .fiat)
 struct Ref: Identifiable, Equatable, Hashable {
     let id: UUID = .init()
 
-    let refIds: [String]
+    let transaction: Transaction
     let asset: Asset
     let amount: Decimal
     let date: Date
     let rate: Decimal?
     let spends: [Ref]
 
-    init(refIds: [String], asset: Asset, amount: Decimal, date: Date, rate: Decimal?, spends: [Ref]? = nil) {
-        self.refIds = refIds
+    init(transaction: Transaction, asset: Asset, amount: Decimal, date: Date, rate: Decimal?, spends: [Ref]? = nil) {
+        self.transaction = transaction
         self.asset = asset
         self.amount = amount
         self.date = date
         self.rate = rate
         self.spends = spends ?? []
     }
+}
 
-    var refId: String {
-        refIds.first!
-    }
-
-    var count: Int {
-        refIds.count
-    }
-
+// Constructors
+extension Ref {
     func withAmount(_ newAmount: Decimal, rate newRate: Decimal? = nil, date newDate: Date? = nil) -> Ref {
         assert(newAmount > 0, "Invalid amount \(newAmount)")
-        return Ref(refIds: refIds, asset: asset, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate, spends: spends)
+        return Ref(transaction: transaction, asset: asset, amount: newAmount, date: newDate ?? date, rate: newRate ?? rate, spends: spends)
     }
 }
 
@@ -48,9 +43,9 @@ typealias Balance = [Asset: RefsArray]
 func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String: Balance] {
     //             [Wallet: Balance]
     var balances = [String: Balance]()
-    for (index, group) in transactions.enumerated() {
+    for (index, transaction) in transactions.enumerated() {
         if debug {
-            print(group)
+            print(transaction)
         }
 
         if index % 500 == 0 {
@@ -58,7 +53,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
             print("\(index)/\(transactions.count) - \(topLevelRefsCount)")
         }
 
-        switch group {
+        switch transaction {
         case .single(let entry):
             // TODO: we have a non-negligible amount of entries with 0 amount, maybe avoid injesting them in the first place
             guard entry.amount != 0 else {
@@ -67,7 +62,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
 
             var refs = balances[entry.wallet, default: Balance()][entry.asset, default: RefsArray()]
             if entry.amount > 0, entry.asset == BASE_ASSET {
-                refs.append(Ref(refIds: [entry.globalId], asset: BASE_ASSET, amount: entry.amount, date: entry.date, rate: 1))
+                refs.append(Ref(transaction: transaction, asset: BASE_ASSET, amount: entry.amount, date: entry.date, rate: 1))
             } else if entry.amount > 0 {
                 let rate = ledgersMeta[entry.globalId].flatMap { $0.rate }
 
@@ -75,7 +70,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
                     print("🚨🚨🚨 Using user-provided rate for \(entry), rate: \(userProvidedRate)")
                 }
 
-                refs.append(Ref(refIds: [entry.globalId], asset: entry.asset, amount: entry.amount, date: entry.date, rate: rate))
+                refs.append(Ref(transaction: transaction, asset: entry.asset, amount: entry.amount, date: entry.date, rate: rate))
             } else {
                 _ = subtract(refs: &refs, amount: -entry.amount)
             }
@@ -111,7 +106,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
             }
             balances[to.wallet, default: Balance()][to.asset, default: RefsArray()]
                 .append(contentsOf: groupedRefs.map { refsGroup in
-                    Ref(refIds: [from.globalId, to.globalId], asset: to.asset, amount: refsGroup.sum, date: refsGroup[0].date, rate: refsGroup[0].rate, spends: refsGroup)
+                    Ref(transaction: transaction, asset: to.asset, amount: refsGroup.sum, date: refsGroup[0].date, rate: refsGroup[0].rate, spends: refsGroup)
                 })
 
         case .trade(let spend, let receive):
@@ -132,7 +127,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
             if receive.asset == BASE_ASSET {
                 balances[wallet, default: Balance()][receive.asset, default: RefsArray()].append(
                     Ref(
-                        refIds: [spend.globalId, receive.globalId],
+                        transaction: transaction,
                         asset: BASE_ASSET,
                         amount: receive.amount,
                         date: receive.date,
@@ -158,7 +153,7 @@ func buildBalances(transactions: [Transaction], debug: Bool = false) -> [String:
                     guard nextAmount > 0 else { return nil }
 
                     return Ref(
-                        refIds: [spend.globalId, receive.globalId],
+                        transaction: transaction,
                         asset: receive.asset,
                         amount: nextAmount,
                         date: receive.date,

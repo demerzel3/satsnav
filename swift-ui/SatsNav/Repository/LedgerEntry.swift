@@ -83,7 +83,7 @@ extension Decimal: CustomPersistable {
     }
 }
 
-struct LedgerEntry: Identifiable, Codable {
+struct LedgerEntry: Identifiable, Codable, Equatable, Hashable {
     let wallet: String
     let id: String
     let groupId: String
