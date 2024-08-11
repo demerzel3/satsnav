@@ -30,11 +30,7 @@ struct RefsView: View {
                     Text("\(dateFormatter.string(from: item.date))")
                 }
 
-                if item.spends.isEmpty {
-                    listItem
-                } else {
-                    NavigationLink(destination: { SpendsView(refs: item.spends) }) { listItem }
-                }
+                NavigationLink(destination: { SpendsView(ref: item) }) { listItem }
             }
         }.listStyle(.plain)
     }

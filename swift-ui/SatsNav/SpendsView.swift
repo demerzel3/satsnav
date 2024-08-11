@@ -9,11 +9,11 @@ private func createDateFormatter() -> DateFormatter {
 }
 
 struct SpendsView: View {
-    let refs: [Ref]
+    let ref: Ref
     let dateFormatter: DateFormatter = createDateFormatter()
 
     var spendsList: [[Ref]] {
-        var parents = refs
+        var parents = [ref]
         var list = [[Ref]]()
         while parents.count == 1 {
             list.append(parents)
@@ -30,7 +30,13 @@ struct SpendsView: View {
         List {
             ForEach(spendsList, id: \.first!) { spendsItem in
                 if spendsItem.count > 1 {
-                    Text("\(spendsItem.count) parents: \(spendsItem.map { "\($0.amount) \($0.asset.name)" }.joined(separator: ", "))")
+                    Section("Multiple parents") {
+                        ForEach(spendsItem) { item in
+                            NavigationLink(destination: { SpendsView(ref: item) }) {
+                                Text("\(item.amount) \(item.asset.name)")
+                            }
+                        }
+                    }
                 } else {
                     let item = spendsItem[0]
                     let amount = item.asset.type == .fiat
