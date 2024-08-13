@@ -70,10 +70,11 @@ final class BalancesManager: ObservableObject {
         print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
         let transactions = groupLedgers(ledgers: ledgers)
         print("Grouped after \(Date.now.timeIntervalSince(start))s \(transactions.count)")
-        balances = buildBalances(transactions: transactions, debug: false)
+        let (balances, _) = buildBalances(transactions: transactions)
         print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
 
-        verify(balances: balances, getLedgerById: { id in ledgersById[id] })
+        // TODO: restore verify
+        // verify(balances: balances, getLedgerById: { id in ledgersById[id] })
 
         let history = buildBtcHistory(balances: balances, getLedgerById: { id in ledgersById[id] })
         print("Ready after \(Date.now.timeIntervalSince(start))s")
@@ -198,56 +199,40 @@ final class BalancesManager: ObservableObject {
         await update()
     }
 
-    private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
-        if let btcColdStorage = balances["❄️"]?[BTC] {
-            verifyBalance(balance: btcColdStorage, description: "Cold storage", getLedgerById: getLedgerById)
-        }
-        if let btcKraken = balances["Kraken"]?[BTC] {
-            verifyBalance(balance: btcKraken, description: "Kraken", getLedgerById: getLedgerById)
-        }
-    }
-
-    private func verifyBalance(balance: RefsArray, description: String, getLedgerById: (String) -> LedgerEntry?) {
-        print("-- \(description) --")
-        print("total", balance.sum)
-
-        let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = balance
-            .compactMap {
-                switch $0.transaction {
-                case .single(let entry):
-                    return ($0, entry, ledgersMeta[entry.globalId].flatMap { $0.comment })
-                case .trade(let spend, let receive):
-                    return ($0, receive, ledgersMeta[receive.globalId].flatMap { $0.comment })
-                case .transfer(let from, let to):
-                    return ($0, to, ledgersMeta[to.globalId].flatMap { $0.comment })
-                }
-            }
-        // .filter { $0.entry.type != .bonus && $0.entry.type != .interest }
-        // .filter { $0.ref.rate == nil }
-        // .sorted { a, b in a.ref.refIds.count > b.ref.refIds.count }
-        // .sorted { a, b in a.ref.date < b.ref.date }
-        // .sorted { a, b in a.ref.rate ?? 0 < b.ref.rate ?? 0 }
-
-        let withoutRate = enrichedRefs
-            .filter { $0.entry.type != .bonus && $0.entry.type != .interest && $0.ref.rate == nil }
-            .map { $0.ref }
-            .sum
-        print("Without rate \(withoutRate)")
-        // assert(withoutRate < 0.032, "Something broke in the grouping")
-
-        let oneSat = Decimal(string: "0.00000001")!
-        print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
-//            for (ref, _, comment) in enrichedRefs where ref.amount < oneSat {
-//                // let spent = formatFiatAmount(ref.amount * (ref.rate ?? 0))
-//                let rate = formatFiatAmount(ref.rate ?? 0)
-//                let amount = formatBtcAmount(ref.amount)
-//                print("\(ref.date) \(amount) \(rate) (\(ref.count))\(comment.map { _ in " 💬" } ?? "")")
-        ////                for refId in ref.refIds {
-        ////                    print(ledgersIndex[refId]!)
-        ////                }
-        ////                break
+//    private func verify(balances: [String: Balance], getLedgerById: (String) -> LedgerEntry?) {
+//        if let btcColdStorage = balances["❄️"]?[BTC] {
+//            verifyBalance(balance: btcColdStorage, description: "Cold storage", getLedgerById: getLedgerById)
+//        }
+//        if let btcKraken = balances["Kraken"]?[BTC] {
+//            verifyBalance(balance: btcKraken, description: "Kraken", getLedgerById: getLedgerById)
+//        }
+//    }
+//
+//    private func verifyBalance(balance: RefsArray, description: String, getLedgerById: (String) -> LedgerEntry?) {
+//        print("-- \(description) --")
+//        print("total", balance.sum)
+//
+//        let enrichedRefs: [(ref: Ref, entry: LedgerEntry, comment: String?)] = balance
+//            .compactMap {
+//                switch $0.transaction {
+//                case .single(let entry):
+//                    return ($0, entry, ledgersMeta[entry.globalId].flatMap { $0.comment })
+//                case .trade(let spend, let receive):
+//                    return ($0, receive, ledgersMeta[receive.globalId].flatMap { $0.comment })
+//                case .transfer(let from, let to):
+//                    return ($0, to, ledgersMeta[to.globalId].flatMap { $0.comment })
+//                }
 //            }
-    }
+//
+//        let withoutRate = enrichedRefs
+//            .filter { $0.entry.type != .bonus && $0.entry.type != .interest && $0.ref.rate == nil }
+//            .map { $0.ref }
+//            .sum
+//        print("Without rate \(withoutRate)")
+//
+//        let oneSat = Decimal(string: "0.00000001")!
+//        print("Below 1 sat:", enrichedRefs.filter { $0.ref.amount < oneSat }.count, "/", enrichedRefs.count)
+//    }
 
     private func getRealm() async throws -> Realm {
         if realm == nil {

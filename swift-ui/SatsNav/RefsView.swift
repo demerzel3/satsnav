@@ -14,7 +14,7 @@ struct RefsView: View {
     var body: some View {
         List {
             ForEach(refs.reversed().filter { $0.amount != 0.0001 }) { item in
-                let listItem = HStack {
+                HStack {
                     VStack(alignment: .leading) {
                         Text(item.asset.type == .fiat
                             ? "\(formatFiatAmount(item.amount)) \(item.asset.name)"
@@ -29,8 +29,6 @@ struct RefsView: View {
                     Spacer()
                     Text("\(dateFormatter.string(from: item.date))")
                 }
-
-                NavigationLink(destination: { SpendsView(ref: item) }) { listItem }
             }
         }.listStyle(.plain)
     }
