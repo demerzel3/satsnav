@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		E00D26D32C543D57005D51D5 /* LedgerRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D22C543D57005D51D5 /* LedgerRepository.swift */; };
+		E00D26D52C6D419B005D51D5 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D42C6D419B005D51D5 /* HistoryView.swift */; };
+		E00D26D72C6D41D5005D51D5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D62C6D41D5005D51D5 /* ContentView.swift */; };
 		E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DF92BB6AEE200DACDA9 /* RefsView.swift */; };
 		E0392DFC2BB6F77C00DACDA9 /* SpendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */; };
 		E05A11F92B24FB8A0062D67C /* Realm in Frameworks */ = {isa = PBXBuildFile; productRef = E05A11F82B24FB8A0062D67C /* Realm */; };
@@ -20,7 +22,7 @@
 		E065EDFC2B2275820007CE2E /* XBTEUR_1440.csv in Resources */ = {isa = PBXBuildFile; fileRef = E065EDFB2B2275820007CE2E /* XBTEUR_1440.csv */; };
 		E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06A2C832B249B6000ACC723 /* LedgerEntry.swift */; };
 		E07942472B13A7DE0053DB47 /* SatsNavApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942462B13A7DE0053DB47 /* SatsNavApp.swift */; };
-		E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942482B13A7DE0053DB47 /* ContentView.swift */; };
+		E07942492B13A7DE0053DB47 /* PortfolioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942482B13A7DE0053DB47 /* PortfolioView.swift */; };
 		E079424D2B13A7DF0053DB47 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E079424C2B13A7DF0053DB47 /* Assets.xcassets */; };
 		E07942502B13A7DF0053DB47 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E079424F2B13A7DF0053DB47 /* Preview Assets.xcassets */; };
 		E079425A2B13A7DF0053DB47 /* SatsNavTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E07942592B13A7DF0053DB47 /* SatsNavTests.swift */; };
@@ -81,6 +83,8 @@
 
 /* Begin PBXFileReference section */
 		E00D26D22C543D57005D51D5 /* LedgerRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerRepository.swift; sourceTree = "<group>"; };
+		E00D26D42C6D419B005D51D5 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		E00D26D62C6D41D5005D51D5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		E0392DF92BB6AEE200DACDA9 /* RefsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefsView.swift; sourceTree = "<group>"; };
 		E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendsView.swift; sourceTree = "<group>"; };
 		E05A11FC2B265C290062D67C /* CredentialsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsStore.swift; sourceTree = "<group>"; };
@@ -91,7 +95,7 @@
 		E06A2C832B249B6000ACC723 /* LedgerEntry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LedgerEntry.swift; sourceTree = "<group>"; };
 		E07942432B13A7DE0053DB47 /* SatsNav.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SatsNav.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E07942462B13A7DE0053DB47 /* SatsNavApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SatsNavApp.swift; sourceTree = "<group>"; };
-		E07942482B13A7DE0053DB47 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E07942482B13A7DE0053DB47 /* PortfolioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioView.swift; sourceTree = "<group>"; };
 		E079424C2B13A7DF0053DB47 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E079424F2B13A7DF0053DB47 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		E07942552B13A7DF0053DB47 /* SatsNavTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SatsNavTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -204,39 +208,41 @@
 		E07942452B13A7DE0053DB47 /* SatsNav */ = {
 			isa = PBXGroup;
 			children = (
-				E00D26D12C543D3E005D51D5 /* Repository */,
-				E065EDFD2B22758F0007CE2E /* HistoricData */,
 				E07942902B13E4A60053DB47 /* Addresses.swift.sample */,
+				E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */,
 				E07942912B13E4A60053DB47 /* Address.swift */,
 				E079428D2B13E4A60053DB47 /* Addresses.swift */,
+				E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */,
 				E079428C2B13E4A60053DB47 /* Array.swift */,
 				E07942952B13E4A60053DB47 /* Balance.swift */,
-				E07942482B13A7DE0053DB47 /* ContentView.swift */,
+				E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */,
+				E00D26D62C6D41D5005D51D5 /* ContentView.swift */,
+				E05A11FC2B265C290062D67C /* CredentialsStore.swift */,
 				E0DBFC9A2B2CF5160042D319 /* CSVImportView.swift */,
-				E094B5EC2B47490300E8F41C /* AddOnchainWalletView.swift */,
-				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
-				E094B5EE2B48A79E00E8F41C /* AddServiceAccountView.swift */,
-				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
 				E07942892B13E4A60053DB47 /* Decimal.swift */,
 				E079428E2B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift */,
-				E07942922B13E4A60053DB47 /* Transaction.swift */,
-				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
 				E065EDF22B1BD2F80007CE2E /* HistoricPriceProvider.swift */,
+				E00D26D42C6D419B005D51D5 /* HistoryView.swift */,
+				E079428A2B13E4A60053DB47 /* JSONRPCClient.swift */,
+				E094B5F22B49C3F000E8F41C /* KrakenClient.swift */,
 				E07942942B13E4A60053DB47 /* Models.swift */,
 				E07942842B13E4A60053DB47 /* OnchainTransaction.swift */,
+				E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */,
+				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
+				E07942482B13A7DE0053DB47 /* PortfolioView.swift */,
+				E0392DF92BB6AEE200DACDA9 /* RefsView.swift */,
 				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
+				E094B5F02B48A7F100E8F41C /* ServiceAccount.swift */,
+				E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */,
+				E07942922B13E4A60053DB47 /* Transaction.swift */,
 				E079428B2B13E4A60053DB47 /* TransactionStorage.swift */,
-				E065EDF42B1FC6EB0007CE2E /* BalancesManager.swift */,
 				E07942CE2B1A8F8F0053DB47 /* WebSocketManager.swift */,
 				E079424C2B13A7DF0053DB47 /* Assets.xcassets */,
 				E07942C82B13FB020053DB47 /* CSVReader */,
 				E07942C52B13FA750053DB47 /* Helpers */,
+				E065EDFD2B22758F0007CE2E /* HistoricData */,
 				E079424E2B13A7DF0053DB47 /* Preview Content */,
-				E05A11FC2B265C290062D67C /* CredentialsStore.swift */,
-				E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */,
-				E094B5F22B49C3F000E8F41C /* KrakenClient.swift */,
-				E0392DF92BB6AEE200DACDA9 /* RefsView.swift */,
-				E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */,
+				E00D26D12C543D3E005D51D5 /* Repository */,
 			);
 			path = SatsNav;
 			sourceTree = "<group>";
@@ -455,6 +461,7 @@
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
 				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
+				E00D26D52C6D419B005D51D5 /* HistoryView.swift in Sources */,
 				E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */,
 				E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */,
 				E07942A02B13E4A60053DB47 /* Transaction.swift in Sources */,
@@ -465,8 +472,9 @@
 				E07942BE2B13F7A60053DB47 /* BlockFiCSVReader.swift in Sources */,
 				E07942C32B13F7B90053DB47 /* subtract.swift in Sources */,
 				E094B5EF2B48A79E00E8F41C /* AddServiceAccountView.swift in Sources */,
+				E00D26D72C6D41D5005D51D5 /* ContentView.swift in Sources */,
 				E07942CF2B1A8F8F0053DB47 /* WebSocketManager.swift in Sources */,
-				E07942492B13A7DE0053DB47 /* ContentView.swift in Sources */,
+				E07942492B13A7DE0053DB47 /* PortfolioView.swift in Sources */,
 				E07942C12B13F7A60053DB47 /* KrakenCSVReader.swift in Sources */,
 				E0DBFC9B2B2CF5160042D319 /* CSVImportView.swift in Sources */,
 				E079429A2B13E4A60053DB47 /* JSONRPCClient.swift in Sources */,
