@@ -7,7 +7,9 @@ struct HistoryView: View {
         NavigationView {
             List {
                 ForEach(balancesManager.changes) { change in
-                    TransactionRow(change: change)
+                    NavigationLink(destination: TransactionDetailView(change: change)) {
+                        TransactionRow(change: change)
+                    }
                 }
             }
             .listStyle(PlainListStyle())

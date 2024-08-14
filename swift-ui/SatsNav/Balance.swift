@@ -10,17 +10,33 @@ struct Ref: Identifiable, Equatable, Hashable {
     let rate: Decimal?
 }
 
+extension Ref {
+    var formattedAmount: String {
+        "\(asset.name) \(asset.type == .crypto ? formatBtcAmount(amount) : formatFiatAmount(amount))"
+    }
+}
+
 struct BalanceChange: Identifiable {
     let id = UUID()
     let transaction: Transaction
     let changes: [RefChange]
 
-    enum RefChange {
+    enum RefChange: Identifiable, Hashable {
         case create(ref: Ref, wallet: String)
         case remove(ref: Ref, wallet: String)
         case move(ref: Ref, fromWallet: String, toWallet: String)
         case split(originalRef: Ref, resultingRefs: [Ref], wallet: String)
         case convert(fromRefs: [Ref], toRef: Ref, wallet: String)
+
+        var id: String {
+            switch self {
+            case .create(let ref, _): "create-\(ref.id)"
+            case .remove(let ref, _): "remove-\(ref.id)"
+            case .split(let originalRef, let resultingRefs, _): "split-\(originalRef.id)-\(resultingRefs.map { $0.id.uuidString }.joined(separator: "-"))"
+            case .move(let ref, _, _): "move-\(ref.id)"
+            case .convert(let fromRefs, let toRef, _): "convert-\(fromRefs.map { $0.id.uuidString }.joined(separator: "-"))-\(toRef.id)"
+            }
+        }
     }
 }
 
