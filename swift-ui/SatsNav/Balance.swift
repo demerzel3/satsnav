@@ -64,7 +64,7 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
 
         switch transaction {
         case .single(let entry):
-            // TODO: we have a non-negligible amount of entries with 0 amount, maybe avoid injesting them in the first place
+            // TODO: we have a non-negligible amount of entries with 0 amount, maybe avoid ingesting them in the first place
             guard entry.amount != 0 else {
                 continue
             }
@@ -141,7 +141,7 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
 
                     return nextAmount > 0
                 }
-                
+
                 nonDustRefs.forEach { ref in
                     assert(round(ref.amount / rate, precision: precision) > 0)
                 }
@@ -154,7 +154,7 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                     // TODO: avoid doing amount calculation twice
                     let nextRate = ref.rate.map { $0 * rate }.map { round($0, precision: precision) }
                     let nextAmount = round(ref.amount / rate, precision: precision)
-                    
+
                     assert(nextAmount > 0, "Ok this should definitely never happen")
 
                     return Ref(asset: receive.asset, amount: nextAmount, date: receive.date, rate: nextRate)
@@ -177,7 +177,7 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                 } else if dust < 0 {
                     // Drop refs up to the dust amount
                     _ = subtract(refs: &receiveRefs, amount: -dust)
-                    
+
                     receiveRefs.forEach {
                         assert($0.amount > 0, "Something went wrong with our friends the receiveRefs after subtract")
                     }
@@ -194,9 +194,8 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
             }
         }
 
-        if !changes.isEmpty {
-            balanceChanges.append(BalanceChange(transaction: transaction, changes: changes))
-        }
+        assert(!changes.isEmpty, "Transaction resulted in no changes \(transaction)")
+        balanceChanges.append(BalanceChange(transaction: transaction, changes: changes))
     }
 
     return (balances: currentBalances, changes: balanceChanges)

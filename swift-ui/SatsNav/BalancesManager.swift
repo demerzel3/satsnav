@@ -34,8 +34,9 @@ final class CacheItem: Object {
 }
 
 final class BalancesManager: ObservableObject {
-    @Published var history = [PortfolioHistoryItem]()
-    @Published var recap = [WalletRecap]()
+    @Published var history: [PortfolioHistoryItem] = []
+    @Published var recap: [WalletRecap] = []
+    @Published var changes: [BalanceChange] = []
     private var ledgerRepository: LedgerRepository
     private let realmConfiguration: Realm.Configuration
     private var realm: Realm?
@@ -53,11 +54,11 @@ final class BalancesManager: ObservableObject {
 
     func getRefs(byWallet wallet: String, asset: Asset) -> RefsArray {
         guard let walletBalances = balances[wallet] else {
-            return RefsArray()
+            return []
         }
 
         guard let assetBalance = walletBalances[asset] else {
-            return RefsArray()
+            return []
         }
 
         return assetBalance
@@ -67,12 +68,13 @@ final class BalancesManager: ObservableObject {
         let start = Date.now
         let ledgers = await ledgerRepository.getAllLedgerEntries()
         let ledgersById = Dictionary(uniqueKeysWithValues: ledgers.map { ($0.globalId, $0) })
-        print("Loaded after \(Date.now.timeIntervalSince(start))s \(ledgers.count)")
+        print("Loaded after \(Date.now.timeIntervalSince(start))s ledgers:\(ledgers.count)")
         let transactions = groupLedgers(ledgers: ledgers)
-        print("Grouped after \(Date.now.timeIntervalSince(start))s \(transactions.count)")
-        let (balances, _) = buildBalances(transactions: transactions)
-        print("Built balances after \(Date.now.timeIntervalSince(start))s \(balances.count)")
+        print("Grouped after \(Date.now.timeIntervalSince(start))s transactions:\(transactions.count)")
+        let (balances, changes) = buildBalances(transactions: transactions)
+        print("Built balances after \(Date.now.timeIntervalSince(start))s balances:\(balances.count) changes:\(changes.count)")
 
+        self.balances = balances
         // TODO: restore verify
         // verify(balances: balances, getLedgerById: { id in ledgersById[id] })
 
@@ -94,6 +96,7 @@ final class BalancesManager: ObservableObject {
         await MainActor.run {
             self.history = history
             self.recap = recap
+            self.changes = changes
         }
     }
 
