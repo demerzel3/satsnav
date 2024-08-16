@@ -4,6 +4,7 @@ import {
     Ref,
     AssetType,
     LedgerEntryType,
+    Transaction,
 } from "./types";
 
 export function generateDOT(changes: BalanceChange[]): string {
@@ -43,19 +44,22 @@ export function generateDOT(changes: BalanceChange[]): string {
         return label.replace(/"/g, '\\"');
     }
 
-    function generateRefNode(ref: Ref, wallet: string): string {
+    function generateRefNode(
+        ref: Ref,
+        wallet: string,
+        isFee: boolean = false
+    ): string {
         const id = getRefId(ref, wallet);
-        const color = getColor(wallet);
+        const color = isFee ? "#D3D3D3" : getColor(wallet); // Light gray for fee
         const label = escapeLabel(`${ref.amount} ${ref.asset.name}`);
         const tooltip = escapeLabel(
             `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${ref.amount}`
         );
-        return `  ${id} [label="${label}", color="${color}", style=filled, tooltip="${tooltip}"];\n`;
+        const fontSize = isFee ? "10" : "14"; // Smaller font for fee
+        return `  ${id} [label="${label}", color="${color}", style=filled, tooltip="${tooltip}", fontsize=${fontSize}];\n`;
     }
 
-    function generateTransactionTooltip(
-        transaction: BalanceChange["transaction"]
-    ): string {
+    function generateTransactionTooltip(transaction: Transaction): string {
         if ("single" in transaction) {
             return `Single: ${LedgerEntryType[transaction.single.entry.type]}`;
         } else if ("trade" in transaction) {
@@ -65,8 +69,19 @@ export function generateDOT(changes: BalanceChange[]): string {
         }
     }
 
+    function getTransactionType(transaction: Transaction): string {
+        if ("single" in transaction) {
+            return LedgerEntryType[transaction.single.entry.type];
+        } else if ("trade" in transaction) {
+            return "Trade";
+        } else {
+            return "Transfer";
+        }
+    }
+
     function generateChangeEdge(
         change: RefChange,
+        transaction: Transaction,
         transactionTooltip: string
     ): string {
         if ("create" in change) {
@@ -74,12 +89,19 @@ export function generateDOT(changes: BalanceChange[]): string {
         } else if ("remove" in change) {
             const { ref, wallet } = change.remove;
             const fromId = getRefId(ref, wallet);
-            return `  ${fromId} -> point_${fromId} [label="Remove", tooltip="${transactionTooltip}"];\n  point_${fromId} [shape=point];\n`;
+            const transactionType = getTransactionType(transaction);
+            if (transactionType === "Fee") {
+                return ""; // No edge for fee removals
+            } else if (transactionType === "Withdrawal") {
+                return `  ${fromId} -> point_${fromId} [label="${transactionType}", tooltip="${transactionTooltip}"];\n  point_${fromId} [shape=diamond];\n`;
+            } else {
+                return `  ${fromId} -> point_${fromId} [label="${transactionType}", tooltip="${transactionTooltip}"];\n  point_${fromId} [shape=point];\n`;
+            }
         } else if ("move" in change) {
             const { ref, fromWallet, toWallet } = change.move;
             const fromId = getRefId(ref, fromWallet);
             const toId = getRefId(ref, toWallet);
-            return `  ${fromId} -> ${toId} [label="Move", tooltip="${transactionTooltip}"];\n`;
+            return `  ${fromId} -> ${toId} [label="Transfer", tooltip="${transactionTooltip}"];\n`;
         } else if ("split" in change) {
             const { originalRef, resultingRefs, wallet } = change.split;
             const fromId = getRefId(originalRef, wallet);
@@ -87,7 +109,7 @@ export function generateDOT(changes: BalanceChange[]): string {
             return toIds
                 .map(
                     (toId) =>
-                        `  ${fromId} -> ${toId} [label="Split", tooltip="${transactionTooltip}"];\n`
+                        `  ${fromId} -> ${toId} [tooltip="${transactionTooltip}"];\n`
                 )
                 .join("");
         } else {
@@ -124,6 +146,7 @@ export function generateDOT(changes: BalanceChange[]): string {
         const transactionTooltip = escapeLabel(
             generateTransactionTooltip(change.transaction)
         );
+        const transactionType = getTransactionType(change.transaction);
 
         change.changes.forEach((refChange) => {
             if ("create" in refChange) {
@@ -139,7 +162,8 @@ export function generateDOT(changes: BalanceChange[]): string {
             } else if ("remove" in refChange) {
                 dot += generateRefNode(
                     refChange.remove.ref,
-                    refChange.remove.wallet
+                    refChange.remove.wallet,
+                    transactionType === "Fee"
                 );
                 rankGroups
                     .get(timestamp)!
@@ -189,7 +213,11 @@ export function generateDOT(changes: BalanceChange[]): string {
                     );
             }
 
-            dot += generateChangeEdge(refChange, transactionTooltip);
+            dot += generateChangeEdge(
+                refChange,
+                change.transaction,
+                transactionTooltip
+            );
         });
 
         dot += "\n";
