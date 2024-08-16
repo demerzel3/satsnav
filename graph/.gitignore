@@ -1,2 +1,3 @@
-data.json
+*.dot
+*.json
 node_modules

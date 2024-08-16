@@ -23,13 +23,12 @@ export function generateDOT(changes: BalanceChange[]): string {
         "#9575CD",
     ];
 
-    function getColor(wallet: string, assetName: string): string {
-        const key = `${wallet}-${assetName}`;
-        if (!colorMap.has(key)) {
-            colorMap.set(key, colors[colorIndex % colors.length]);
+    function getColor(wallet: string): string {
+        if (!colorMap.has(wallet)) {
+            colorMap.set(wallet, colors[colorIndex % colors.length]);
             colorIndex++;
         }
-        return colorMap.get(key)!;
+        return colorMap.get(wallet)!;
     }
 
     function getRefId(ref: Ref, wallet: string): string {
@@ -46,7 +45,7 @@ export function generateDOT(changes: BalanceChange[]): string {
 
     function generateRefNode(ref: Ref, wallet: string): string {
         const id = getRefId(ref, wallet);
-        const color = getColor(wallet, ref.asset.name);
+        const color = getColor(wallet);
         const label = escapeLabel(`${ref.amount} ${ref.asset.name}`);
         const tooltip = escapeLabel(
             `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${ref.amount}`
@@ -210,10 +209,9 @@ export function generateDOT(changes: BalanceChange[]): string {
     dot += "    style = filled;\n";
     dot += "    color = lightgrey;\n";
 
-    colorMap.forEach((color, key) => {
-        const [wallet, asset] = key.split("-");
-        const legendId = `legend_${wallet}_${asset}`;
-        dot += `    ${legendId} [label="${wallet} - ${asset}", color="${color}", style=filled];\n`;
+    colorMap.forEach((color, wallet) => {
+        const legendId = `legend_${wallet.replace(/\s+/g, "_")}`;
+        dot += `    ${legendId} [label="${wallet}", color="${color}", style=filled];\n`;
     });
 
     dot += "  }\n";
