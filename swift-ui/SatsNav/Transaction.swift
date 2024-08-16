@@ -1,6 +1,6 @@
 import Foundation
 
-enum Transaction: Equatable, Hashable {
+enum Transaction: Equatable, Hashable, Encodable {
     // Single transaction within a wallet (e.g. Fee, Interest, Bonus) or ungrouped ledger entry
     case single(entry: LedgerEntry)
     // Trade within a single wallet

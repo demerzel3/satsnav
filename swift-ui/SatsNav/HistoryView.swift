@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HistoryView: View {
     @ObservedObject var balancesManager: BalancesManager
+    @State private var showingAlert = false
 
     var body: some View {
         NavigationView {
@@ -14,6 +15,23 @@ struct HistoryView: View {
             }
             .listStyle(PlainListStyle())
             .navigationBarTitle("Transaction History", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: copyJSONToClipboard) {
+                        Image(systemName: "doc.on.clipboard")
+                    }
+                }
+            }
+            .alert(isPresented: $showingAlert) {
+                Alert(title: Text("JSON Copied"), message: Text("The transaction history has been copied to the clipboard as JSON."), dismissButton: .default(Text("OK")))
+            }
+        }
+    }
+    
+    private func copyJSONToClipboard() {
+        if let jsonString = balanceChangesToJSON(balancesManager.changes) {
+            UIPasteboard.general.string = jsonString
+            showingAlert = true
         }
     }
 }
@@ -75,5 +93,17 @@ struct TransactionRow: View {
         case .transfer(let from, let to):
             return "Transfer: \(from.wallet) → \(to.wallet)"
         }
+    }
+}
+
+func balanceChangesToJSON(_ changes: [BalanceChange]) -> String? {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = .prettyPrinted
+    do {
+        let jsonData = try encoder.encode(changes)
+        return String(data: jsonData, encoding: .utf8)
+    } catch {
+        print("Error encoding to JSON: \(error)")
+        return nil
     }
 }

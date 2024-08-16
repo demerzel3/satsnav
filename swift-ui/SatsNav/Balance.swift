@@ -2,7 +2,7 @@ import Foundation
 
 let BASE_ASSET = Asset(name: "EUR", type: .fiat)
 
-struct Ref: Identifiable, Equatable, Hashable {
+struct Ref: Identifiable, Equatable, Hashable, Encodable {
     let id = UUID()
     let asset: Asset
     let amount: Decimal
@@ -16,12 +16,12 @@ extension Ref {
     }
 }
 
-struct BalanceChange: Identifiable {
+struct BalanceChange: Identifiable, Encodable {
     let id = UUID()
     let transaction: Transaction
     let changes: [RefChange]
 
-    enum RefChange: Identifiable, Hashable {
+    enum RefChange: Identifiable, Hashable, Encodable {
         case create(ref: Ref, wallet: String)
         case remove(ref: Ref, wallet: String)
         case move(ref: Ref, fromWallet: String, toWallet: String)
@@ -37,6 +37,23 @@ struct BalanceChange: Identifiable {
             case .convert(let fromRefs, let toRef, _): "convert-\(fromRefs.map { $0.id.uuidString }.joined(separator: "-"))-\(toRef.id)"
             }
         }
+    }
+}
+
+extension BalanceChange {
+    var isTransfer: Bool {
+        guard case .transfer = transaction else { return false }
+        return true
+    }
+
+    var isTrade: Bool {
+        guard case .trade = transaction else { return false }
+        return true
+    }
+
+    var isSingle: Bool {
+        guard case .single = transaction else { return false }
+        return true
     }
 }
 
