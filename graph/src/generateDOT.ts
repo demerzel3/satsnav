@@ -93,15 +93,15 @@ export function generateDOT(changes: BalanceChange[]): string {
             if (transactionType === "Fee") {
                 return ""; // No edge for fee removals
             } else if (transactionType === "Withdrawal") {
-                return `  ${fromId} -> point_${fromId} [label="${transactionType}", tooltip="${transactionTooltip}"];\n  point_${fromId} [shape=diamond];\n`;
+                return `  ${fromId} -> point_${fromId} [label="${transactionType}", edgetooltip="${transactionTooltip}"];\n  point_${fromId} [shape=diamond];\n`;
             } else {
-                return `  ${fromId} -> point_${fromId} [label="${transactionType}", tooltip="${transactionTooltip}"];\n  point_${fromId} [shape=point];\n`;
+                return `  ${fromId} -> point_${fromId} [label="${transactionType}", edgetooltip="${transactionTooltip}"];\n  point_${fromId} [shape=point];\n`;
             }
         } else if ("move" in change) {
             const { ref, fromWallet, toWallet } = change.move;
             const fromId = getRefId(ref, fromWallet);
             const toId = getRefId(ref, toWallet);
-            return `  ${fromId} -> ${toId} [label="Transfer", tooltip="${transactionTooltip}"];\n`;
+            return `  ${fromId} -> ${toId} [label="Transfer", edgetooltip="${transactionTooltip}"];\n`;
         } else if ("split" in change) {
             const { originalRef, resultingRefs, wallet } = change.split;
             const fromId = getRefId(originalRef, wallet);
@@ -109,7 +109,7 @@ export function generateDOT(changes: BalanceChange[]): string {
             return toIds
                 .map(
                     (toId) =>
-                        `  ${fromId} -> ${toId} [tooltip="${transactionTooltip}"];\n`
+                        `  ${fromId} -> ${toId} [edgetooltip="${transactionTooltip}"];\n`
                 )
                 .join("");
         } else {
@@ -119,7 +119,7 @@ export function generateDOT(changes: BalanceChange[]): string {
             return fromIds
                 .map(
                     (fromId) =>
-                        `  ${fromId} -> ${toId} [label="Convert", tooltip="${transactionTooltip}"];\n`
+                        `  ${fromId} -> ${toId} [label="Convert", edgetooltip="${transactionTooltip}"];\n`
                 )
                 .join("");
         }
@@ -129,8 +129,6 @@ export function generateDOT(changes: BalanceChange[]): string {
     dot += "  rankdir=LR;\n";
     dot += "  node [shape=box];\n\n";
 
-    let rankGroups: Map<number, string[]> = new Map();
-
     changes.forEach((change, index) => {
         const timestamp =
             "single" in change.transaction
@@ -138,10 +136,6 @@ export function generateDOT(changes: BalanceChange[]): string {
                 : "trade" in change.transaction
                 ? change.transaction.trade.spend.date
                 : change.transaction.transfer?.from.date;
-
-        if (!rankGroups.has(timestamp)) {
-            rankGroups.set(timestamp, []);
-        }
 
         const transactionTooltip = escapeLabel(
             generateTransactionTooltip(change.transaction)
@@ -154,22 +148,12 @@ export function generateDOT(changes: BalanceChange[]): string {
                     refChange.create.ref,
                     refChange.create.wallet
                 );
-                rankGroups
-                    .get(timestamp)!
-                    .push(
-                        getRefId(refChange.create.ref, refChange.create.wallet)
-                    );
             } else if ("remove" in refChange) {
                 dot += generateRefNode(
                     refChange.remove.ref,
                     refChange.remove.wallet,
                     transactionType === "Fee"
                 );
-                rankGroups
-                    .get(timestamp)!
-                    .push(
-                        getRefId(refChange.remove.ref, refChange.remove.wallet)
-                    );
             } else if ("move" in refChange) {
                 dot += generateRefNode(
                     refChange.move.ref,
@@ -179,11 +163,6 @@ export function generateDOT(changes: BalanceChange[]): string {
                     refChange.move.ref,
                     refChange.move.toWallet
                 );
-                rankGroups
-                    .get(timestamp)!
-                    .push(
-                        getRefId(refChange.move.ref, refChange.move.toWallet)
-                    );
             } else if ("split" in refChange) {
                 dot += generateRefNode(
                     refChange.split.originalRef,
@@ -191,9 +170,6 @@ export function generateDOT(changes: BalanceChange[]): string {
                 );
                 refChange.split.resultingRefs.forEach((ref) => {
                     dot += generateRefNode(ref, refChange.split.wallet);
-                    rankGroups
-                        .get(timestamp)!
-                        .push(getRefId(ref, refChange.split.wallet));
                 });
             } else {
                 refChange.convert.fromRefs.forEach((ref) => {
@@ -203,14 +179,6 @@ export function generateDOT(changes: BalanceChange[]): string {
                     refChange.convert.toRef,
                     refChange.convert.wallet
                 );
-                rankGroups
-                    .get(timestamp)!
-                    .push(
-                        getRefId(
-                            refChange.convert.toRef,
-                            refChange.convert.wallet
-                        )
-                    );
             }
 
             dot += generateChangeEdge(
@@ -221,13 +189,6 @@ export function generateDOT(changes: BalanceChange[]): string {
         });
 
         dot += "\n";
-    });
-
-    // Add rank constraints
-    rankGroups.forEach((nodes, timestamp) => {
-        if (nodes.length > 0) {
-            dot += `  { rank=same; ${nodes.join("; ")} }\n`;
-        }
     });
 
     // Generate legend
