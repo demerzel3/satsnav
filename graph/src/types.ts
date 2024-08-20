@@ -34,10 +34,11 @@ export interface LedgerEntry {
 
 // Ref type
 export interface Ref {
+    id: string;
     asset: Asset;
     amount: number; // Decimal is represented as a number in JSON
     date: number; // Unix timestamp
-    rate: number | null; // Decimal is represented as a number in JSON
+    rate?: number; // Decimal is represented as a number in JSON
 }
 
 // Transaction type
@@ -52,6 +53,7 @@ export type RefChange =
     | { remove: { ref: Ref; wallet: string } }
     | { move: { ref: Ref; fromWallet: string; toWallet: string } }
     | { split: { originalRef: Ref; resultingRefs: Ref[]; wallet: string } }
+    | { join: { originalRefs: Ref[]; resultingRef: Ref; wallet: string } }
     | { convert: { fromRefs: Ref[]; toRef: Ref; wallet: string } };
 
 // BalanceChange type

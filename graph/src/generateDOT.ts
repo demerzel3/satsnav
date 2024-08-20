@@ -32,8 +32,14 @@ export function generateDOT(changes: BalanceChange[]): string {
         return colorMap.get(wallet)!;
     }
 
+    function hasRefId(ref: Ref, wallet: string): boolean {
+        const key = `${wallet}-${ref.id}`;
+
+        return refIds.has(key);
+    }
+
     function getRefId(ref: Ref, wallet: string): string {
-        const key = `${wallet}-${ref.asset.name}-${ref.amount}-${ref.date}`;
+        const key = `${wallet}-${ref.id}`;
         if (!refIds.has(key)) {
             refIds.set(key, `ref_${refIds.size}`);
         }
@@ -44,19 +50,45 @@ export function generateDOT(changes: BalanceChange[]): string {
         return label.replace(/"/g, '\\"');
     }
 
+    function formatAmount(amount: number, assetType: AssetType): string {
+        const decimalPlaces = assetType === AssetType.Crypto ? 12 : 10;
+        return amount.toFixed(decimalPlaces).replace(/\.?0+$/, "");
+    }
+
+    function formatRate(rate: number | undefined): string {
+        return rate?.toFixed(2) ?? "-";
+    }
+
     function generateRefNode(
         ref: Ref,
         wallet: string,
         isFee: boolean = false
     ): string {
+        if (hasRefId(ref, wallet)) {
+            return "";
+        }
+
         const id = getRefId(ref, wallet);
         const color = isFee ? "#D3D3D3" : getColor(wallet); // Light gray for fee
-        const label = escapeLabel(`${ref.amount} ${ref.asset.name}`);
+        const formattedAmount = formatAmount(ref.amount, ref.asset.type);
+        const formattedRate = formatRate(ref.rate);
+
+        // Using HTML-like label with <BR/> for line break
+        const label = `<<font point-size="${isFee ? 10 : 14}">${escapeLabel(
+            `${formattedAmount} ${ref.asset.name}`
+        )}</font>${
+            ref.asset.name === "EUR"
+                ? ""
+                : `<BR/><font point-size="10">${escapeLabel(
+                      `Rate: ${formattedRate}`
+                  )}</font>`
+        }>`;
+
         const tooltip = escapeLabel(
-            `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${ref.amount}`
+            `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${formattedAmount}, Rate: ${formattedRate}`
         );
-        const fontSize = isFee ? "10" : "14"; // Smaller font for fee
-        return `  ${id} [label="${label}", color="${color}", style=filled, tooltip="${tooltip}", fontsize=${fontSize}];\n`;
+
+        return `  ${id} [label=${label}, color="${color}", style=filled, tooltip="${tooltip}"];\n`;
     }
 
     function generateTransactionTooltip(transaction: Transaction): string {
@@ -109,6 +141,16 @@ export function generateDOT(changes: BalanceChange[]): string {
             return toIds
                 .map(
                     (toId) =>
+                        `  ${fromId} -> ${toId} [edgetooltip="${transactionTooltip}"];\n`
+                )
+                .join("");
+        } else if ("join" in change) {
+            const { originalRefs, resultingRef, wallet } = change.join;
+            const fromIds = originalRefs.map((ref) => getRefId(ref, wallet));
+            const toId = getRefId(resultingRef, wallet);
+            return fromIds
+                .map(
+                    (fromId) =>
                         `  ${fromId} -> ${toId} [edgetooltip="${transactionTooltip}"];\n`
                 )
                 .join("");
@@ -171,6 +213,14 @@ export function generateDOT(changes: BalanceChange[]): string {
                 refChange.split.resultingRefs.forEach((ref) => {
                     dot += generateRefNode(ref, refChange.split.wallet);
                 });
+            } else if ("join" in refChange) {
+                refChange.join.originalRefs.forEach((ref) => {
+                    dot += generateRefNode(ref, refChange.join.wallet);
+                });
+                dot += generateRefNode(
+                    refChange.join.resultingRef,
+                    refChange.join.wallet
+                );
             } else {
                 refChange.convert.fromRefs.forEach((ref) => {
                     dot += generateRefNode(ref, refChange.convert.wallet);
