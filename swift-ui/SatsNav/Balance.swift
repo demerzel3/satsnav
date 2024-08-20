@@ -98,7 +98,6 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
             }
 
             let balanceBefore = currentBalances[entry.wallet, default: [:]][entry.asset, default: []].sum
-            let expectedBalanceAfter = balanceBefore + entry.amount
             if entry.amount > 0, entry.asset == BASE_ASSET {
                 let newRef = Ref(asset: entry.asset, amount: entry.amount, date: entry.date, rate: 1)
                 changes.append(.create(ref: newRef, wallet: entry.wallet))
@@ -120,7 +119,16 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
 
                 let newRef = Ref(asset: entry.asset, amount: entry.amount, date: entry.date, rate: rate)
                 changes.append(.create(ref: newRef, wallet: entry.wallet))
-                currentBalances[entry.wallet, default: [:]][entry.asset, default: []].append(newRef)
+                if let lastRef = currentBalances[entry.wallet, default: [:]][entry.asset, default: []].last,
+                   lastRef.rate == newRef.rate
+                {
+                    let joinedRef = Ref.join(lastRef, newRef)
+                    changes.append(.join(originalRefs: [lastRef, newRef], resultingRef: joinedRef, wallet: entry.wallet))
+                    _ = currentBalances[entry.wallet, default: [:]][entry.asset, default: []].popLast()
+                    currentBalances[entry.wallet, default: [:]][entry.asset, default: []].append(joinedRef)
+                } else {
+                    currentBalances[entry.wallet, default: [:]][entry.asset, default: []].append(newRef)
+                }
             } else {
                 var refs = currentBalances[entry.wallet, default: [:]][entry.asset, default: []]
                 let (removedRefs, splitInfo) = subtract(refs: &refs, amount: -entry.amount)
@@ -131,22 +139,44 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                 currentBalances[entry.wallet, default: [:]][entry.asset] = refs
             }
             let balanceAfter = currentBalances[entry.wallet, default: [:]][entry.asset, default: []].sum
-            assert(balanceAfter == expectedBalanceAfter, "Balances before and after must match")
+            assert(balanceAfter == balanceBefore + entry.amount, "Balances before and after must match")
 
         case .transfer(let from, let to):
             assert(from.amount != 0 && to.amount != 0, "invalid transfer amount \(from) -> \(to)")
+            // TODO: handle from and to amount mismatches
+            // assert(abs(from.amount) == abs(to.amount), "from and to amount mismatch \(from.amount) -> \(to.amount)")
 
             guard var fromRefs = currentBalances[from.wallet]?[from.asset] else {
                 fatalError("Transfer failed, \(from.wallet) balance is empty")
             }
 
+            let fromBalanceBefore = currentBalances[from.wallet, default: [:]][from.asset, default: []].sum
+            let toBalanceBefore = currentBalances[to.wallet, default: [:]][to.asset, default: []].sum
             let (removedRefs, splitInfo) = subtract(refs: &fromRefs, amount: to.amount)
             if let split = splitInfo {
                 changes.append(.split(originalRef: split.original, resultingRefs: [split.left, split.right], wallet: from.wallet))
             }
             changes.append(contentsOf: removedRefs.map { .move(ref: $0, fromWallet: from.wallet, toWallet: to.wallet) })
             currentBalances[from.wallet, default: [:]][from.asset] = fromRefs
-            currentBalances[to.wallet, default: [:]][to.asset, default: []].append(contentsOf: removedRefs)
+            if let lastRef = currentBalances[to.wallet, default: [:]][to.asset, default: []].last,
+               let firstRemovedRef = removedRefs.first,
+               lastRef.rate == firstRemovedRef.rate
+            {
+                let joinedRef = Ref.join(lastRef, firstRemovedRef)
+                changes.append(.join(originalRefs: [lastRef, firstRemovedRef], resultingRef: joinedRef, wallet: to.wallet))
+                _ = currentBalances[to.wallet, default: [:]][to.asset, default: []].popLast()
+                currentBalances[to.wallet, default: [:]][to.asset, default: []].append(joinedRef)
+                currentBalances[to.wallet, default: [:]][to.asset, default: []].append(contentsOf: removedRefs.dropFirst())
+            } else {
+                currentBalances[to.wallet, default: [:]][to.asset, default: []].append(contentsOf: removedRefs)
+            }
+            let fromBalanceAfter = currentBalances[from.wallet, default: [:]][from.asset, default: []].sum
+            let toBalanceAfter = currentBalances[to.wallet, default: [:]][to.asset, default: []].sum
+            if from.wallet != to.wallet {
+                // TODO: enable assertions when the from-to amounts mismatch is handled correctly
+                // assert(fromBalanceAfter == fromBalanceBefore - abs(from.amount), "Balances before and after must match. Expected \(fromBalanceBefore - abs(from.amount)), is: \(fromBalanceAfter)")
+                // assert(toBalanceAfter == toBalanceBefore + abs(to.amount), "Balances before and after must match. Expected \(toBalanceBefore + abs(to.amount)), is: \(toBalanceAfter)")
+            }
 
         case .trade(let spend, let receive):
             assert(spend.amount != 0 && receive.amount != 0, "invalid trade amount \(spend) -> \(receive)")
@@ -175,7 +205,6 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                 assert(balance.count < 2, "Invalid balance for BASE_ASSET, should have at most one item")
                 if let currentRef = balance.first {
                     let joinedRef = Ref.join(currentRef, newRef)
-                    print(currentRef.amount, newRef.amount, joinedRef.amount)
                     changes.append(.join(originalRefs: [currentRef, newRef], resultingRef: joinedRef, wallet: wallet))
                     currentBalances[wallet, default: [:]][receive.asset] = [joinedRef]
                 } else {
@@ -185,13 +214,7 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                 let precision = max(10, receive.amount.significantFractionalDecimalDigits)
                 // Split refs between dust ones (conversion make them a rounding error) and actual ones
                 let (nonDustRefs, dustRefs) = removedRefs.partition { ref in
-                    let nextAmount = round(ref.amount / rate, precision: precision)
-
-                    return nextAmount > 0
-                }
-
-                nonDustRefs.forEach { ref in
-                    assert(round(ref.amount / rate, precision: precision) > 0)
+                    round(ref.amount / rate, precision: precision) > 0
                 }
 
                 // Register dust refs as removed
@@ -199,8 +222,8 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
 
                 // Propagate rate to receive side
                 var receiveRefs = nonDustRefs.map { ref -> Ref in
-                    // TODO: avoid doing amount calculation twice
                     let nextRate = ref.rate.map { $0 * rate }.map { round($0, precision: precision) }
+                    // TODO: if possible avoid doing amount calculation twice
                     let nextAmount = round(ref.amount / rate, precision: precision)
 
                     assert(nextAmount > 0, "Ok this should definitely never happen")
@@ -238,7 +261,18 @@ func buildBalances(transactions: [Transaction]) -> (balances: [String: Balance],
                 changes.append(contentsOf: receiveRefs.enumerated().map { index, ref in
                     .convert(fromRefs: [nonDustRefs[index]], toRef: ref, wallet: wallet)
                 })
-                currentBalances[wallet, default: [:]][receive.asset, default: []] += receiveRefs
+                if let lastRef = currentBalances[wallet, default: [:]][receive.asset, default: []].last,
+                   let firstReceiveRef = receiveRefs.first,
+                   lastRef.rate == firstReceiveRef.rate
+                {
+                    let joinedRef = Ref.join(lastRef, firstReceiveRef)
+                    changes.append(.join(originalRefs: [lastRef, firstReceiveRef], resultingRef: joinedRef, wallet: wallet))
+                    _ = currentBalances[wallet, default: [:]][receive.asset, default: []].popLast()
+                    currentBalances[wallet, default: [:]][receive.asset, default: []].append(joinedRef)
+                    currentBalances[wallet, default: [:]][receive.asset, default: []] += receiveRefs.dropFirst()
+                } else {
+                    currentBalances[wallet, default: [:]][receive.asset, default: []] += receiveRefs
+                }
             }
         }
 
