@@ -69,6 +69,14 @@ struct TransactionDetailView: View {
                             Text("Result: \(ref.formattedAmount)")
                         }
                     }
+                case .join(let originalRefs, let resultingRef, let wallet):
+                    VStack(alignment: .leading) {
+                        Text("Join in \(wallet):")
+                        ForEach(originalRefs, id: \.id) { ref in
+                            Text("Original: \(ref.formattedAmount)")
+                        }
+                        Text("Result: \(resultingRef.formattedAmount)")
+                    }
                 case .convert(let fromRefs, let toRef, let wallet):
                     VStack(alignment: .leading) {
                         Text("Converted in \(wallet):")

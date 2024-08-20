@@ -77,7 +77,7 @@ struct TransactionRow: View {
             return entry.formattedAmount
         case .trade(let spend, let receive):
             return "\(spend.formattedAbsAmount)\n\(receive.formattedAmount)"
-        case .transfer(let from, let to):
+        case .transfer(_, let to):
             return "\(to.formattedAmount)"
         }
     }

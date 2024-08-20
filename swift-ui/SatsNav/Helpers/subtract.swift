@@ -8,6 +8,8 @@ typealias SplitInfo = (original: Ref, left: Ref, right: Ref)
 func subtract(refs: inout RefsArray, amount: Decimal) -> (removed: RefsArray, split: SplitInfo?) {
     assert(amount >= 0, "amount must be positive")
     let balanceBefore = refs.sum
+    // Check that IDs entering are the same as ID exiting the process
+    let refIds = Set(refs.map { $0.id })
 
     var subtractedRefs = RefsArray()
     var totalRemoved: Decimal = 0
