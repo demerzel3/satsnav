@@ -27,7 +27,7 @@ struct HistoryView: View {
             }
         }
     }
-    
+
     private func copyJSONToClipboard() {
         if let jsonString = balanceChangesToJSON(balancesManager.changes) {
             UIPasteboard.general.string = jsonString

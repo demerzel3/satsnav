@@ -62,11 +62,13 @@ export function generateDOT(changes: BalanceChange[]): string {
     function generateRefNode(
         ref: Ref,
         wallet: string,
-        isFee: boolean = false
+        transactionType?: TransactionType
     ): string {
         if (hasRefId(ref, wallet)) {
             return "";
         }
+
+        const isFee = transactionType === "Fee";
 
         const id = getRefId(ref, wallet);
         const color = isFee ? "#D3D3D3" : getColor(wallet); // Light gray for fee
@@ -77,11 +79,11 @@ export function generateDOT(changes: BalanceChange[]): string {
         const label = `<<font point-size="${isFee ? 10 : 14}">${escapeLabel(
             `${formattedAmount} ${ref.asset.name}`
         )}</font>${
-            ref.asset.name === "EUR"
-                ? ""
-                : `<BR/><font point-size="10">${escapeLabel(
+            ref.asset.name !== "EUR"
+                ? `<BR/><font point-size="10">${escapeLabel(
                       `Rate: ${formattedRate}`
                   )}</font>`
+                : ""
         }>`;
 
         const tooltip = escapeLabel(
@@ -101,9 +103,13 @@ export function generateDOT(changes: BalanceChange[]): string {
         }
     }
 
-    function getTransactionType(transaction: Transaction): string {
+    type TransactionType = "Trade" | "Transfer" | keyof typeof LedgerEntryType;
+
+    function getTransactionType(transaction: Transaction): TransactionType {
         if ("single" in transaction) {
-            return LedgerEntryType[transaction.single.entry.type];
+            return LedgerEntryType[
+                transaction.single.entry.type
+            ] as keyof typeof LedgerEntryType;
         } else if ("trade" in transaction) {
             return "Trade";
         } else {
@@ -194,9 +200,13 @@ export function generateDOT(changes: BalanceChange[]): string {
                 dot += generateRefNode(
                     refChange.remove.ref,
                     refChange.remove.wallet,
-                    transactionType === "Fee"
+                    transactionType
                 );
             } else if ("move" in refChange) {
+                if (refChange.move.fromWallet === refChange.move.toWallet) {
+                    return;
+                }
+
                 dot += generateRefNode(
                     refChange.move.ref,
                     refChange.move.fromWallet
@@ -210,8 +220,13 @@ export function generateDOT(changes: BalanceChange[]): string {
                     refChange.split.originalRef,
                     refChange.split.wallet
                 );
-                refChange.split.resultingRefs.forEach((ref) => {
-                    dot += generateRefNode(ref, refChange.split.wallet);
+                refChange.split.resultingRefs.forEach((ref, index, refs) => {
+                    const isLast = refs[index + 1] === undefined;
+                    dot += generateRefNode(
+                        ref,
+                        refChange.split.wallet,
+                        isLast ? transactionType : undefined
+                    );
                 });
             } else if ("join" in refChange) {
                 refChange.join.originalRefs.forEach((ref) => {
@@ -223,7 +238,11 @@ export function generateDOT(changes: BalanceChange[]): string {
                 );
             } else {
                 refChange.convert.fromRefs.forEach((ref) => {
-                    dot += generateRefNode(ref, refChange.convert.wallet);
+                    dot += generateRefNode(
+                        ref,
+                        refChange.convert.wallet,
+                        transactionType
+                    );
                 });
                 dot += generateRefNode(
                     refChange.convert.toRef,
