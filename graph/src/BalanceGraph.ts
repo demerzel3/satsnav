@@ -131,49 +131,37 @@ export class BalanceGraph {
         });
     }
 
-    addSplitNode(
-        originalRef: Ref,
-        resultingRef: Ref,
-        wallet: string,
-        transactionType?: TransactionType
-    ) {
+    addSplitNodes(originalRef: Ref, resultingRefs: Ref[], wallet: string) {
         const originalNodeId = `${wallet}-${originalRef.id}`;
-        const resultingNodeId = `${wallet}-${resultingRef.id}`;
-
         const parentNode = this.getParentNode(originalNodeId);
+        const parentNodeId = this.getParentNodeId(originalNodeId);
+
         if (
-            false &&
             parentNode &&
+            parentNodeId &&
             "ref" in parentNode &&
-            this.graph.getEdgeAttributes(
-                `${parentNode.wallet}-${parentNode.ref.id}`,
-                originalNodeId
-            ).label === "Split"
+            this.graph.getEdgeAttributes(parentNodeId, originalNodeId).label ===
+                "Split"
         ) {
-            // If the parent is already a split, add the new node as a split from the parent
-            this.addNode(resultingNodeId, {
-                ref: resultingRef,
-                wallet,
-                transactionType,
-            });
-            this.addEdge(
-                `${parentNode.wallet}-${parentNode.ref.id}`,
-                resultingNodeId,
-                {
+            // If the parent is already a split, add the new nodes as a split from the parent
+            // and delete the intermediate ref node
+            this.graph.dropNode(originalNodeId);
+            resultingRefs.forEach((resultingRef) => {
+                const resultingNodeId = `${wallet}-${resultingRef.id}`;
+                this.addRefNode(resultingRef, wallet);
+                this.addEdge(parentNodeId, resultingNodeId, {
                     label: "Split",
-                    tooltip: `Split from ${parentNode.ref.amount} ${parentNode.ref.asset.name} to ${resultingRef.amount} ${resultingRef.asset.name}`,
-                }
-            );
-        } else {
-            // Otherwise, proceed with normal split
-            this.addNode(resultingNodeId, {
-                ref: resultingRef,
-                wallet,
-                transactionType,
+                    tooltip: `Split from ${originalRef.amount} ${originalRef.asset.name} to ${resultingRef.amount} ${resultingRef.asset.name}`,
+                });
             });
-            this.addEdge(originalNodeId, resultingNodeId, {
-                label: "Split",
-                tooltip: `Split from ${originalRef.amount} ${originalRef.asset.name} to ${resultingRef.amount} ${resultingRef.asset.name}`,
+        } else {
+            resultingRefs.forEach((resultingRef) => {
+                const resultingNodeId = `${wallet}-${resultingRef.id}`;
+                this.addRefNode(resultingRef, wallet);
+                this.addEdge(originalNodeId, resultingNodeId, {
+                    label: "Split",
+                    tooltip: `Split from ${originalRef.amount} ${originalRef.asset.name} to ${resultingRef.amount} ${resultingRef.asset.name}`,
+                });
             });
         }
     }

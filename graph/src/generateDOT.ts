@@ -55,15 +55,11 @@ function buildGraph(changes: BalanceChange[]): BalanceGraph {
                     refChange.split.originalRef,
                     refChange.split.wallet
                 );
-                refChange.split.resultingRefs.forEach((ref, index, refs) => {
-                    const isLast = index === refs.length - 1;
-                    graph.addSplitNode(
-                        refChange.split.originalRef,
-                        ref,
-                        refChange.split.wallet,
-                        isLast ? transactionType : undefined
-                    );
-                });
+                graph.addSplitNodes(
+                    refChange.split.originalRef,
+                    refChange.split.resultingRefs,
+                    refChange.split.wallet
+                );
             } else if ("join" in refChange) {
                 refChange.join.originalRefs.forEach((ref) => {
                     graph.addRefNode(

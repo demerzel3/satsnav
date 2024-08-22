@@ -48,6 +48,14 @@ extension BalanceChange {
         return true
     }
 
+    var isSelfTransfer: Bool {
+        if case .transfer(let from, let to) = transaction {
+            return from.wallet == to.wallet
+        } else {
+            return false
+        }
+    }
+
     var isTrade: Bool {
         guard case .trade = transaction else { return false }
         return true
@@ -55,6 +63,16 @@ extension BalanceChange {
 
     var isSingle: Bool {
         guard case .single = transaction else { return false }
+        return true
+    }
+
+    var isDeposit: Bool {
+        guard case .single(let ref) = transaction, ref.type == .deposit, ref.asset.type == .crypto else { return false }
+        return true
+    }
+
+    var isWithdrawal: Bool {
+        guard case .single(let ref) = transaction, ref.type == .withdrawal else { return false }
         return true
     }
 }
