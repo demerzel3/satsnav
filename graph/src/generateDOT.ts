@@ -5,10 +5,111 @@ import {
     AssetType,
     LedgerEntryType,
     Transaction,
+    TransactionType,
 } from "./types";
+import { BalanceGraph, EdgeAttributes, NodeAttributes } from "./BalanceGraph";
 
-export function generateDOT(changes: BalanceChange[]): string {
-    const refIds = new Map<string, string>();
+function buildGraph(changes: BalanceChange[]): BalanceGraph {
+    const graph = new BalanceGraph();
+
+    changes.forEach((change) => {
+        const transactionType = getTransactionType(change.transaction);
+        const transactionTooltip = generateTransactionTooltip(
+            change.transaction
+        );
+
+        change.changes.forEach((refChange) => {
+            if ("create" in refChange) {
+                graph.addRefNode(refChange.create.ref, refChange.create.wallet);
+            } else if ("remove" in refChange) {
+                graph.addRefNode(
+                    refChange.remove.ref,
+                    refChange.remove.wallet,
+                    transactionType
+                );
+                graph.addRemoveEdge(
+                    refChange.remove.ref,
+                    refChange.remove.wallet,
+                    transactionType,
+                    transactionTooltip
+                );
+            } else if ("move" in refChange) {
+                if (refChange.move.fromWallet !== refChange.move.toWallet) {
+                    graph.addRefNode(
+                        refChange.move.ref,
+                        refChange.move.fromWallet
+                    );
+                    graph.addRefNode(
+                        refChange.move.ref,
+                        refChange.move.toWallet
+                    );
+                    graph.addMoveEdge(
+                        refChange.move.ref,
+                        refChange.move.fromWallet,
+                        refChange.move.toWallet,
+                        transactionTooltip
+                    );
+                }
+            } else if ("split" in refChange) {
+                graph.addRefNode(
+                    refChange.split.originalRef,
+                    refChange.split.wallet
+                );
+                refChange.split.resultingRefs.forEach((ref, index, refs) => {
+                    const isLast = index === refs.length - 1;
+                    graph.addSplitNode(
+                        refChange.split.originalRef,
+                        ref,
+                        refChange.split.wallet,
+                        isLast ? transactionType : undefined
+                    );
+                });
+            } else if ("join" in refChange) {
+                refChange.join.originalRefs.forEach((ref) => {
+                    graph.addRefNode(
+                        ref,
+                        refChange.join.wallet,
+                        transactionType
+                    );
+                });
+                graph.addRefNode(
+                    refChange.join.resultingRef,
+                    refChange.join.wallet
+                );
+                graph.addJoinEdges(
+                    refChange.join.originalRefs,
+                    refChange.join.resultingRef,
+                    refChange.join.wallet,
+                    transactionTooltip
+                );
+            } else {
+                refChange.convert.fromRefs.forEach((ref) => {
+                    graph.addRefNode(
+                        ref,
+                        refChange.convert.wallet,
+                        transactionType
+                    );
+                });
+                graph.addRefNode(
+                    refChange.convert.toRef,
+                    refChange.convert.wallet
+                );
+                graph.addConvertEdges(
+                    refChange.convert.fromRefs,
+                    refChange.convert.toRef,
+                    refChange.convert.wallet,
+                    transactionTooltip
+                );
+            }
+        });
+    });
+
+    return graph;
+}
+
+function generateDOTFromGraph(graph: BalanceGraph): string {
+    const idsMap = new Map<string, string>();
+    let lastId = 0;
     const colorMap = new Map<string, string>();
     let colorIndex = 0;
     const colors = [
@@ -32,232 +133,125 @@ export function generateDOT(changes: BalanceChange[]): string {
         return colorMap.get(wallet)!;
     }
 
-    function hasRefId(ref: Ref, wallet: string): boolean {
-        const key = `${wallet}-${ref.id}`;
+    function getNodeIdDOT(graphId: string): string {
+        // Special case for shapes
+        if (graphId.startsWith("shape_")) return graphId;
 
-        return refIds.has(key);
+        const existingDotId = idsMap.get(graphId);
+        if (existingDotId) return existingDotId;
+
+        lastId += 1;
+        const newDotId = `ref_${lastId}`;
+        idsMap.set(graphId, newDotId);
+
+        return newDotId;
     }
 
-    function getRefId(ref: Ref, wallet: string): string {
-        const key = `${wallet}-${ref.id}`;
-        if (!refIds.has(key)) {
-            refIds.set(key, `ref_${refIds.size}`);
-        }
-        return refIds.get(key)!;
-    }
-
-    function escapeLabel(label: string): string {
-        return label.replace(/"/g, '\\"');
-    }
-
-    function formatAmount(amount: number, assetType: AssetType): string {
-        const decimalPlaces = assetType === AssetType.Crypto ? 12 : 10;
-        return amount.toFixed(decimalPlaces).replace(/\.?0+$/, "");
-    }
-
-    function formatRate(rate: number | undefined): string {
-        return rate?.toFixed(2) ?? "-";
-    }
-
-    function generateRefNode(
-        ref: Ref,
-        wallet: string,
-        transactionType?: TransactionType
-    ): string {
-        if (hasRefId(ref, wallet)) {
-            return "";
+    function generateNodeDOT(id: string, node: NodeAttributes): string {
+        // Simple case: shapes!
+        // TODO: should probably be derived from an attribute or something...
+        if ("shape" in node) {
+            return `  ${getNodeIdDOT(id)} [shape=${node.shape}];\n`;
         }
 
-        const isFee = transactionType === "Fee";
+        const { ref, wallet, transactionType } = node;
 
-        const id = getRefId(ref, wallet);
-        const color = isFee ? "#D3D3D3" : getColor(wallet); // Light gray for fee
+        // Escape special characters in the label
+        const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
+
+        const formatAmountFixed = (
+            amount: number,
+            decimalPlaces: number
+        ): string => {
+            return amount.toFixed(decimalPlaces).replace(/\.?0+$/, "");
+        };
+
+        // Format amount based on asset type
+        const formatAmount = (amount: number, assetType: AssetType): string => {
+            const formattedValue =
+                assetType === AssetType.Crypto
+                    ? formatAmountFixed(amount, 6)
+                    : formatAmountFixed(amount, 2);
+            if (formattedValue === "0") {
+                return formatAmountFixed(amount, 12);
+            }
+
+            return formattedValue;
+        };
+
+        // Format rate
+        const formatRate = (rate: number | undefined): string => {
+            return rate !== undefined ? rate.toFixed(2) : "-";
+        };
+
+        if (!ref) {
+            console.log(id, node);
+        }
+
         const formattedAmount = formatAmount(ref.amount, ref.asset.type);
         const formattedRate = formatRate(ref.rate);
+        const isFee = transactionType === "Fee";
 
-        // Using HTML-like label with <BR/> for line break
-        const label = `<<font point-size="${isFee ? 10 : 14}">${escapeLabel(
+        // Determine node color
+        const color = isFee ? "#D3D3D3" : getColor(wallet); // Light gray for fee, otherwise use wallet color
+
+        // Construct label
+        let label = `<<font point-size="${isFee ? 10 : 14}">${escapeLabel(
             `${formattedAmount} ${ref.asset.name}`
-        )}</font>${
-            ref.asset.name !== "EUR"
-                ? `<BR/><font point-size="10">${escapeLabel(
-                      `Rate: ${formattedRate}`
-                  )}</font>`
-                : ""
-        }>`;
+        )}</font>`;
+        if (ref.asset.name !== "EUR") {
+            label += `<BR/><font point-size="10">${escapeLabel(
+                `Rate: ${formattedRate}`
+            )}</font>`;
+        }
+        label += ">";
 
+        // Construct tooltip
         const tooltip = escapeLabel(
             `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${formattedAmount}, Rate: ${formattedRate}`
         );
 
-        return `  ${id} [label=${label}, color="${color}", style=filled, tooltip="${tooltip}"];\n`;
+        return `  ${getNodeIdDOT(
+            id
+        )} [label=${label}, color="${color}", style=filled, tooltip="${tooltip}"];\n`;
     }
 
-    function generateTransactionTooltip(transaction: Transaction): string {
-        if ("single" in transaction) {
-            return `Single: ${LedgerEntryType[transaction.single.entry.type]}`;
-        } else if ("trade" in transaction) {
-            return `Trade: ${transaction.trade.spend.amount} ${transaction.trade.spend.asset.name} -> ${transaction.trade.receive.amount} ${transaction.trade.receive.asset.name}`;
-        } else {
-            return `Transfer: ${transaction.transfer.from.amount} ${transaction.transfer.from.asset.name} from ${transaction.transfer.from.wallet} to ${transaction.transfer.to.wallet}`;
-        }
-    }
-
-    type TransactionType = "Trade" | "Transfer" | keyof typeof LedgerEntryType;
-
-    function getTransactionType(transaction: Transaction): TransactionType {
-        if ("single" in transaction) {
-            return LedgerEntryType[
-                transaction.single.entry.type
-            ] as keyof typeof LedgerEntryType;
-        } else if ("trade" in transaction) {
-            return "Trade";
-        } else {
-            return "Transfer";
-        }
-    }
-
-    function generateChangeEdge(
-        change: RefChange,
-        transaction: Transaction,
-        transactionTooltip: string
+    function generateEdgeDOT(
+        from: string,
+        to: string,
+        edge: EdgeAttributes
     ): string {
-        if ("create" in change) {
-            return ""; // No edge for create
-        } else if ("remove" in change) {
-            const { ref, wallet } = change.remove;
-            const fromId = getRefId(ref, wallet);
-            const transactionType = getTransactionType(transaction);
-            if (transactionType === "Fee") {
-                return ""; // No edge for fee removals
-            } else if (transactionType === "Withdrawal") {
-                return `  ${fromId} -> point_${fromId} [label="${transactionType}", edgetooltip="${transactionTooltip}"];\n  point_${fromId} [shape=diamond];\n`;
-            } else {
-                return `  ${fromId} -> point_${fromId} [label="${transactionType}", edgetooltip="${transactionTooltip}"];\n  point_${fromId} [shape=point];\n`;
-            }
-        } else if ("move" in change) {
-            const { ref, fromWallet, toWallet } = change.move;
-            const fromId = getRefId(ref, fromWallet);
-            const toId = getRefId(ref, toWallet);
-            return `  ${fromId} -> ${toId} [label="Transfer", edgetooltip="${transactionTooltip}"];\n`;
-        } else if ("split" in change) {
-            const { originalRef, resultingRefs, wallet } = change.split;
-            const fromId = getRefId(originalRef, wallet);
-            const toIds = resultingRefs.map((ref) => getRefId(ref, wallet));
-            return toIds
-                .map(
-                    (toId) =>
-                        `  ${fromId} -> ${toId} [edgetooltip="${transactionTooltip}"];\n`
-                )
-                .join("");
-        } else if ("join" in change) {
-            const { originalRefs, resultingRef, wallet } = change.join;
-            const fromIds = originalRefs.map((ref) => getRefId(ref, wallet));
-            const toId = getRefId(resultingRef, wallet);
-            return fromIds
-                .map(
-                    (fromId) =>
-                        `  ${fromId} -> ${toId} [edgetooltip="${transactionTooltip}"];\n`
-                )
-                .join("");
+        const { label, tooltip } = edge;
+
+        let dot = `  ${getNodeIdDOT(from)} -> ${getNodeIdDOT(to)}`;
+
+        if (label && label !== "Join" && label !== "Split") {
+            dot += ` [label="${label}"`;
         } else {
-            const { fromRefs, toRef, wallet } = change.convert;
-            const fromIds = fromRefs.map((ref) => getRefId(ref, wallet));
-            const toId = getRefId(toRef, wallet);
-            return fromIds
-                .map(
-                    (fromId) =>
-                        `  ${fromId} -> ${toId} [label="Convert", edgetooltip="${transactionTooltip}"];\n`
-                )
-                .join("");
+            dot += " [";
         }
+
+        if (tooltip) {
+            dot += ` edgetooltip="${tooltip}"`;
+        }
+
+        dot += "];\n";
+
+        return dot;
     }
 
     let dot = "digraph BalanceChanges {\n";
     dot += "  rankdir=LR;\n";
     dot += "  node [shape=box];\n\n";
 
-    changes.forEach((change, index) => {
-        const timestamp =
-            "single" in change.transaction
-                ? change.transaction.single.entry.date
-                : "trade" in change.transaction
-                ? change.transaction.trade.spend.date
-                : change.transaction.transfer?.from.date;
+    // Generate nodes
+    graph.graph.forEachNode((nodeId, attributes) => {
+        dot += generateNodeDOT(nodeId, attributes);
+    });
 
-        const transactionTooltip = escapeLabel(
-            generateTransactionTooltip(change.transaction)
-        );
-        const transactionType = getTransactionType(change.transaction);
-
-        change.changes.forEach((refChange) => {
-            if ("create" in refChange) {
-                dot += generateRefNode(
-                    refChange.create.ref,
-                    refChange.create.wallet
-                );
-            } else if ("remove" in refChange) {
-                dot += generateRefNode(
-                    refChange.remove.ref,
-                    refChange.remove.wallet,
-                    transactionType
-                );
-            } else if ("move" in refChange) {
-                if (refChange.move.fromWallet === refChange.move.toWallet) {
-                    return;
-                }
-
-                dot += generateRefNode(
-                    refChange.move.ref,
-                    refChange.move.fromWallet
-                );
-                dot += generateRefNode(
-                    refChange.move.ref,
-                    refChange.move.toWallet
-                );
-            } else if ("split" in refChange) {
-                dot += generateRefNode(
-                    refChange.split.originalRef,
-                    refChange.split.wallet
-                );
-                refChange.split.resultingRefs.forEach((ref, index, refs) => {
-                    const isLast = refs[index + 1] === undefined;
-                    dot += generateRefNode(
-                        ref,
-                        refChange.split.wallet,
-                        isLast ? transactionType : undefined
-                    );
-                });
-            } else if ("join" in refChange) {
-                refChange.join.originalRefs.forEach((ref) => {
-                    dot += generateRefNode(ref, refChange.join.wallet);
-                });
-                dot += generateRefNode(
-                    refChange.join.resultingRef,
-                    refChange.join.wallet
-                );
-            } else {
-                refChange.convert.fromRefs.forEach((ref) => {
-                    dot += generateRefNode(
-                        ref,
-                        refChange.convert.wallet,
-                        transactionType
-                    );
-                });
-                dot += generateRefNode(
-                    refChange.convert.toRef,
-                    refChange.convert.wallet
-                );
-            }
-
-            dot += generateChangeEdge(
-                refChange,
-                change.transaction,
-                transactionTooltip
-            );
-        });
-
-        dot += "\n";
+    // Generate edges
+    graph.graph.forEachEdge((edge, attributes, source, target) => {
+        dot += generateEdgeDOT(source, target, attributes);
     });
 
     // Generate legend
@@ -276,4 +270,31 @@ export function generateDOT(changes: BalanceChange[]): string {
 
     dot += "}\n";
     return dot;
+}
+
+function getTransactionType(transaction: Transaction): TransactionType {
+    if ("single" in transaction) {
+        return LedgerEntryType[
+            transaction.single.entry.type
+        ] as keyof typeof LedgerEntryType;
+    } else if ("trade" in transaction) {
+        return "Trade";
+    } else {
+        return "Transfer";
+    }
+}
+
+function generateTransactionTooltip(transaction: Transaction): string {
+    if ("single" in transaction) {
+        return `Single: ${LedgerEntryType[transaction.single.entry.type]}`;
+    } else if ("trade" in transaction) {
+        return `Trade: ${transaction.trade.spend.amount} ${transaction.trade.spend.asset.name} -> ${transaction.trade.receive.amount} ${transaction.trade.receive.asset.name}`;
+    } else {
+        return `Transfer: ${transaction.transfer.from.amount} ${transaction.transfer.from.asset.name} from ${transaction.transfer.from.wallet} to ${transaction.transfer.to.wallet}`;
+    }
+}
+
+export function generateDOT(changes: BalanceChange[]): string {
+    const graph = buildGraph(changes);
+    return generateDOTFromGraph(graph);
 }

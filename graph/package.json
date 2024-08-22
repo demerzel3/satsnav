@@ -11,5 +11,8 @@
     "devDependencies": {
         "@types/node": "^22.4.0",
         "tsx": "^4.17.0"
+    },
+    "dependencies": {
+        "graphology": "^0.25.4"
     }
 }

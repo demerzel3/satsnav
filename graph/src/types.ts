@@ -47,6 +47,8 @@ export type Transaction =
     | { trade: { spend: LedgerEntry; receive: LedgerEntry } }
     | { transfer: { from: LedgerEntry; to: LedgerEntry } };
 
+export type TransactionType = keyof typeof LedgerEntryType;
+
 // RefChange type
 export type RefChange =
     | { create: { ref: Ref; wallet: string } }
