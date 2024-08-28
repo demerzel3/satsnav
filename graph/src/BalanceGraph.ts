@@ -27,8 +27,11 @@ export class BalanceGraph {
         this.graph = new Graph<NodeAttributes, EdgeAttributes>();
     }
 
-    addNode(id: string, attributes: NodeAttributes) {
-        this.graph.mergeNode(id, attributes);
+    addNode(
+        id: string,
+        attributes: NodeAttributes
+    ): [key: string, nodeWasAdded: boolean] {
+        return this.graph.mergeNode(id, attributes);
     }
 
     addEdge(from: string, to: string, attributes: EdgeAttributes) {
@@ -54,7 +57,11 @@ export class BalanceGraph {
         }
     }
 
-    addRefNode(ref: Ref, wallet: string, transactionType?: TransactionType) {
+    addRefNode(
+        ref: Ref,
+        wallet: string,
+        transactionType?: TransactionType
+    ): string {
         const nodeId = `${wallet}-${ref.id}`;
         this.addNode(nodeId, {
             ref,
@@ -63,6 +70,8 @@ export class BalanceGraph {
             x: Math.random() * 1000 - 500,
             y: Math.random() * 1000 - 500,
         });
+
+        return nodeId;
     }
 
     addRemoveEdge(
@@ -173,5 +182,52 @@ export class BalanceGraph {
                 });
             });
         }
+    }
+
+    addJoinNodes(originalRefs: Ref[], resultingRef: Ref, wallet: string) {
+        const resultingNodeId = `${wallet}-${resultingRef.id}`;
+        this.addRefNode(resultingRef, wallet);
+
+        const parentsToProcess = originalRefs.map(
+            (ref) => `${wallet}-${ref.id}`
+        );
+        const processedNodes = new Set<string>();
+        const edgesToAdd: [string, string, EdgeAttributes][] = [];
+
+        while (parentsToProcess.length > 0) {
+            const nodeId = parentsToProcess.pop()!;
+            if (processedNodes.has(nodeId)) continue;
+            processedNodes.add(nodeId);
+
+            const node = this.getNode(nodeId);
+            if (!("ref" in node)) continue;
+
+            const parentNodeId = this.getParentNodeId(nodeId);
+            if (
+                parentNodeId &&
+                this.graph.getEdgeAttributes(parentNodeId, nodeId).label ===
+                    "Join"
+            ) {
+                // If the parent is already a join, add its parents to the processing list
+                parentsToProcess.push(...this.graph.inNeighbors(nodeId));
+                // Remove the intermediate join node
+                this.graph.dropNode(nodeId);
+            } else {
+                // Add an edge from this node to the resulting node
+                edgesToAdd.push([
+                    nodeId,
+                    resultingNodeId,
+                    {
+                        label: "Join",
+                        tooltip: `Join from ${node.ref.amount} ${node.ref.asset.name} to ${resultingRef.amount} ${resultingRef.asset.name}`,
+                    },
+                ]);
+            }
+        }
+
+        // Add all the collected edges
+        edgesToAdd.forEach(([from, to, attributes]) => {
+            this.addEdge(from, to, attributes);
+        });
     }
 }
