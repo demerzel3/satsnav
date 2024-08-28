@@ -2,7 +2,7 @@ import Graph from "graphology";
 import { Attributes } from "graphology-types";
 import { Ref, TransactionType } from "./types";
 
-export type NodeAttributes =
+export type NodeAttributes = { x: number; y: number } & (
     | {
           ref: Ref;
           wallet: string;
@@ -11,7 +11,8 @@ export type NodeAttributes =
     | {
           shape: "point" | "diamond";
           id: number;
-      };
+      }
+);
 
 export interface EdgeAttributes extends Attributes {
     label?: string;
@@ -55,7 +56,13 @@ export class BalanceGraph {
 
     addRefNode(ref: Ref, wallet: string, transactionType?: TransactionType) {
         const nodeId = `${wallet}-${ref.id}`;
-        this.addNode(nodeId, { ref, wallet, transactionType });
+        this.addNode(nodeId, {
+            ref,
+            wallet,
+            transactionType,
+            x: Math.random() * 1000 - 500,
+            y: Math.random() * 1000 - 500,
+        });
     }
 
     addRemoveEdge(
@@ -75,6 +82,8 @@ export class BalanceGraph {
         this.graph.addNode(shapeId, {
             shape: transactionType === "Withdrawal" ? "diamond" : "point",
             id: this.#lastShapeId,
+            x: Math.random() * 1000 - 500,
+            y: Math.random() * 1000 - 500,
         });
         this.addEdge(nodeId, shapeId, {
             label: transactionType,

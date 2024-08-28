@@ -3,7 +3,8 @@
     "version": "1.0.0",
     "main": "graph.ts",
     "scripts": {
-        "start": "tsx src/graph.ts"
+        "generate": "tsx src/graph.ts",
+        "start": "python3 -m http.server -d public"
     },
     "author": "",
     "license": "ISC",
@@ -13,6 +14,7 @@
         "tsx": "^4.17.0"
     },
     "dependencies": {
-        "graphology": "^0.25.4"
+        "graphology": "^0.25.4",
+        "graphology-layout-forceatlas2": "^0.10.1"
     }
 }
