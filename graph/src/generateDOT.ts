@@ -53,19 +53,14 @@ export function generateDOT(graph: BalanceGraph): string {
         // Escape special characters in the label
         const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
 
-        const formatAmountFixed = (
-            amount: number,
-            decimalPlaces: number
-        ): string => {
+        const formatAmountFixed = (amount: number, decimalPlaces: number): string => {
             return amount.toFixed(decimalPlaces).replace(/\.?0+$/, "");
         };
 
         // Format amount based on asset type
         const formatAmount = (amount: number, assetType: AssetType): string => {
             const formattedValue =
-                assetType === AssetType.Crypto
-                    ? formatAmountFixed(amount, 6)
-                    : formatAmountFixed(amount, 2);
+                assetType === AssetType.Crypto ? formatAmountFixed(amount, 6) : formatAmountFixed(amount, 2);
             if (formattedValue === "0") {
                 return formatAmountFixed(amount, 12);
             }
@@ -94,9 +89,7 @@ export function generateDOT(graph: BalanceGraph): string {
             `${formattedAmount} ${ref.asset.name}`
         )}</font>`;
         if (ref.asset.name !== "EUR") {
-            label += `<BR/><font point-size="10">${escapeLabel(
-                `Rate: ${formattedRate}`
-            )}</font>`;
+            label += `<BR/><font point-size="10">${escapeLabel(`Rate: ${formattedRate}`)}</font>`;
         }
         label += ">";
 
@@ -105,16 +98,10 @@ export function generateDOT(graph: BalanceGraph): string {
             `Wallet: ${wallet}, Asset: ${ref.asset.name}, Amount: ${formattedAmount}, Rate: ${formattedRate}`
         );
 
-        return `  ${getNodeIdDOT(
-            id
-        )} [label=${label}, color="${color}", style=filled, tooltip="${tooltip}"];\n`;
+        return `  ${getNodeIdDOT(id)} [label=${label}, color="${color}", style=filled, tooltip="${tooltip}"];\n`;
     }
 
-    function generateEdgeDOT(
-        from: string,
-        to: string,
-        edge: EdgeAttributes
-    ): string {
+    function generateEdgeDOT(from: string, to: string, edge: EdgeAttributes): string {
         const { label, tooltip } = edge;
 
         let dot = `  ${getNodeIdDOT(from)} -> ${getNodeIdDOT(to)}`;

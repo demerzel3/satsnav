@@ -4,8 +4,7 @@ import { BalanceGraph, NodeAttributes } from "./BalanceGraph";
 import { Ref } from "./types";
 
 export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
-    const nodeIdToString = (nodeId: string): string =>
-        nodeToString(graph.getNode(nodeId));
+    const nodeIdToString = (nodeId: string): string => nodeToString(graph.getNode(nodeId));
 
     const g = graph.graph;
     const pathG = toUndirected(graph.graph);
@@ -15,10 +14,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         const node = g.getNodeAttributes(nodeId);
 
         // Not a conversion
-        if (
-            inEdgeIds.length !== 1 ||
-            g.getEdgeAttribute(inEdgeIds[0], "label") !== "Convert"
-        ) {
+        if (inEdgeIds.length !== 1 || g.getEdgeAttribute(inEdgeIds[0], "label") !== "Convert") {
             return false;
         }
 
@@ -60,10 +56,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         // Stop iteration on EUR nodes with no visited parents
         if (
             node.ref.asset.name === "EUR" &&
-            (g.inDegree(nodeId) === 1 ||
-                !g.someInNeighbor(nodeId, (inNodeId) =>
-                    visitedNodes.has(inNodeId)
-                ))
+            (g.inDegree(nodeId) === 1 || !g.someInNeighbor(nodeId, (inNodeId) => visitedNodes.has(inNodeId)))
         ) {
             // console.log("Found EUR", nodeToString(node));
             // sourceNodes.add(nodeId);
@@ -73,10 +66,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         // TODO: if outDegree is 0 and not EUR and with rate we should fail
         if (node.ref.asset.name !== "EUR" || g.outDegree(nodeId) > 1) {
             g.outNeighbors(nodeId).forEach((outNodeId) => {
-                if (
-                    visitedNodes.has(outNodeId) ||
-                    nodesToVisitSet.has(outNodeId)
-                ) {
+                if (visitedNodes.has(outNodeId) || nodesToVisitSet.has(outNodeId)) {
                     return;
                 }
 
@@ -95,10 +85,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         // }
 
         parentIds.forEach((parentNodeId) => {
-            if (
-                visitedNodes.has(parentNodeId) ||
-                nodesToVisitSet.has(parentNodeId)
-            ) {
+            if (visitedNodes.has(parentNodeId) || nodesToVisitSet.has(parentNodeId)) {
                 return;
             }
 
@@ -122,18 +109,12 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
     const terminalNodes: Set<string> = new Set();
     visitedNodes.forEach((nodeId) => {
         // No inbound nodes at all, or no visited ones
-        if (
-            !g.someInNeighbor(nodeId, (inNodeId) => visitedNodes.has(inNodeId))
-        ) {
+        if (!g.someInNeighbor(nodeId, (inNodeId) => visitedNodes.has(inNodeId))) {
             sourceNodes.add(nodeId);
             return;
         }
         // No outbound nodes at all, or no visited ones
-        if (
-            !g.someOutNeighbor(nodeId, (outNodeId) =>
-                visitedNodes.has(outNodeId)
-            )
-        ) {
+        if (!g.someOutNeighbor(nodeId, (outNodeId) => visitedNodes.has(outNodeId))) {
             terminalNodes.add(nodeId);
             return;
         }
@@ -152,15 +133,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         console.log("Path found!", path.map(nodeIdToString));
     }
 
-    console.log(
-        "SUCCESS",
-        visitedNodes.size,
-        "visited",
-        sourceNodes.size,
-        "sources",
-        terminalNodes.size,
-        "terminals"
-    );
+    console.log("SUCCESS", visitedNodes.size, "visited", sourceNodes.size, "sources", terminalNodes.size, "terminals");
     sourceNodes.forEach((nodeId) => {
         console.log("s---", nodeIdToString(nodeId));
     });

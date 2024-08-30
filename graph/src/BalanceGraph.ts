@@ -27,10 +27,7 @@ export class BalanceGraph {
         this.graph = new Graph<NodeAttributes, EdgeAttributes>();
     }
 
-    addNode(
-        id: string,
-        attributes: NodeAttributes
-    ): [key: string, nodeWasAdded: boolean] {
+    addNode(id: string, attributes: NodeAttributes): [key: string, nodeWasAdded: boolean] {
         return this.graph.mergeNode(id, attributes);
     }
 
@@ -45,9 +42,7 @@ export class BalanceGraph {
     getParentNode(id: string): NodeAttributes | undefined {
         const inNeighbors = this.graph.inNeighbors(id);
 
-        return inNeighbors.length > 0
-            ? this.getNode(inNeighbors[0])
-            : undefined;
+        return inNeighbors.length > 0 ? this.getNode(inNeighbors[0]) : undefined;
     }
 
     getParentNodeId(id: string): string | undefined {
@@ -57,11 +52,7 @@ export class BalanceGraph {
         }
     }
 
-    addRefNode(
-        ref: Ref,
-        wallet: string,
-        transactionType?: TransactionType
-    ): string {
+    addRefNode(ref: Ref, wallet: string, transactionType?: TransactionType): string {
         const nodeId = `${wallet}-${ref.id}`;
         this.addNode(nodeId, {
             ref,
@@ -74,12 +65,7 @@ export class BalanceGraph {
         return nodeId;
     }
 
-    addRemoveEdge(
-        ref: Ref,
-        wallet: string,
-        transactionType: TransactionType,
-        transactionTooltip: string
-    ) {
+    addRemoveEdge(ref: Ref, wallet: string, transactionType: TransactionType, transactionTooltip: string) {
         if (transactionType === "Fee") {
             return;
         }
@@ -100,12 +86,7 @@ export class BalanceGraph {
         });
     }
 
-    addMoveEdge(
-        ref: Ref,
-        fromWallet: string,
-        toWallet: string,
-        transactionTooltip: string
-    ) {
+    addMoveEdge(ref: Ref, fromWallet: string, toWallet: string, transactionTooltip: string) {
         const fromId = `${fromWallet}-${ref.id}`;
         const toId = `${toWallet}-${ref.id}`;
 
@@ -115,12 +96,7 @@ export class BalanceGraph {
         });
     }
 
-    addConvertEdges(
-        fromRefs: Ref[],
-        toRef: Ref,
-        wallet: string,
-        transactionTooltip: string
-    ) {
+    addConvertEdges(fromRefs: Ref[], toRef: Ref, wallet: string, transactionTooltip: string) {
         const toId = `${wallet}-${toRef.id}`;
 
         fromRefs.forEach((fromRef) => {
@@ -132,12 +108,7 @@ export class BalanceGraph {
         });
     }
 
-    addJoinEdges(
-        fromRefs: Ref[],
-        toRef: Ref,
-        wallet: string,
-        transactionTooltip: string
-    ) {
+    addJoinEdges(fromRefs: Ref[], toRef: Ref, wallet: string, transactionTooltip: string) {
         const toId = `${wallet}-${toRef.id}`;
 
         fromRefs.forEach((fromRef) => {
@@ -158,8 +129,7 @@ export class BalanceGraph {
             parentNode &&
             parentNodeId &&
             "ref" in parentNode &&
-            this.graph.getEdgeAttributes(parentNodeId, originalNodeId).label ===
-                "Split"
+            this.graph.getEdgeAttributes(parentNodeId, originalNodeId).label === "Split"
         ) {
             // If the parent is already a split, add the new nodes as a split from the parent
             // and delete the intermediate ref node
@@ -188,9 +158,7 @@ export class BalanceGraph {
         const resultingNodeId = `${wallet}-${resultingRef.id}`;
         this.addRefNode(resultingRef, wallet);
 
-        const parentsToProcess = originalRefs.map(
-            (ref) => `${wallet}-${ref.id}`
-        );
+        const parentsToProcess = originalRefs.map((ref) => `${wallet}-${ref.id}`);
         const processedNodes = new Set<string>();
         const edgesToAdd: [string, string, EdgeAttributes][] = [];
 
@@ -203,11 +171,7 @@ export class BalanceGraph {
             if (!("ref" in node)) continue;
 
             const parentNodeId = this.getParentNodeId(nodeId);
-            if (
-                parentNodeId &&
-                this.graph.getEdgeAttributes(parentNodeId, nodeId).label ===
-                    "Join"
-            ) {
+            if (parentNodeId && this.graph.getEdgeAttributes(parentNodeId, nodeId).label === "Join") {
                 // If the parent is already a join, add its parents to the processing list
                 parentsToProcess.push(...this.graph.inNeighbors(nodeId));
                 // Remove the intermediate join node
