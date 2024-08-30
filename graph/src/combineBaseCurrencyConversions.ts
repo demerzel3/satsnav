@@ -155,11 +155,26 @@ export function combineBaseCurrencyConversions(graph: BalanceGraph): Graph<NodeA
         console.log("t---", nodeIdToString(nodeId));
     });
 
+    const combinedGraph = subgraph(g, visitedNodes);
+
+    const [combineNodeId] = g.mergeNode("shape-combine", {
+        shape: "diamond",
+    });
+    visitedNodes.forEach((visitedNodeId) => {
+        if (sourceNodes.has(visitedNodeId)) {
+            g.mergeEdge(visitedNodeId, combineNodeId);
+        } else if (terminalNodes.has(visitedNodeId)) {
+            g.mergeEdge(combineNodeId, visitedNodeId);
+        } else {
+            g.dropNode(visitedNodeId);
+        }
+    });
+
     // visitedNodes.forEach((nodeId) => {
     //     g.mergeNode(nodeId, { wallet: "Collapsible" });
     // });
 
-    return subgraph(g, visitedNodes);
+    return combinedGraph;
 }
 
 const nodeToString = (node: NodeAttributes): string => {
