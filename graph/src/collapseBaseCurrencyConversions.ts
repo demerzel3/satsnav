@@ -4,6 +4,9 @@ import { BalanceGraph, NodeAttributes } from "./BalanceGraph";
 import { Ref } from "./types";
 
 export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
+    const nodeIdToString = (nodeId: string): string =>
+        nodeToString(graph.getNode(nodeId));
+
     const g = graph.graph;
     const pathG = toUndirected(graph.graph);
     let pickN = 5;
@@ -29,8 +32,7 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
 
     if (!anchorNodeId) return;
 
-    const anchorNode = g.getNodeAttributes(anchorNodeId);
-    console.log("Conversion to EUR", nodeToString(anchorNode));
+    console.log("Conversion to EUR", nodeIdToString(anchorNodeId));
 
     // Trace everything related to this conversion back to the last time this was in EUR
     // console.log(
@@ -48,43 +50,27 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         nodesToVisitSet.delete(nodeId);
         const node = graph.getNode(nodeId);
 
+        // TODO: revisit this to keep track of withdrawals, single trades and such
         if (!("ref" in node)) {
             continue;
         }
 
         visitedNodes.add(nodeId);
 
+        // Stop iteration on EUR nodes with no visited parents
         if (
             node.ref.asset.name === "EUR" &&
-            !g.someInNeighbor(nodeId, (inNodeId) => visitedNodes.has(inNodeId))
+            (g.inDegree(nodeId) === 1 ||
+                !g.someInNeighbor(nodeId, (inNodeId) =>
+                    visitedNodes.has(inNodeId)
+                ))
         ) {
             // console.log("Found EUR", nodeToString(node));
             // sourceNodes.add(nodeId);
             continue;
         }
 
-        // const path = bidirectional(g, nodeId, anchorNodeId);
-        // // if (!path) {
-        // //     console.log("!! Not connected with anchor", nodeToString(node));
-        // //     break;
-        // // }
-        // path?.forEach((pathNodeId) => {
-        //     if (
-        //         pathNodeId === nodeId ||
-        //         visitedNodes.has(pathNodeId) ||
-        //         nodesToVisitSet.has(pathNodeId)
-        //     ) {
-        //         return;
-        //     }
-
-        //     console.log(
-        //         "New node found via path!!",
-        //         nodeToString(g.getNodeAttributes(pathNodeId))
-        //     );
-        //     nodesToVisit.push(pathNodeId);
-        //     nodesToVisitSet.add(pathNodeId);
-        // });
-
+        // TODO: if outDegree is 0 and not EUR and with rate we should fail
         if (node.ref.asset.name !== "EUR" || g.outDegree(nodeId) > 1) {
             g.outNeighbors(nodeId).forEach((outNodeId) => {
                 if (
@@ -100,7 +86,6 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         }
 
         const parentIds = g.inNeighbors(nodeId);
-
         // No more parents to look at and this is not EUR, failed to combine nodes
         // if (parentIds.length === 0) {
         //     // Make sure nodesToVisit is not empty as this is our failure check
@@ -128,19 +113,65 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         }
     }
 
+    // Process terminated early, was not possible to simplify
+    if (nodesToVisit.length > 0) {
+        return;
+    }
+
+    const sourceNodes: Set<string> = new Set();
+    const terminalNodes: Set<string> = new Set();
+    visitedNodes.forEach((nodeId) => {
+        // No inbound nodes at all, or no visited ones
+        if (
+            !g.someInNeighbor(nodeId, (inNodeId) => visitedNodes.has(inNodeId))
+        ) {
+            sourceNodes.add(nodeId);
+            return;
+        }
+        // No outbound nodes at all, or no visited ones
+        if (
+            !g.someOutNeighbor(nodeId, (outNodeId) =>
+                visitedNodes.has(outNodeId)
+            )
+        ) {
+            terminalNodes.add(nodeId);
+            return;
+        }
+    });
+
+    let path: string[] | null = null;
+    for (const terminalNodeId of terminalNodes) {
+        for (const sourceNodeId of sourceNodes) {
+            path = bidirectional(g, terminalNodeId, sourceNodeId);
+            if (path) break;
+        }
+        if (path) break;
+    }
+
+    if (path) {
+        console.log("Path found!", path.map(nodeIdToString));
+    }
+
+    console.log(
+        "SUCCESS",
+        visitedNodes.size,
+        "visited",
+        sourceNodes.size,
+        "sources",
+        terminalNodes.size,
+        "terminals"
+    );
+    sourceNodes.forEach((nodeId) => {
+        console.log("s---", nodeIdToString(nodeId));
+    });
+    console.log();
+    terminalNodes.forEach((nodeId) => {
+        console.log("t---", nodeIdToString(nodeId));
+    });
+
     visitedNodes.forEach((nodeId) => {
         g.mergeNode(nodeId, { wallet: "Collapsible" });
     });
-
-    if (nodesToVisit.length === 0) {
-        console.log("SUCCESS", visitedNodes.size, "visited");
-        // TODO: compute source and terminal nodes
-        visitedNodes.forEach((nodeId) => {
-            console.log("---", nodeToString(graph.getNode(nodeId)));
-        });
-    } else {
-        // console.log("FAIL", visitedNodes.length, "visited");
-    }
 }
 
 const nodeToString = (node: NodeAttributes): string => {
