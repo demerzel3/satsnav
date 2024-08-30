@@ -1,7 +1,8 @@
 import { AssetType } from "./types";
 import { BalanceGraph, EdgeAttributes, NodeAttributes } from "./BalanceGraph";
+import Graph from "graphology";
 
-export function generateDOT(graph: BalanceGraph): string {
+export function generateDOT(graph: Graph<NodeAttributes, EdgeAttributes>): string {
     const idsMap = new Map<string, string>();
     let lastId = 0;
     const colorMap = new Map<string, string>();
@@ -126,12 +127,12 @@ export function generateDOT(graph: BalanceGraph): string {
     dot += "  node [shape=box];\n\n";
 
     // Generate nodes
-    graph.graph.forEachNode((nodeId, attributes) => {
+    graph.forEachNode((nodeId, attributes) => {
         dot += generateNodeDOT(nodeId, attributes);
     });
 
     // Generate edges
-    graph.graph.forEachEdge((edge, attributes, source, target) => {
+    graph.forEachEdge((edge, attributes, source, target) => {
         dot += generateEdgeDOT(source, target, attributes);
     });
 

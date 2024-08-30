@@ -1,14 +1,16 @@
 import { bidirectional } from "graphology-shortest-path";
 import toUndirected from "graphology-operators/to-undirected";
-import { BalanceGraph, NodeAttributes } from "./BalanceGraph";
+import { BalanceGraph, EdgeAttributes, NodeAttributes } from "./BalanceGraph";
 import { Ref } from "./types";
+import Graph from "graphology";
+import subgraph from "graphology-operators/subgraph";
 
-export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
+export function combineBaseCurrencyConversions(graph: BalanceGraph): Graph<NodeAttributes, EdgeAttributes> | undefined {
     const nodeIdToString = (nodeId: string): string => nodeToString(graph.getNode(nodeId));
 
     const g = graph.graph;
     const pathG = toUndirected(graph.graph);
-    let pickN = 5;
+    let pickN = 3;
     const anchorNodeId = g.findNode((nodeId) => {
         const inEdgeIds = g.inEdges(nodeId);
         const node = g.getNodeAttributes(nodeId);
@@ -153,9 +155,11 @@ export function collapseBaseCurrencyConversions(graph: BalanceGraph) {
         console.log("t---", nodeIdToString(nodeId));
     });
 
-    visitedNodes.forEach((nodeId) => {
-        g.mergeNode(nodeId, { wallet: "Collapsible" });
-    });
+    // visitedNodes.forEach((nodeId) => {
+    //     g.mergeNode(nodeId, { wallet: "Collapsible" });
+    // });
+
+    return subgraph(g, visitedNodes);
 }
 
 const nodeToString = (node: NodeAttributes): string => {
