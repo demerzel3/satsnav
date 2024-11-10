@@ -1,44 +1,42 @@
 import Foundation
 import RealmSwift
 
+@RealmActor
 class LedgerRepository {
-    private let realmConfiguration: Realm.Configuration
-    private var realm: Realm?
+    private let credentials: Credentials
 
     init(credentials: Credentials) {
-        print("SECRET", credentials.localStorageEncryptionKey.toHexString())
-
-        self.realmConfiguration = Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey)
+        self.credentials = credentials
     }
 
-    @RealmActor
-    func getAllLedgerEntries() async -> [LedgerEntry] {
-        let realm = try! await getRealm()
+    private func getRealm() throws -> Realm {
+        try RealmActor.getRealm(credentials: credentials)
+    }
+
+    func getAllLedgerEntries() throws -> [LedgerEntry] {
+        let realm = try getRealm()
         let entries = realm.objects(RealmLedgerEntry.self).sorted { a, b in a.date < b.date }
         return entries.map { self.convertToLedgerEntry($0) }
     }
 
-    @RealmActor
-    func getLedgerById(_ id: String) async -> LedgerEntry? {
-        let realm = try! await getRealm()
+    func getLedgerById(_ id: String) throws -> LedgerEntry? {
+        let realm = try getRealm()
         guard let realmEntry = realm.object(ofType: RealmLedgerEntry.self, forPrimaryKey: id) else {
             return nil
         }
         return convertToLedgerEntry(realmEntry)
     }
 
-    @RealmActor
-    func addLedgerEntry(_ entry: LedgerEntry) async throws {
-        let realm = try! await getRealm()
+    func addLedgerEntry(_ entry: LedgerEntry) throws {
+        let realm = try getRealm()
         try realm.write {
             let realmEntry = self.convertToRealmLedgerEntry(entry)
             realm.add(realmEntry, update: .modified)
         }
     }
 
-    @RealmActor
-    func merge(_ newEntries: [LedgerEntry]) async throws -> Int {
-        let realm = try! await getRealm()
+    func merge(_ newEntries: [LedgerEntry]) throws -> Int {
+        let realm = try getRealm()
         var addedCount = 0
         var updatedCount = 0
 
@@ -99,13 +97,5 @@ class LedgerRepository {
         realmEntry.assetName = entry.asset.name
         realmEntry.assetType = convertAssetTypeToRealmAssetType(entry.asset.type)
         return realmEntry
-    }
-
-    private func getRealm() async throws -> Realm {
-        if realm == nil {
-            realm = try await Realm(configuration: realmConfiguration, actor: RealmActor.shared)
-        }
-
-        return realm!
     }
 }

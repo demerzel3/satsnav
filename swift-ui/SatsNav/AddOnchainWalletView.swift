@@ -15,7 +15,7 @@ struct AddOnchainWalletView: View {
 private struct WalletAddressesView: View {
     let onDone: (OnchainWallet?) -> Void
     @State var name = "❄️"
-    @State var addresses: RealmSwift.List<OnchainWalletAddress> = .init()
+    @State var addresses: [Address] = []
 
     var body: some View {
         Form {
@@ -70,11 +70,11 @@ private struct WalletAddressesView: View {
         let newAddresses = pastedString
             .split(separator: "\n")
             .compactMap(parseAddress)
-        addresses.append(objectsIn: newAddresses)
+        addresses.append(contentsOf: newAddresses)
     }
 }
 
-func parseAddress(row: ArraySlice<Character>) -> OnchainWalletAddress? {
+func parseAddress(row: ArraySlice<Character>) -> Address? {
     let chunks = row.split(separator: ",", maxSplits: 2)
     guard
         let address = chunks.first,
@@ -85,7 +85,7 @@ func parseAddress(row: ArraySlice<Character>) -> OnchainWalletAddress? {
         return nil
     }
 
-    return OnchainWalletAddress(id: String(address), scriptHash: String(scriptHash))
+    return Address(id: String(address), scriptHash: String(scriptHash))
 }
 
 // TODO: used only to filter input, but to be replaced with proper validation

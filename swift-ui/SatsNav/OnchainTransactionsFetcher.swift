@@ -1,6 +1,6 @@
 import Foundation
 
-final class OnchainTransactionsFetcher {
+final actor OnchainTransactionsFetcher {
     private var storage = TransactionStorage()
     private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 

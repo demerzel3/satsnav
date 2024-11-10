@@ -3,7 +3,7 @@ import SwiftUI
 
 private struct WalletProvider: Identifiable, Hashable {
     let name: String
-    let createCSVReader: () -> CSVReader
+    let createCSVReader: @Sendable () -> CSVReader
 
     var id: String {
         return name

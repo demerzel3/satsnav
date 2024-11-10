@@ -28,7 +28,8 @@ private let INTERVALS: [ChartInterval] = [
 ]
 
 struct PortfolioView: View {
-    @ObservedObject private var balances: BalancesManager
+    @StateObject private var balancesState = BalancesState()
+    @ObservedObject private var balances: BalancesCoordinator
     @ObservedObject private var btc: HistoricPriceProvider
     @ObservedObject private var webSocketManager: WebSocketManager
     @State private var csvImportWizardPresented = false
@@ -37,18 +38,18 @@ struct PortfolioView: View {
     @State private var chartInterval = ChartInterval.all
     @State private var showAllWallets = false
 
-    init(balances: BalancesManager, btc: HistoricPriceProvider, webSocketManager: WebSocketManager) {
+    init(balances: BalancesCoordinator, btc: HistoricPriceProvider, webSocketManager: WebSocketManager) {
         self.balances = balances
         self.btc = btc
         self.webSocketManager = webSocketManager
     }
-    
+
     var header: some View {
         VStack {
-            (Text("BTC ") + Text(balances.current.total as NSNumber, formatter: btcFormatter)).font(.title)
-            (Text("€ ") + Text((balances.current.total*webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
+            (Text("BTC ") + Text(balances.balances.current.total as NSNumber, formatter: btcFormatter)).font(.title)
+            (Text("€ ") + Text((balances.balances.current.total*webSocketManager.btcPrice) as NSNumber, formatter: fiatFormatter)).font(.title3).foregroundStyle(.secondary)
             (Text("BTC 1 = € ") + Text(webSocketManager.btcPrice as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
-            (Text("cost basis € ") + Text((balances.current.spent / balances.current.total) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
+            (Text("cost basis € ") + Text((balances.balances.current.spent / balances.balances.current.total) as NSNumber, formatter: fiatFormatter)).font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
@@ -78,10 +79,10 @@ struct PortfolioView: View {
         }
 
         if showAllWallets {
-            return balances.recap
+            return balances.balances.recap
         }
 
-        guard let lastItemIndexToDisplay = balances.recap.lastIndex(where: { item in
+        guard let lastItemIndexToDisplay = balances.balances.recap.lastIndex(where: { item in
             let btcAmount = item.sumByAsset[BTC, default: 0]
             let oneEuroInBtc = 1 / webSocketManager.btcPrice
 
@@ -90,7 +91,7 @@ struct PortfolioView: View {
             return []
         }
 
-        return [WalletRecap](balances.recap[...lastItemIndexToDisplay])
+        return [WalletRecap](balances.balances.recap[...lastItemIndexToDisplay])
     }
 
     var chart: some View {
@@ -167,25 +168,26 @@ struct PortfolioView: View {
         List {
             let wallets = recapToDisplay
             if wallets.count > 0 {
-                ForEach(wallets) { item in
+                ForEach(recapToDisplay) { item in
                     let btcAmount = item.sumByAsset[BTC, default: 0]
                     let oneEuroInBtc = 1 / webSocketManager.btcPrice
                     let hasBtc = btcAmount >= oneEuroInBtc
 
-                    NavigationLink(destination: RefsView(refs: balances.getRefs(byWallet: item.wallet, asset: BTC))) {
-                        // Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
-                        HStack {
-                            Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text("BTC \(formatBtcAmount(btcAmount))").foregroundStyle(hasBtc ? .primary : .secondary)
-                                Text("entries \(item.count)").foregroundStyle(.secondary)
-                            }
+                    // TODO: move refs to BalancesState to restore balances.getRefs()
+                    // NavigationLink(destination: RefsView(refs: balances.getRefs(byWallet: item.wallet, asset: BTC))) {
+                    // Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
+                    HStack {
+                        Text(item.wallet).foregroundStyle(hasBtc ? .primary : .secondary)
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            Text("BTC \(formatBtcAmount(btcAmount))").foregroundStyle(hasBtc ? .primary : .secondary)
+                            Text("entries \(item.count)").foregroundStyle(.secondary)
                         }
                     }
+                    // }
                 }
 
-                if balances.recap.count > wallets.count {
+                if balances.balances.recap.count > wallets.count {
                     HStack {
                         Spacer()
                         Button(action: { showAllWallets = true }) {
@@ -251,8 +253,7 @@ struct PortfolioView: View {
 
                 // TODO: communicate progress while this is ongoing...
                 Task {
-                    await balances.merge(entries)
-                    await balances.update()
+                    try await balances.mergeAndUpdate(entries: entries)
                 }
             })
         }
@@ -266,7 +267,7 @@ struct PortfolioView: View {
 
                 // TODO: communicate progress while this is ongoing...
                 Task {
-                    await balances.addOnchainWallet(wallet)
+                    try await balances.addOnchainWallet(wallet)
                 }
             })
         }
@@ -280,7 +281,7 @@ struct PortfolioView: View {
 
                 // TODO: communicate progress while this is ongoing...
                 Task {
-                    await balances.addServiceAccount(account)
+                    try await balances.addServiceAccount(account)
                 }
             })
         }

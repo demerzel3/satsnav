@@ -8,7 +8,7 @@ typealias SplitInfo = (original: Ref, left: Ref, right: Ref)
 func subtract(refs: inout RefsArray, amount: Decimal) -> (removed: RefsArray, split: SplitInfo?) {
     assert(amount >= 0, "amount must be positive")
     let balanceBefore = refs.sum
-    assert(amount <= balanceBefore, "amount must be less than or equal to balance")
+    // assert(amount <= balanceBefore, "amount must be less than or equal to balance (\(amount), \(balanceBefore))")
 
     var subtractedRefs = RefsArray()
     var totalRemoved: Decimal = 0

@@ -11,6 +11,7 @@
 		E00D26D52C6D419B005D51D5 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D42C6D419B005D51D5 /* HistoryView.swift */; };
 		E00D26D72C6D41D5005D51D5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D62C6D41D5005D51D5 /* ContentView.swift */; };
 		E00D26D92C6D4B81005D51D5 /* TransactionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00D26D82C6D4B81005D51D5 /* TransactionDetailView.swift */; };
+		E0336A862CE019CF00B33BD1 /* OnchainWalletRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0336A852CE019C700B33BD1 /* OnchainWalletRepository.swift */; };
 		E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DF92BB6AEE200DACDA9 /* RefsView.swift */; };
 		E0392DFC2BB6F77C00DACDA9 /* SpendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */; };
 		E05A11F92B24FB8A0062D67C /* Realm in Frameworks */ = {isa = PBXBuildFile; productRef = E05A11F82B24FB8A0062D67C /* Realm */; };
@@ -87,6 +88,7 @@
 		E00D26D42C6D419B005D51D5 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		E00D26D62C6D41D5005D51D5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		E00D26D82C6D4B81005D51D5 /* TransactionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailView.swift; sourceTree = "<group>"; };
+		E0336A852CE019C700B33BD1 /* OnchainWalletRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnchainWalletRepository.swift; sourceTree = "<group>"; };
 		E0392DF92BB6AEE200DACDA9 /* RefsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefsView.swift; sourceTree = "<group>"; };
 		E0392DFB2BB6F77C00DACDA9 /* SpendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendsView.swift; sourceTree = "<group>"; };
 		E05A11FC2B265C290062D67C /* CredentialsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsStore.swift; sourceTree = "<group>"; };
@@ -175,6 +177,8 @@
 			children = (
 				E06A2C832B249B6000ACC723 /* LedgerEntry.swift */,
 				E00D26D22C543D57005D51D5 /* LedgerRepository.swift */,
+				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
+				E0336A852CE019C700B33BD1 /* OnchainWalletRepository.swift */,
 			);
 			path = Repository;
 			sourceTree = "<group>";
@@ -230,7 +234,6 @@
 				E07942942B13E4A60053DB47 /* Models.swift */,
 				E07942842B13E4A60053DB47 /* OnchainTransaction.swift */,
 				E0DBFCA52B40219B0042D319 /* OnchainTransactionsFetcher.swift */,
-				E094B5EA2B423D7A00E8F41C /* OnchainWallet.swift */,
 				E07942482B13A7DE0053DB47 /* PortfolioView.swift */,
 				E0392DF92BB6AEE200DACDA9 /* RefsView.swift */,
 				E07942462B13A7DE0053DB47 /* SatsNavApp.swift */,
@@ -464,6 +467,7 @@
 				E07942B72B13F7A60053DB47 /* CoinbaseCSVReader.swift in Sources */,
 				E07942B92B13F7A60053DB47 /* CSVReader.swift in Sources */,
 				E07942A32B13E4A60053DB47 /* ElectrumJSONRPCRequest.swift in Sources */,
+				E0336A862CE019CF00B33BD1 /* OnchainWalletRepository.swift in Sources */,
 				E00D26D52C6D419B005D51D5 /* HistoryView.swift in Sources */,
 				E06A2C842B249B6000ACC723 /* LedgerEntry.swift in Sources */,
 				E0392DFA2BB6AEE200DACDA9 /* RefsView.swift in Sources */,
@@ -672,7 +676,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNav;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -702,7 +706,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.demerzel3.SatsNav;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
@@ -723,7 +727,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SatsNav.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SatsNav";
 			};
@@ -745,7 +749,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SatsNav.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SatsNav";
 			};
@@ -765,7 +769,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = SatsNav;
 			};
@@ -785,7 +789,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = SatsNav;
 			};

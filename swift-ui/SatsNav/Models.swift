@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ElectrumTransaction: Codable {
+public struct ElectrumTransaction: Codable, Sendable {
     public let txid, hash: String
     public let version, size, vsize, weight: Int
     public let locktime: Int
@@ -10,7 +10,7 @@ public struct ElectrumTransaction: Codable {
     public let blockhash: String?
     public let confirmations, time, blocktime: Int?
 
-    public struct Vin: Codable {
+    public struct Vin: Codable, Sendable {
         public let coinbase: String?
         public let txid: String?
         public let vout: Int?
@@ -19,23 +19,23 @@ public struct ElectrumTransaction: Codable {
         public let sequence: Int
     }
 
-    public struct ScriptSig: Codable {
+    public struct ScriptSig: Codable, Sendable {
         public let asm, hex: String
     }
 
-    public struct Vout: Codable {
+    public struct Vout: Codable, Sendable {
         public let value: Double
         public let n: Int
         public let scriptPubKey: ScriptPubKey
     }
 
-    public struct ScriptPubKey: Codable {
+    public struct ScriptPubKey: Codable, Sendable {
         public let asm, desc, hex: String
         public let address: String?
         public let type: ScriptPubKeyType
     }
 
-    public enum ScriptPubKeyType: String, Codable {
+    public enum ScriptPubKeyType: String, Codable, Sendable {
         case witness_v0_keyhash
         case witness_v1_taproot
         case witness_v0_scripthash

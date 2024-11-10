@@ -11,7 +11,7 @@ public struct JSONRPCRequest {
     let params: [String: JSONRPCParam]
 }
 
-public struct JSONRPCError: Error, Decodable {
+public struct JSONRPCError: Error, Decodable, Sendable {
     let code: Int
     let message: String
 }
@@ -23,7 +23,7 @@ struct JSONRPCResponse<ResultT: Decodable>: Decodable {
 }
 
 @available(iOS 13.0, macOS 10.15, *)
-public class JSONRPCClient: ObservableObject {
+public class JSONRPCClient {
     public init(hostName: String, port: Int) {
         let host = NWEndpoint.Host(hostName)
         let port = NWEndpoint.Port("\(port)")!
@@ -36,7 +36,7 @@ public class JSONRPCClient: ObservableObject {
     private var lastId: Int = 0
     private let debug: Bool
     private var resultData = Data()
-    private var completion: Completion? = nil
+    private var completion: Completion?
 
     public func start() {
         if self.debug {

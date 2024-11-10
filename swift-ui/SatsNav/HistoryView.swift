@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @ObservedObject var balancesManager: BalancesManager
+    @ObservedObject var balances: BalancesCoordinator
     @State private var showingAlert = false
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(balancesManager.changes) { change in
+                ForEach(balances.changes.filter { ($0.isDeposit || $0.isWithdrawal) && !$0.isSelfTransfer }) { change in
                     NavigationLink(destination: TransactionDetailView(change: change)) {
                         TransactionRow(change: change)
                     }
@@ -29,7 +29,7 @@ struct HistoryView: View {
     }
 
     private func copyJSONToClipboard() {
-        if let jsonString = balanceChangesToJSON(balancesManager.changes) {
+        if let jsonString = balanceChangesToJSON(balances.changes) {
             UIPasteboard.general.string = jsonString
             showingAlert = true
         }

@@ -60,9 +60,9 @@ class HistoricPriceProvider: ObservableObject {
                 prices[Date(timeIntervalSince1970: TimeInterval(timestamp))] = price
             }
 
-            DispatchQueue.main.async {
-                self.prices = prices
-            }
+//            DispatchQueue.main.async {
+//                self.prices = prices
+//            }
         }
     }
 }
