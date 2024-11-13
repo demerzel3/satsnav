@@ -34,11 +34,7 @@ final class CacheItem: Object {
     private static var cachedRealm: Realm?
 
     static func getRealm(credentials: Credentials) throws -> Realm {
-        if cachedRealm == nil {
-            cachedRealm = try Realm(configuration: Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey))
-        }
-
-        return cachedRealm!
+        try Realm(configuration: Realm.Configuration(encryptionKey: credentials.localStorageEncryptionKey))
     }
 }
 
@@ -67,8 +63,12 @@ final class CacheRepository {
         self.credentials = credentials
     }
 
+    private func getRealm() throws -> Realm {
+        return try RealmActor.getRealm(credentials: credentials)
+    }
+
     func loadCache() async throws -> (history: [PortfolioHistoryItem], recap: [WalletRecap])? {
-        let realm = try RealmActor.getRealm(credentials: credentials)
+        let realm = try getRealm()
 
         let maybeHistory: [PortfolioHistoryItem]? = realm.object(ofType: CacheItem.self,
                                                                  forPrimaryKey: CacheKey.balancesManagerHistory)
@@ -85,7 +85,7 @@ final class CacheRepository {
     }
 
     func saveCache(history: [PortfolioHistoryItem], recap: [WalletRecap]) async throws {
-        let realm = try RealmActor.getRealm(credentials: credentials)
+        let realm = try getRealm()
         try realm.write {
             try realm.add(CacheItem(key: .balancesManagerHistory, value: history), update: .modified)
             try realm.add(CacheItem(key: .balancesManagerRecap, value: recap), update: .modified)
@@ -176,6 +176,10 @@ final actor BalancesManager {
         let mergedCount = try! await ledgerRepository.merge(newEntries)
         print("-- Merged \(mergedCount) entries")
         print("-- MERGING ENDED")
+    }
+
+    func addOnchainWallet(_ wallet: OnchainWallet) async throws {
+        try await onchainWalletRepository.add(wallet)
     }
 }
 

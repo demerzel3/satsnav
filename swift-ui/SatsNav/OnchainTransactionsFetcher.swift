@@ -1,11 +1,11 @@
 import Foundation
 
-final actor OnchainTransactionsFetcher {
+struct OnchainTransactionsFetcher: Sendable {
     private var storage = TransactionStorage()
     private let client = JSONRPCClient(hostName: "electrum1.bluewallet.io", port: 50001)
 
     init() async {
-        client.start()
+        await client.start()
         await storage.read()
     }
 
@@ -17,7 +17,7 @@ final actor OnchainTransactionsFetcher {
         let unknownTransactionIds = await storage.notIncludedTxIds(txIds: txIdsSet)
         if unknownTransactionIds.count > 0 {
             let txRequests = Set<String>(unknownTransactionIds).map { JSONRPCRequest.getTransaction(txHash: $0, verbose: true) }
-            guard let transactions: [Result<ElectrumTransaction, JSONRPCError>] = await client.send(requests: txRequests) else {
+            guard let transactions: [Result<ElectrumTransaction, JSONRPCError>] = try? await client.send(requests: txRequests) else {
                 print("🚨 Unable to get transactions")
                 exit(1)
             }
@@ -167,7 +167,7 @@ final actor OnchainTransactionsFetcher {
                     JSONRPCRequest.getScripthashHistory(scriptHash: address.scriptHash)
                 }
             print("Requesting transactions for \(historyRequests.count) addresses")
-            guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = await client.send(requests: historyRequests) else {
+            guard let history: [Result<GetScriptHashHistoryResult, JSONRPCError>] = try? await client.send(requests: historyRequests) else {
                 fatalError("🚨 Unable to get history")
             }
 
@@ -203,7 +203,7 @@ final actor OnchainTransactionsFetcher {
         return entries
     }
 
-    func shutdown() {
-        client.stop()
+    func shutdown() async {
+        await client.stop()
     }
 }

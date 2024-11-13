@@ -10,7 +10,7 @@ class OnchainWalletRepository {
     }
 
     private func getRealm() throws -> Realm {
-        try RealmActor.getRealm(credentials: credentials)
+        return try RealmActor.getRealm(credentials: credentials)
     }
 
     func getAllOnchainWallets() throws -> [OnchainWallet] {
@@ -19,9 +19,25 @@ class OnchainWalletRepository {
         return entries.map { self.convertToOnchainWallet($0) }
     }
 
-    func convertToOnchainWallet(_ realmObject: RealmOnchainWallet) -> OnchainWallet {
+    func add(_ wallet: OnchainWallet) throws {
+        let realm = try getRealm()
+        try! realm.write {
+            realm.add(convertToRealmOnchainWallet(wallet))
+        }
+    }
+
+    private func convertToOnchainWallet(_ realmObject: RealmOnchainWallet) -> OnchainWallet {
         .init(
             name: realmObject.name, addresses: realmObject.addresses.map { $0.toAddress() }
+        )
+    }
+
+    private func convertToRealmOnchainWallet(_ object: OnchainWallet) -> RealmOnchainWallet {
+        let addresses = List<RealmOnchainWalletAddress>()
+        addresses.append(objectsIn: object.addresses.map { RealmOnchainWalletAddress(id: $0.id, scriptHash: $0.scriptHash) })
+
+        return .init(
+            name: object.name, addresses: addresses
         )
     }
 }

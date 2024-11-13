@@ -1,26 +1,26 @@
 import Foundation
 import RealmSwift
 
-final class RealmOnchainWallet: Object {
-    final class OnchainWalletAddress: EmbeddedObject {
-        @Persisted var id: String
-        @Persisted var scriptHash: String
+final class RealmOnchainWalletAddress: EmbeddedObject {
+    @Persisted var id: String
+    @Persisted var scriptHash: String
 
-        convenience init(id: String, scriptHash: String) {
-            self.init()
-            self.id = id
-            self.scriptHash = scriptHash
-        }
-
-        func toAddress() -> Address {
-            Address(id: id, scriptHash: scriptHash)
-        }
+    convenience init(id: String, scriptHash: String) {
+        self.init()
+        self.id = id
+        self.scriptHash = scriptHash
     }
 
-    @Persisted(primaryKey: true) var name: String
-    @Persisted var addresses: List<OnchainWalletAddress>
+    func toAddress() -> Address {
+        Address(id: id, scriptHash: scriptHash)
+    }
+}
 
-    convenience init(name: String, addresses: List<OnchainWalletAddress>) {
+final class RealmOnchainWallet: Object {
+    @Persisted(primaryKey: true) var name: String
+    @Persisted var addresses: List<RealmOnchainWalletAddress>
+
+    convenience init(name: String, addresses: List<RealmOnchainWalletAddress>) {
         self.init()
         self.name = name
         self.addresses = addresses

@@ -33,11 +33,14 @@ class BalancesCoordinator: ObservableObject {
     }
 
     func addOnchainWallet(_ wallet: OnchainWallet) async throws {
-        // TODO: to be implemented
+        if let manager {
+            try await manager.addOnchainWallet(wallet)
+            try await manager.update()
+        }
     }
 
     func addServiceAccount(_ account: ServiceAccount) async throws {
-        // TODO: to be implemented
+        // TODO: implement
     }
 }
 
